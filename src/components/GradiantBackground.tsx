@@ -29,7 +29,6 @@ const GradientBackground = forwardRef<GradientBackgroundHandle>((_, ref) => {
   const [idx, setIdx] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // exposed method
   const next = useCallback(() => {
     let nextIdx = Math.floor(Math.random() * gradients.length);
     while (nextIdx === idx) {
@@ -39,13 +38,12 @@ const GradientBackground = forwardRef<GradientBackgroundHandle>((_, ref) => {
     audioRef.current?.play().catch(console.error);
   }, [idx]);
 
-  // wire `ref.current.next()` → our `next()`
   useImperativeHandle(ref, () => ({ next }), [next]);
 
   return (
     <div
       className={clsx(
-        "fixed inset-0 z-0 pointer-events-none", // sits behind content, clicks fall through
+        "fixed inset-0 z-0 pointer-events-none",
         "bg-gradient-to-br transition-all duration-1000",
         gradients[idx]
       )}
@@ -58,4 +56,5 @@ const GradientBackground = forwardRef<GradientBackgroundHandle>((_, ref) => {
     </div>
   );
 });
+GradientBackground.displayName = "GradientBackground";
 export default GradientBackground;
