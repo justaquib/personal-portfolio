@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import {
+  useState,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+  useCallback,
+} from "react";
 import clsx from "clsx";
 
 const gradients = [
@@ -16,33 +22,34 @@ const gradients = [
   "from-gray-700 via-gray-600 to-gray-500",
 ];
 
-export default function GradientBackground() {
-  const [gradientIndex, setGradientIndex] = useState(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+export interface GradientBackgroundHandle {
+  next: () => void;
+}
+const GradientBackground = forwardRef<GradientBackgroundHandle>((_, ref) => {
+  const [idx, setIdx] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
-  const handleClick = () => {
-    let nextIndex = Math.floor(Math.random() * gradients.length);
-    while (nextIndex === gradientIndex) {
-      nextIndex = Math.floor(Math.random() * gradients.length);
+  // exposed method
+  const next = useCallback(() => {
+    let nextIdx = Math.floor(Math.random() * gradients.length);
+    while (nextIdx === idx) {
+      nextIdx = Math.floor(Math.random() * gradients.length);
     }
-    setGradientIndex(nextIndex);
+    setIdx(nextIdx);
+    audioRef.current?.play().catch(console.error);
+  }, [idx]);
 
-    // Play click sound
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play();
-    }
-  };
+  // wire `ref.current.next()` → our `next()`
+  useImperativeHandle(ref, () => ({ next }), [next]);
 
   return (
     <div
-      onClick={handleClick}
       className={clsx(
-        "fixed inset-0 transition-all duration-1000 bg-gradient-to-br",
-        gradients[gradientIndex]
+        "fixed inset-0 z-0 pointer-events-none", // sits behind content, clicks fall through
+        "bg-gradient-to-br transition-all duration-1000",
+        gradients[idx]
       )}
     >
-      {/* Hidden audio element */}
       <audio
         ref={audioRef}
         src="/assets/sounds/water-drop.mp3"
@@ -50,4 +57,5 @@ export default function GradientBackground() {
       />
     </div>
   );
-}
+});
+export default GradientBackground;

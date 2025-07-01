@@ -29,8 +29,6 @@ export default function CursorGuides() {
       ripple.style.top = `${e.clientY - 20}px`;
 
       rippleContainerRef.current?.appendChild(ripple);
-
-      // Remove ripple after animation
       setTimeout(() => {
         ripple.remove();
       }, 600);
@@ -57,7 +55,7 @@ export default function CursorGuides() {
       />
       <div
         ref={dotRef}
-        className="fixed -top-1 left-0 w-[6px] h-[6px] bg-white/80 rounded-full pointer-events-none z-50 transition-transform duration-75 ease-linear"
+        className="fixed -top-1 -left-1 w-[6px] h-[6px] bg-white/80 rounded-full pointer-events-none z-50 transition-transform duration-75 ease-linear"
       />
       <div
         ref={rippleContainerRef}
