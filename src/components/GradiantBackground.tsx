@@ -30,13 +30,23 @@ const GradientBackground = forwardRef<GradientBackgroundHandle>((_, ref) => {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const next = useCallback(() => {
-    let nextIdx = Math.floor(Math.random() * gradients.length);
-    while (nextIdx === idx) {
-      nextIdx = Math.floor(Math.random() * gradients.length);
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.play().catch((err) => {
+        if (err.name !== "AbortError") console.error(err);
+      });
     }
-    setIdx(nextIdx);
-    audioRef.current?.play().catch(console.error);
-  }, [idx]);
+
+    setIdx((prev) => {
+      let nextIdx = Math.floor(Math.random() * gradients.length);
+      while (nextIdx === prev) {
+        nextIdx = Math.floor(Math.random() * gradients.length);
+      }
+      return nextIdx;
+    });
+  }, [gradients.length]);
 
   useImperativeHandle(ref, () => ({ next }), [next]);
 

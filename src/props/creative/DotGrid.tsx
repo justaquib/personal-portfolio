@@ -1,11 +1,6 @@
 "use client";
 
-import React, {
-  useRef,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useRef, useEffect, useCallback, useMemo } from "react";
 import { gsap } from "gsap";
 import { InertiaPlugin } from "gsap/InertiaPlugin";
 
@@ -15,17 +10,16 @@ function throttle<Args extends unknown[]>(
   fn: (...args: Args) => void,
   delay: number
 ): (...args: Args) => void {
-  let lastCall = 0
+  let lastCall = 0;
 
   return (...args: Args) => {
-    const now = performance.now()
+    const now = performance.now();
     if (now - lastCall >= delay) {
-      lastCall = now
-      fn(...args)
+      lastCall = now;
+      fn(...args);
     }
-  }
+  };
 }
-
 
 interface Dot {
   cx: number;
@@ -145,7 +139,6 @@ const DotGrid: React.FC<DotGridProps> = ({
     dotsRef.current = newDots;
   }, [dotSize, gap]);
 
-  // Draw loop
   useEffect(() => {
     if (!circlePath) return;
     let rafId: number;
@@ -192,7 +185,6 @@ const DotGrid: React.FC<DotGridProps> = ({
     return () => cancelAnimationFrame(rafId);
   }, [proximity, baseColor, activeRgb, baseRgb, circlePath]);
 
-  // Grid rebuild on resize
   useEffect(() => {
     buildGrid();
     let ro: ResizeObserver | null = null;
@@ -215,7 +207,6 @@ const DotGrid: React.FC<DotGridProps> = ({
     };
   }, [buildGrid]);
 
-  // Mouse move & click handlers
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       const now = performance.now();
@@ -273,9 +264,12 @@ const DotGrid: React.FC<DotGridProps> = ({
       const cx = e.clientX - rect.left;
       const cy = e.clientY - rect.top;
 
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(console.error);
+      const audio = audioRef.current;
+      if (audio && audio.isConnected) {
+        audio.currentTime = 0;
+        audio.play().catch((err) => {
+          if (err.name !== "AbortError") console.error(err);
+        });
       }
 
       for (const dot of dotsRef.current) {
@@ -333,11 +327,7 @@ const DotGrid: React.FC<DotGridProps> = ({
           className="absolute inset-0 w-full h-full pointer-events-none"
         />
       </div>
-      <audio
-        ref={audioRef}
-        src="/assets/sounds/pick.mp3"
-        preload="auto"
-      />
+      <audio ref={audioRef} src="/assets/sounds/pick.mp3" preload="auto" />
     </section>
   );
 };

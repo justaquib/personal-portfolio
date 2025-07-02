@@ -6,13 +6,15 @@ import GradientBackground, {
 import ScrollIndicator from "@/components/ScrollIndicator";
 import ShinyText from "@/props/creative/ShinyText";
 import Image from "next/image";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import TrueFocus from "@/props/creative/TrueFocus";
-import { CodeXml, Download, Mail } from "lucide-react";
+import { CodeXml, Mail } from "lucide-react";
 import Magnet from "@/props/creative/Magnet";
 import SpotlightCard from "@/props/creative/SpotlightCard";
 import Link from "next/link";
+import { DownloadIcon } from "@/props/creative/icons/DownloadIcon";
+import Experience from "@/widgets/ExperienceList";
 
 export default function Home() {
   const bgRef = useRef<GradientBackgroundHandle>(null);
@@ -20,6 +22,7 @@ export default function Home() {
     hidden: { opacity: 0, y: 50 },
     visible: { opacity: 1, y: 0 },
   };
+  const [totalExp, setTotalExp] = useState<string | null>(null);
   return (
     <main
       onClick={() => bgRef.current?.next()}
@@ -124,7 +127,12 @@ export default function Home() {
           <div className="mt-8 p-8 min-h-[400px] bg-black/30 bg-opacity-10 backdrop-blur-md rounded-4xl shadow-lg">
             <div className="flex flex-col sm:flex-row items-center justify-between">
               <div>
-                <h2 className="text-3xl font-bold mb-2 text-iceland">Experience</h2>
+                <h2 className="text-3xl font-bold mb-2 text-iceland flex gap-2">
+                  Experience -
+                  <span>
+                    {totalExp}
+                  </span>
+                </h2>
               </div>
               <a
                 href="/assets/docs/Aquib_Shahbaz_Resume.pdf"
@@ -132,10 +140,11 @@ export default function Home() {
                 title="Download Resume"
                 download={true}
               >
-                <Download className="opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
+                <DownloadIcon width={16} height={16} />
               </a>
             </div>
             <hr className="w-full border-t border-white/20 my-2" />
+            <Experience setTotalExp={setTotalExp} />
           </div>
         </div>
       </motion.section>
