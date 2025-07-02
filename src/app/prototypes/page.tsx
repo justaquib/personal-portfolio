@@ -1,4 +1,5 @@
 "use client";
+import BackButton from "@/components/BackButton";
 import DotGrid from "@/props/creative/DotGrid";
 import React from "react";
 
@@ -22,25 +23,18 @@ export default function Prototypes() {
         <div className="relative w-10/12 max-w-lg h-screen bg-white/10 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden pointer-events-auto">
           <div
             className="
-        absolute inset-0
-          bg-white/10
-          backdrop-blur-xl
-          backdrop-saturate-150
-          border border-white/40
-          rounded-3xl
-          shadow-2xl
-      "
+                absolute inset-0
+                bg-white/10
+                backdrop-blur-xl
+                backdrop-saturate-150
+                border border-white/40
+                rounded-3xl
+                shadow-2xl
+            "
           />
 
           <div className="relative z-10 h-full flex flex-col p-8 text-white pointer-events-auto">
-            <button
-              className="absolute top-4 left-4 text-white hover:text-gray-300 transition-colors duration-200"
-              onClick={() => window.history.back()}
-            >
-              ← Back
-            </button>
-
-            {/* Flex‐grow center content vertically */}
+            <BackButton />
             <div className="flex-grow flex flex-col justify-center items-center text-center">
               <h1 className="text-3xl font-bold mb-2">Prototypes</h1>
               <p className="text-lg">Interactive Dot Grid Prototype</p>
