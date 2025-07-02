@@ -12,6 +12,7 @@ import TrueFocus from "@/props/creative/TrueFocus";
 import { CodeXml, Download, Mail } from "lucide-react";
 import Magnet from "@/props/creative/Magnet";
 import SpotlightCard from "@/props/creative/SpotlightCard";
+import Link from "next/link";
 
 export default function Home() {
   const bgRef = useRef<GradientBackgroundHandle>(null);
@@ -51,7 +52,7 @@ export default function Home() {
         <ScrollIndicator />
       </motion.section>
       <motion.section
-        className="relative z-10 h-screen snap-start flex flex-col items-center justify-center text-white"
+        className="relative z-10 h-screen snap-start flex flex-col items-center justify-center mt-8 text-white"
         variants={sectionVariants}
         initial="hidden"
         whileInView="visible"
@@ -108,32 +109,33 @@ export default function Home() {
                 experiences.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <SpotlightCard className="custom-spotlight-card !px-4 !py-2 !bg-slate-800/30" spotlightColor="rgba(0, 229, 255, 0.2)">
-                <a
-                  href=""
-                  className="flex flex-row gap-2 justify-center items-center bg-transparent text-white backdrop-blur-md transition-colors duration-200"
+            <div className="flex flex-col z-50 sm:flex-row items-center justify-between gap-4">
+              <Link href="/prototypes" className="block">
+                <SpotlightCard
+                  className="custom-spotlight-card !px-4 !py-2 !bg-slate-800/30 flex flex-row gap-2 justify-center items-center"
+                  spotlightColor="rgba(0, 229, 255, 0.2)"
                 >
                   <CodeXml />
-                  <span className="font-extrabold">prototype</span>
-                </a>
-              </SpotlightCard>
+                  <span className="font-extrabold">prototypes</span>
+                </SpotlightCard>
+              </Link>
             </div>
           </div>
           <div className="mt-8 p-8 min-h-[400px] bg-black/30 bg-opacity-10 backdrop-blur-md rounded-4xl shadow-lg">
             <div className="flex flex-col sm:flex-row items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold mb-2">Experience</h2>
+                <h2 className="text-3xl font-bold mb-2 text-iceland">Experience</h2>
               </div>
               <a
-                href=""
+                href="/assets/docs/Aquib_Shahbaz_Resume.pdf"
                 className="flex justify-center items-center w-10 h-10 group cursor-pointer border border-white/20 rounded-full p-3 bg-white/10 transition-colors duration-200"
                 title="Download Resume"
+                download={true}
               >
                 <Download className="opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
               </a>
             </div>
-            <hr className="w-full border-t border-white/20 my-4" />
+            <hr className="w-full border-t border-white/20 my-2" />
           </div>
         </div>
       </motion.section>
