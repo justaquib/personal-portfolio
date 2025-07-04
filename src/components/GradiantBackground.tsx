@@ -46,7 +46,7 @@ const GradientBackground = forwardRef<GradientBackgroundHandle>((_, ref) => {
       }
       return nextIdx;
     });
-  }, [gradients.length]);
+  }, []);
 
   useImperativeHandle(ref, () => ({ next }), [next]);
 

@@ -1,9 +1,10 @@
+import { CircleChevronLeft } from "@/props/creative/icons/CircleChevronLeft";
 import React from "react";
 
 const BackButton = () => {
   return (
     <button
-      className="absolute top-4 left-4 text-white hover:text-gray-300 transition-colors duration-200 cursor-pointer"
+      className="text-white hover:text-gray-300 transition-colors duration-200 cursor-pointer"
       onClick={() => {
         if (window.history.length > 1) {
           window.history.back();
@@ -12,7 +13,7 @@ const BackButton = () => {
         }
       }}
     >
-      ← Back
+      <CircleChevronLeft />
     </button>
   );
 };
