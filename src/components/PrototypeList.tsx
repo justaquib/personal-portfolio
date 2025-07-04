@@ -3,16 +3,16 @@ import React from "react";
 
 const PrototypeList = () => {
   const items = [
-    "Hello World",
-    "Item 2",
-    "Item 3",
-    "Item 4",
-    "Item 5",
-    "Item 6",
-    "Item 7",
-    "Item 8",
-    "Item 9",
-    "Item 10",
+    "Hello World ✋",
+    "Sonic ⚡️", // maybe a file converter or speech-to-text?
+    "Doc Reader 📖", // PDF/Doc AI reader
+    "PDF Generator 📄", // Custom resume or report generator
+    "AI Chatbot 🤖", // ChatGPT clone with your own UI
+    "Doodle Predictor ✏️", // Draw-and-guess AI using TensorFlow.js
+    "Code Summarizer 🧠", // AI tool that explains code snippets
+    "TaskFlow ✅", // Kanban board or productivity app
+    "Mood Journal 🌈", // Daily emotion tracker + AI insights
+    "Stock Tracker 📈", // Real-time stock dashboard (maybe use RowGap idea?)
   ];
 
   return (
