@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "slug": "hello-world",
+    "title": "Hello World ✋",
+    "stack": "react + motion",
+    "comment": "react and framer motion"
+  },
+  {
+    "id": 2,
+    "slug": "sonic",
+    "title": "Sonic ⚡️",
+    "stack": "three js",
+    "comment": "three js animation module"
+  },
+  {
+    "id": 3,
+    "slug": "doc-reader",
+    "title": "Doc Reader 📖",
+    "stack": "GPT-Wrapper",
+    "comment": "PDF/Doc AI reader"
+  },
+  {
+    "id": 4,
+    "slug": "pdf-generator",
+    "title": "PDF Generator 📄",
+    "stack": "react-pdf",
+    "comment": "Custom resume or report generator"
+  },
+  {
+    "id": 5,
+    "slug": "ai-chatbot",
+    "title": "AI Chatbot 🤖",
+    "stack": "Socket + NLP",
+    "comment": "Service chat bot with natural language processing"
+  },
+  {
+    "id": 6,
+    "slug": "doodle-predictor",
+    "title": "Doodle Predictor ✏️",
+    "stack": "Canvas + TensorFlow",
+    "comment": "Draw-and-guess AI using TensorFlow.js"
+  },
+  {
+    "id": 7,
+    "slug": "code-summarizer",
+    "title": "Code Summarizer 🧠",
+    "stack": "AI, Wrapper",
+    "comment": "AI tool that explains code snippets"
+  },
+  {
+    "id": 8,
+    "slug": "taskflow",
+    "title": "TaskFlow ✅",
+    "stack": "Kanban",
+    "comment": "Kanban board or productivity app"
+  },
+  {
+    "id": 9,
+    "slug": "mood-journal",
+    "title": "Mood Journal 🌈",
+    "stack": "AI, Wrapper",
+    "comment": " Daily emotion tracker + AI insights"
+  },
+  {
+    "id": 10,
+    "slug": "stock-tracker",
+    "title": "Stock Tracker 📈",
+    "stack": "React Native",
+    "comment": "Real-time stock dashboard"
+  }
+]

@@ -89,7 +89,7 @@ const Experience: React.FC<ExperienceProps> = ({ setTotalExp }) => {
 
   return (
     <motion.ul
-      className="max-w-xl mx-auto p-4 space-y-6 list-none"
+      className="max-w-xl mx-auto p-0 space-y-6 list-none"
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, amount: 0.2 }}

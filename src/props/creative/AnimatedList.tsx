@@ -1,49 +1,27 @@
+// src/components/AnimatedList.tsx
+"use client";
+
 import React, {
+  UIEvent,
   useRef,
   useState,
   useEffect,
-  ReactNode,
-  MouseEventHandler,
-  UIEvent,
 } from "react";
-import { motion, useInView } from "framer-motion";
+import clsx from "clsx";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AnimatedItem } from "./AnimatedItems";
 
-interface AnimatedItemProps {
-  children: ReactNode;
-  delay?: number;
-  index: number;
-  onMouseEnter?: MouseEventHandler<HTMLDivElement>;
-  onClick?: MouseEventHandler<HTMLDivElement>;
-}
-
-const AnimatedItem: React.FC<AnimatedItemProps> = ({
-  children,
-  delay = 0,
-  index,
-  onMouseEnter,
-  onClick,
-}) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { amount: 0.5, once: false });
-  return (
-    <motion.div
-      ref={ref}
-      data-index={index}
-      onMouseEnter={onMouseEnter}
-      onClick={onClick}
-      initial={{ scale: 0.7, opacity: 0 }}
-      animate={inView ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0 }}
-      transition={{ duration: 0.2, delay }}
-      className="mb-4 cursor-pointer"
-    >
-      {children}
-    </motion.div>
-  );
-};
-
-interface AnimatedListProps {
-  items?: string[];
-  onItemSelect?: (item: string, index: number) => void;
+export interface AnimatedListProps<T> {
+  items: T[];
+  getKey?: (item: T, index: number) => string;
+  getHref?: (item: T, index: number) => string | undefined;
+  onItemSelect?: (item: T, index: number) => void;
+  renderItem?: (
+    item: T,
+    index: number,
+    isSelected: boolean
+  ) => React.ReactNode;
   showGradients?: boolean;
   enableArrowNavigation?: boolean;
   className?: string;
@@ -52,94 +30,110 @@ interface AnimatedListProps {
   initialSelectedIndex?: number;
 }
 
-const AnimatedList: React.FC<AnimatedListProps> = ({
-  items = [
-    "Item 1",
-    "Item 2",
-    "Item 3",
-    "Item 4",
-    "Item 5",
-    "Item 6",
-    "Item 7",
-    "Item 8",
-    "Item 9",
-    "Item 10",
-    "Item 11",
-    "Item 12",
-    "Item 13",
-    "Item 14",
-    "Item 15",
-  ],
+export function AnimatedList<T>({
+  items,
+  getKey,
+  getHref,
   onItemSelect,
+  renderItem,
   showGradients = true,
   enableArrowNavigation = true,
   className = "",
   itemClassName = "",
   displayScrollbar = true,
   initialSelectedIndex = -1,
-}) => {
+}: AnimatedListProps<T>) {
   const listRef = useRef<HTMLDivElement>(null);
-  const [selectedIndex, setSelectedIndex] =
-    useState<number>(initialSelectedIndex);
-  const [keyboardNav, setKeyboardNav] = useState<boolean>(false);
-  const [topGradientOpacity, setTopGradientOpacity] = useState<number>(0);
-  const [bottomGradientOpacity, setBottomGradientOpacity] = useState<number>(1);
+  const router = useRouter();
 
-  const handleScroll = (e: UIEvent<HTMLDivElement>) => {
+  const [selectedIndex, setSelectedIndex] = useState<number>(
+    initialSelectedIndex
+  );
+  const [keyboardNav, setKeyboardNav] = useState(false);
+  const [topOpacity, setTopOpacity] = useState(0);
+  const [botOpacity, setBotOpacity] = useState(1);
+
+  // scroll gradients
+  const onScroll = (e: UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } =
-      e.target as HTMLDivElement;
-    setTopGradientOpacity(Math.min(scrollTop / 50, 1));
-    const bottomDistance = scrollHeight - (scrollTop + clientHeight);
-    setBottomGradientOpacity(
-      scrollHeight <= clientHeight ? 0 : Math.min(bottomDistance / 50, 1)
+      e.currentTarget;
+    setTopOpacity(Math.min(scrollTop / 50, 1));
+    const dist = scrollHeight - (scrollTop + clientHeight);
+    setBotOpacity(
+      scrollHeight <= clientHeight
+        ? 0
+        : Math.min(dist / 50, 1)
     );
   };
 
   useEffect(() => {
     if (!enableArrowNavigation) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown") {
         e.preventDefault();
         setKeyboardNav(true);
-        setSelectedIndex((prev) => Math.min(prev + 1, items.length - 1));
-      } else if (e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey)) {
+        setSelectedIndex((i) =>
+          Math.min(i + 1, items.length - 1)
+        );
+      }
+      if (e.key === "ArrowUp") {
         e.preventDefault();
         setKeyboardNav(true);
-        setSelectedIndex((prev) => Math.max(prev - 1, 0));
-      } else if (e.key === "Enter") {
-        if (selectedIndex >= 0 && selectedIndex < items.length) {
-          e.preventDefault();
-          if (onItemSelect) {
-            onItemSelect(items[selectedIndex], selectedIndex);
-          }
+        setSelectedIndex((i) => Math.max(i - 1, 0));
+      }
+      if (e.key === "Enter" && selectedIndex >= 0) {
+        e.preventDefault();
+        const item = items[selectedIndex];
+        const href = getHref?.(item, selectedIndex);
+        if (href) {
+          router.push(href);
+        } else {
+          onItemSelect?.(item, selectedIndex);
         }
       }
     };
+    window.addEventListener("keydown", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+    };
+  }, [
+    enableArrowNavigation,
+    items,
+    selectedIndex,
+    getHref,
+    onItemSelect,
+    router,
+  ]);
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [items, selectedIndex, onItemSelect, enableArrowNavigation]);
-
+  // scroll into view on keyboard nav
   useEffect(() => {
-    if (!keyboardNav || selectedIndex < 0 || !listRef.current) return;
+    if (!keyboardNav || selectedIndex < 0) return;
     const container = listRef.current;
-    const selectedItem = container.querySelector(
+    if (!container) return;
+
+    const sel = container.querySelector(
       `[data-index="${selectedIndex}"]`
     ) as HTMLElement | null;
-    if (selectedItem) {
-      const extraMargin = 50;
-      const containerScrollTop = container.scrollTop;
-      const containerHeight = container.clientHeight;
-      const itemTop = selectedItem.offsetTop;
-      const itemBottom = itemTop + selectedItem.offsetHeight;
-      if (itemTop < containerScrollTop + extraMargin) {
-        container.scrollTo({ top: itemTop - extraMargin, behavior: "smooth" });
-      } else if (
-        itemBottom >
-        containerScrollTop + containerHeight - extraMargin
-      ) {
+    if (sel) {
+      const margin = 50;
+      const top = sel.offsetTop,
+        bottom = top + sel.offsetHeight;
+      const viewTop = container.scrollTop + margin;
+      const viewBot =
+        container.scrollTop +
+        container.clientHeight -
+        margin;
+      if (top < viewTop) {
         container.scrollTo({
-          top: itemBottom - containerHeight + extraMargin,
+          top: top - margin,
+          behavior: "smooth",
+        });
+      } else if (bottom > viewBot) {
+        container.scrollTo({
+          top:
+            bottom -
+            container.clientHeight +
+            margin,
           behavior: "smooth",
         });
       }
@@ -151,52 +145,81 @@ const AnimatedList: React.FC<AnimatedListProps> = ({
     <div className={`relative w-full h-full ${className}`}>
       <div
         ref={listRef}
-        className={`min-h-[400px] h-full overflow-y-auto p-4 ${
+        className={clsx(
+          "overflow-y-auto",
+          "min-h-[200px] h-full p-2 md:p-4",
           displayScrollbar
-            ? "[&::-webkit-scrollbar]:w-[8px] [&::-webkit-scrollbar-track]:bg-[#060010] [&::-webkit-scrollbar-thumb]:bg-[#222] [&::-webkit-scrollbar-thumb]:rounded-[4px]"
+            ? "[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-700"
             : "scrollbar-hide"
-        }`}
-        onScroll={handleScroll}
+        )}
+        onScroll={onScroll}
         style={{
-          scrollbarWidth: displayScrollbar ? "thin" : "none",
-          scrollbarColor: "#222 #060010",
+          scrollbarWidth: displayScrollbar
+            ? "thin"
+            : "none",
+          scrollbarColor: "#444 transparent",
         }}
       >
-        {items.map((item, index) => (
-          <AnimatedItem
-            key={index}
-            delay={0.1}
-            index={index}
-            onMouseEnter={() => setSelectedIndex(index)}
-            onClick={() => {
-              setSelectedIndex(index);
-              if (onItemSelect) {
-                onItemSelect(item, index);
+        {items.map((item, idx) => {
+          const isSelected = idx === selectedIndex;
+          const key =
+            getKey?.(item, idx) ?? String(idx);
+          const href = getHref?.(item, idx);
+
+          const content = renderItem
+            ? renderItem(item, idx, isSelected)
+            : (
+              <div
+                className={clsx(
+                  "p-4 bg-gray-800 rounded",
+                  isSelected && "bg-gray-700",
+                  itemClassName
+                )}
+              >
+                <span className="text-white">
+                  {String(item)}
+                </span>
+              </div>
+            );
+
+          const handleClick = () => {
+            setSelectedIndex(idx);
+            if (href) {
+              router.push(href);
+            } else {
+              onItemSelect?.(item, idx);
+            }
+          };
+
+          return (
+            <AnimatedItem
+              key={key}
+              index={idx}
+              delay={0.05 * idx}
+              isSelected={isSelected}
+              onMouseEnter={() =>
+                setSelectedIndex(idx)
               }
-            }}
-          >
-            <div
-              className={`p-4 bg-[#111] rounded-lg ${selectedIndex === index ? "bg-[#222]" : ""} ${itemClassName}`}
+              onClick={handleClick}
             >
-              <p className="text-white m-0">{item}</p>
-            </div>
-          </AnimatedItem>
-        ))}
+              {href ? <Link href={href}>{content}</Link> : content}
+            </AnimatedItem>
+          );
+        })}
       </div>
+
       {showGradients && (
         <>
           <div
-            className="absolute top-0 left-0 right-0 h-[50px] bg-gradient-to-b from-[#060010] to-transparent pointer-events-none transition-opacity duration-300 ease"
-            style={{ opacity: topGradientOpacity }}
-          ></div>
+            className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-black to-transparent pointer-events-none"
+            style={{ opacity: topOpacity }}
+          />
           <div
-            className="absolute bottom-0 left-0 right-0 h-[100px] bg-gradient-to-t from-[#060010] to-transparent pointer-events-none transition-opacity duration-300 ease"
-            style={{ opacity: bottomGradientOpacity }}
-          ></div>
+            className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black to-transparent pointer-events-none"
+            style={{ opacity: botOpacity }}
+          />
         </>
       )}
     </div>
   );
-};
-
-export default AnimatedList;
+}

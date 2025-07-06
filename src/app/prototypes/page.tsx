@@ -23,9 +23,9 @@ export default function Prototypes() {
       />
 
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="relative w-10/12 max-w-lg h-screen bg-neutral-700/10 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden pointer-events-auto">
-          <div className="absolute inset-0 bg-white/10 backdrop-blur-xl backdrop-saturate-150 border border-white/40 rounded-3xl shadow-2xl"/>
-          <div className="relative z-10 w-full h-full flex flex-col p-4 text-white pointer-events-auto">
+        <div className="relative w-11/12 md:w-10/12 max-w-lg h-screen bg-neutral-700/10 backdrop-blur-md md:rounded-3xl rounded-2xl shadow-2xl overflow-hidden pointer-events-auto">
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-xl backdrop-saturate-150 border border-white/40 md:rounded-3xl rounded-2xl shadow-2xl"/>
+          <div className="relative z-10 w-full h-full flex flex-col md:p-4 p-2 text-white pointer-events-auto">
             <div className="flex flex-row justify-between items-center w-full">
                 <div className="flex flex-row justify-between items-center gap-2">
                     <BackButton />

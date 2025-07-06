@@ -62,7 +62,7 @@ export default function Home() {
         viewport={{ amount: 0.3, once: false }}
         transition={{ duration: 1, ease: "easeOut" }}
       >
-        <div className="w-full h-screen max-w-xl overflow-y-auto hide-scrollbar">
+        <div className="w-full h-screen max-w-xl pt-4 md:pt-0 overflow-y-auto hide-scrollbar">
           <div className="w-full mx-auto px-4 sm:p-6 md:p-8">
             <div className="flex justify-between items-center mb-6">
               <TrueFocus
@@ -112,7 +112,7 @@ export default function Home() {
                 experiences.
               </p>
             </div>
-            <div className="flex flex-col z-50 sm:flex-row items-center justify-between gap-4">
+            <div className="flex flex-row z-50 items-center justify-between gap-4">
               <Link href="/prototypes" className="block">
                 <SpotlightCard
                   className="custom-spotlight-card !px-4 !py-2 !bg-slate-800/30 flex flex-row gap-2 justify-center items-center"
@@ -125,9 +125,9 @@ export default function Home() {
             </div>
           </div>
           <div className="mt-8 p-8 min-h-[400px] bg-black/30 bg-opacity-10 backdrop-blur-md rounded-4xl shadow-lg">
-            <div className="flex flex-col sm:flex-row items-center justify-between">
+            <div className="flex flex-row items-center justify-between">
               <div>
-                <h2 className="text-3xl font-bold mb-2 text-iceland flex gap-2">
+                <h2 className="md:text-3xl text-2xl font-bold mb-2 text-iceland flex gap-2">
                   Experience -
                   <span>
                     {totalExp}
@@ -136,14 +136,14 @@ export default function Home() {
               </div>
               <a
                 href="/assets/docs/Aquib_Shahbaz_Resume.pdf"
-                className="flex justify-center items-center w-10 h-10 group cursor-pointer border border-white/20 rounded-full p-3 bg-white/10 transition-colors duration-200"
+                className="flex justify-center items-center md:w-10 md:h-10 w-8 h-8 group cursor-pointer border border-white/20 rounded-full p-3 bg-white/10 transition-colors duration-200"
                 title="Download Resume"
                 download={true}
               >
                 <DownloadIcon width={16} height={16} />
               </a>
             </div>
-            <hr className="w-full border-t border-white/20 my-2" />
+            <hr className="w-full border-t border-white/20 mt-2 mb-4" />
             <Experience setTotalExp={setTotalExp} />
           </div>
         </div>

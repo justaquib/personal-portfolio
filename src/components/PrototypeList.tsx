@@ -1,28 +1,51 @@
-import AnimatedList from "@/props/creative/AnimatedList";
 import React from "react";
+import prototypeLists from "@/utils/json/prototypeList.json";
+import { AnimatedList } from "@/props/creative/AnimatedList";
+import { makeGetHref } from "@/utils/misc";
+
+type Prototype = {
+  id: string | number;
+  href: string;
+  title: string;
+  stack: string;
+  slug: string;
+  comment: string;
+};
+
+type PrototypeListItem = {
+  id: string | number;
+  title: string;
+  stack: string;
+  slug: string;
+  comment: string;
+};
 
 const PrototypeList = () => {
-  const items = [
-    "Hello World ✋",
-    "Sonic ⚡️", // maybe a file converter or speech-to-text?
-    "Doc Reader 📖", // PDF/Doc AI reader
-    "PDF Generator 📄", // Custom resume or report generator
-    "AI Chatbot 🤖", // ChatGPT clone with your own UI
-    "Doodle Predictor ✏️", // Draw-and-guess AI using TensorFlow.js
-    "Code Summarizer 🧠", // AI tool that explains code snippets
-    "TaskFlow ✅", // Kanban board or productivity app
-    "Mood Journal 🌈", // Daily emotion tracker + AI insights
-    "Stock Tracker 📈", // Real-time stock dashboard (maybe use RowGap idea?)
-  ];
-
+  const projects: Prototype[] = prototypeLists.map((item: PrototypeListItem) => ({
+    id: item.id,
+    href: item.slug,
+    title: item.title,
+    stack: item.stack,
+    slug: item.slug,
+    comment: item.comment,
+  }));
   return (
     <AnimatedList
-      items={items}
-      onItemSelect={(item, index) => console.log(item, index)}
+      items={projects}
+      getKey={(p: Prototype) => String(p.id)}
+      getHref={makeGetHref<Prototype>("prototypes")}
+      renderItem={(p: Prototype, _, isSel) => (
+        <div
+          className={`flex flex-row justify-between text-left text-white border-b border-dashed py-2 transition-[padding-inline-start] duration-500 ease-in-out ${
+            isSel ? "font-bold ps-2" : ""
+          }`}
+        >
+          <div>{p.title}</div>
+          <div className="text-sm">{p.stack}</div>
+        </div>
+      )}
       showGradients={false}
-      enableArrowNavigation={true}
       displayScrollbar={false}
-      itemClassName="!bg-transparent !text-start !border-dashed !border-white border-b !rounded-none !p-2 hover:!ps-4 transition-[padding-inline-start] duration-500 ease-in-out"
     />
   );
 };
