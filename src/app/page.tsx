@@ -93,19 +93,19 @@ export default function Home() {
                 with human-friendly design.
                 <br />
                 <br />
+                I love building things that are clean, clever, and genuinely
+                helpful.
+                <br />
+                When I&apos;m not designing user flows or polishing a layout, you&apos;ll
+                find me
+                <br />
+                tweaking side projects, thinking about product ideas, or deep in
+                a music playlist.
+                <br />
+                <br />
                 I&apos;ve worked across India and the Middle East, crafting
                 tools from dashboards to internal platforms — always focused on
                 performance and clarity.
-                <br />
-                <br />
-                Recently at Codelogicx, I led the frontend for data-rich
-                reporting tools using React, Chart.js, and real-time APIs.
-                <br />
-                <br />
-                Before that, I built Google Calendar-integrated apps and modular
-                UI systems at Collegify, and delivered secure full-stack
-                projects across domains like finance, education, and
-                manufacturing.
                 <br />
                 <br />
                 My goal: take complex ideas and turn them into fast, elegant
@@ -128,10 +128,7 @@ export default function Home() {
             <div className="flex flex-row items-center justify-between">
               <div>
                 <h2 className="md:text-3xl text-2xl font-bold mb-2 text-iceland flex gap-2">
-                  Experience -
-                  <span>
-                    {totalExp}
-                  </span>
+                  Experience -<span>{totalExp}</span>
                 </h2>
               </div>
               <a
