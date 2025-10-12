@@ -1,3 +1,5 @@
+"use client";
+
 import { CircleChevronLeft } from "@/props/creative/icons/CircleChevronLeft";
 import React from "react";
 
