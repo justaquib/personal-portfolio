@@ -2,7 +2,7 @@
 
 import Button from "@/components/Button";
 import React, { useRef, useEffect, useState } from "react";
-import * as tf from "@tensorflow/tfjs"; // It's good practice to import all of tfjs
+import * as tf from "@tensorflow/tfjs";
 import { labels } from "@/constants/doodleLabels";
 
 const modelJson = "/assets/model/doodleModel.json";

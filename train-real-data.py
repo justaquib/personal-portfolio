@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import json
 import os
+import requests
+import ndjson
 from sklearn.model_selection import train_test_split
 from PIL import Image
 import io
@@ -10,214 +12,152 @@ import io
 # Load the labels
 labels = [
   "apple",
-  "book",
-  "bowtie",
-  "candle",
-  "cloud",
-  "cup",
-  "door",
-  "envelope",
-  "eyeglasses",
-  "guitar",
-  "ice cream",
-  "line",
+  "star",
   "moon",
   "mountain",
-  "mouse",
-  "parachute",
-  "pencil",
-  "smiley face",
-  "star",
-  "sun",
-  "t-shirt",
+  "cup",
   "tree",
-  "umbrella",
-  "watch",
-  "wheel",
-  "heart",
   "house",
+  "snowman",
+  "hat",
+  "camera",
+  "sun",
+  "cloud",
+  "umbrella",
+  "face",
+  "banana",
   "car",
   "bicycle",
-  "airplane",
-  "train",
-  "boat",
   "fish",
-  "cat",
-  "dog",
   "flower",
-  "balloon",
-  "cake",
-  "chair",
-  "table",
-  "lamp",
+  "heart",
+  "book",
+  "pencil",
+  "clock",
   "phone",
   "key",
-  "lock",
-  "ring",
-  "shoe",
-  "hat",
-  "glasses",
-  "camera",
-  "clock",
-  "map",
-  "palm tree",
-  "rocket",
-  "snowman",
-  "treehouse",
-  "volcano",
-  "waterfall",
-  "windmill",
-  "zebra",
-  "elephant",
-  "giraffe",
-  "kangaroo",
-  "koala",
-  "lion",
-  "monkey",
-  "panda",
-  "penguin",
-  "rabbit",
-  "tiger",
-  "whale",
-  "dolphin",
-  "shark",
-  "octopus",
-  "crab",
-  "lobster",
-  "starfish",
-  "seahorse",
-  "coral",
-  "jellyfish",
-  "butterfly",
-  "bee",
-  "ant",
-  "spider",
-  "snail",
-  "caterpillar",
-  "dragonfly",
-  "grasshopper",
-  "ladybug",
-  "worm",
-  "bat",
-  "owl",
-  "eagle",
-  "parrot",
-  "swan",
-  "peacock",
-  "flamingo",
-  "turkey",
-  "chicken",
-  "rooster",
-  "duck",
-  "goose",
-  "frog",
-  "toad",
-  "lizard",
-  "snake",
-  "tortoise",
-  "alligator",
-  "crocodile",
-  "hippopotamus",
-  "rhinoceros",
-  "buffalo",
-  "bison",
-  "camel",
-  "donkey",
-  "horse",
-  "pig",
-  "sheep",
-  "goat",
-  "cow",
-  "chameleon",
-  "iguana",
 ]
 
 print(f"Loaded {len(labels)} labels")
 
-def load_doodle_dataset(csv_path, max_samples_per_class=1000):
+def load_quickdraw_dataset(labels, max_samples_per_class=1000):
     """
-    Load doodle dataset from CSV file
-    Expected format: CSV with columns for drawing data and labels
+    Load Quick Draw dataset directly from Google Cloud Storage
     """
-    try:
-        # Read the CSV file
-        df = pd.read_csv(csv_path)
-        print(f"Loaded dataset with {len(df)} samples")
+    base_url = "https://storage.googleapis.com/quickdraw_dataset/full/simplified/"
 
-        X = []
-        y = []
+    X = []
+    y = []
 
-        # Group by label/class
-        for class_idx, label in enumerate(labels):
-            # Filter data for this class
-            class_data = df[df['word'] == label]
-            if len(class_data) == 0:
-                print(f"Warning: No data found for class '{label}'")
-                continue
+    for class_idx, label in enumerate(labels):
+        # Convert label to filename format (spaces become nothing, special chars handled)
+        filename = label.replace(" ", "").lower() + ".ndjson"
+        url = base_url + filename
+
+        print(f"Downloading {label} from {url}...")
+
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+
+            # Parse NDJSON data
+            data = ndjson.loads(response.text)
 
             # Limit samples per class
-            class_data = class_data.head(max_samples_per_class)
+            samples = data[:max_samples_per_class]
 
-            for _, row in class_data.iterrows():
+            processed_count = 0
+            for item in samples:
                 try:
-                    # Parse the drawing data (assuming it's stored as string representation of strokes)
-                    # This will need to be adjusted based on the actual CSV format
-                    drawing_data = json.loads(row['drawing'])
+                    # Extract drawing data
+                    drawing_data = item['drawing']
 
                     # Convert drawing to 28x28 image
                     image = strokes_to_image(drawing_data)
                     X.append(image)
                     y.append(class_idx)
+                    processed_count += 1
 
                 except Exception as e:
                     print(f"Error processing sample for {label}: {e}")
                     continue
 
-            print(f"Loaded {len(class_data)} samples for {label}")
+            print(f"Loaded {processed_count} samples for {label}")
 
-        return np.array(X), np.array(y)
+        except requests.exceptions.RequestException as e:
+            print(f"Error downloading {label}: {e}")
+            continue
 
-    except FileNotFoundError:
-        print(f"Dataset file not found: {csv_path}")
-        print("Please download the dataset from Kaggle and place it in the correct location")
-        return None, None
+    return np.array(X), np.array(y)
 
 def strokes_to_image(strokes, size=28):
     """
-    Convert stroke data to 28x28 grayscale image
+    Convert Quick Draw stroke data to 28x28 grayscale image
+    Each stroke is [x_coords, y_coords, timestamps]
     """
     # Create blank image
     image = np.zeros((size, size), dtype=np.float32)
 
+    # Collect all coordinates to find bounding box
+    all_x = []
+    all_y = []
+
     for stroke in strokes:
-        x_coords = stroke[0]
-        y_coords = stroke[1]
+        if len(stroke) >= 2:  # Ensure we have x and y coordinates
+            x_coords = np.array(stroke[0], dtype=np.float32)
+            y_coords = np.array(stroke[1], dtype=np.float32)
+            all_x.extend(x_coords)
+            all_y.extend(y_coords)
 
-        # Normalize coordinates to 0-27 range
-        x_coords = np.array(x_coords, dtype=np.float32)
-        y_coords = np.array(y_coords, dtype=np.float32)
+    if not all_x or not all_y:
+        return image.reshape(size, size, 1)
 
-        x_coords = (x_coords - x_coords.min()) / (x_coords.max() - x_coords.min() + 1e-6) * (size - 1)
-        y_coords = (y_coords - y_coords.min()) / (y_coords.max() - y_coords.min() + 1e-6) * (size - 1)
+    # Find bounding box
+    min_x, max_x = min(all_x), max(all_x)
+    min_y, max_y = min(all_y), max(all_y)
 
-        # Draw lines between consecutive points
-        for i in range(len(x_coords) - 1):
-            x1, y1 = int(x_coords[i]), int(y_coords[i])
-            x2, y2 = int(x_coords[i + 1]), int(y_coords[i + 1])
+    # Avoid division by zero
+    width = max_x - min_x if max_x > min_x else 1
+    height = max_y - min_y if max_y > min_y else 1
 
-            # Simple line drawing
-            image[y1, x1] = 1.0
-            image[y2, x2] = 1.0
+    # Draw each stroke
+    for stroke in strokes:
+        if len(stroke) >= 2:
+            x_coords = np.array(stroke[0], dtype=np.float32)
+            y_coords = np.array(stroke[1], dtype=np.float32)
+
+            # Normalize to 0-27 range with some padding
+            x_coords = ((x_coords - min_x) / width) * (size - 4) + 2
+            y_coords = ((y_coords - min_y) / height) * (size - 4) + 2
+
+            # Clip to image bounds
+            x_coords = np.clip(x_coords, 0, size - 1)
+            y_coords = np.clip(y_coords, 0, size - 1)
+
+            # Draw lines between consecutive points with thickness
+            for i in range(len(x_coords) - 1):
+                x1, y1 = int(x_coords[i]), int(y_coords[i])
+                x2, y2 = int(x_coords[i + 1]), int(y_coords[i + 1])
+
+                # Draw thicker lines by setting neighboring pixels
+                for dx in [-1, 0, 1]:
+                    for dy in [-1, 0, 1]:
+                        nx1, ny1 = x1 + dx, y1 + dy
+                        nx2, ny2 = x2 + dx, y2 + dy
+                        if 0 <= nx1 < size and 0 <= ny1 < size:
+                            image[ny1, nx1] = 1.0
+                        if 0 <= nx2 < size and 0 <= ny2 < size:
+                            image[ny2, nx2] = 1.0
 
     # Add channel dimension
     return image.reshape(size, size, 1)
 
-# Try to load the dataset
-csv_path = "path/to/doodle/dataset.csv"  # Update this path
-X, y = load_doodle_dataset(csv_path)
+# Load the Quick Draw dataset directly from Google Cloud Storage
+print("Loading Quick Draw dataset from Google Cloud Storage...")
+X, y = load_quickdraw_dataset(labels, max_samples_per_class=2000)
 
-if X is None:
-    print("Creating synthetic data for demonstration...")
+if len(X) == 0:
+    print("Failed to load any data from Quick Draw dataset. Creating synthetic data for demonstration...")
     # Fallback to synthetic data if real dataset not available
     def create_synthetic_data(num_samples_per_class=500, image_size=28):
         X = []
@@ -345,37 +285,176 @@ if result.returncode == 0:
     print("You can now use the trained model in your web application.")
 else:
     print("Error converting model:", result.stderr)
-    # Fallback: save weights manually
+    # Fallback: save weights manually with correct layer names
     print("Falling back to manual weight saving...")
 
     # Get weights
     weights = model.get_weights()
 
-    # Create weights manifest
+    # Create weights manifest with correct layer names from topology
     manifest = {
-        "weights": [],
+        "weights": [
+            {
+                "name": "conv2d_1/kernel",
+                "shape": list(weights[0].shape),
+                "dtype": "float32"
+            },
+            {
+                "name": "conv2d_1/bias",
+                "shape": list(weights[1].shape),
+                "dtype": "float32"
+            },
+            {
+                "name": "conv2d_2/kernel",
+                "shape": list(weights[2].shape),
+                "dtype": "float32"
+            },
+            {
+                "name": "conv2d_2/bias",
+                "shape": list(weights[3].shape),
+                "dtype": "float32"
+            },
+            {
+                "name": "dense_1/kernel",
+                "shape": list(weights[4].shape),
+                "dtype": "float32"
+            },
+            {
+                "name": "dense_1/bias",
+                "shape": list(weights[5].shape),
+                "dtype": "float32"
+            },
+            {
+                "name": "dense_2/kernel",
+                "shape": list(weights[6].shape),
+                "dtype": "float32"
+            },
+            {
+                "name": "dense_2/bias",
+                "shape": list(weights[7].shape),
+                "dtype": "float32"
+            }
+        ],
         "paths": ["./doodleModel.weights.bin"]
     }
 
     # Write weights to binary file
     with open('public/assets/model/doodleModel.weights.bin', 'wb') as f:
-        for i, weight in enumerate(weights):
+        for weight in weights:
             weight_data = weight.flatten().astype(np.float32)
             f.write(weight_data.tobytes())
 
-            manifest["weights"].append({
-                "name": f"layer_{i}",
-                "shape": list(weight.shape),
-                "dtype": "float32"
-            })
-
-    # Update the model.json with correct weights manifest
-    with open('public/assets/model/doodleModel.json', 'r') as f:
-        model_json = json.load(f)
-
-    model_json["weightsManifest"] = [manifest]
+    # Create a new model.json with correct topology and weights manifest
+    # The issue is that the old model.json has units: 123 but we trained with 18 classes
+    model_json = {
+        "format": "layers-model",
+        "generatedBy": "Quick Draw Training Script",
+        "convertedBy": "Manual conversion",
+        "modelTopology": {
+            "keras_version": "2.1.6",
+            "backend": "tensorflow",
+            "model_config": {
+                "class_name": "Sequential",
+                "config": {
+                    "name": "doodle_model",
+                    "layers": [
+                        {
+                            "class_name": "Conv2D",
+                            "config": {
+                                "name": "conv2d_1",
+                                "trainable": True,
+                                "batch_input_shape": [None, 28, 28, 1],
+                                "dtype": "float32",
+                                "filters": 32,
+                                "kernel_size": [3, 3],
+                                "strides": [1, 1],
+                                "padding": "valid",
+                                "data_format": "channels_last",
+                                "dilation_rate": [1, 1],
+                                "activation": "relu",
+                                "use_bias": True,
+                                "kernel_initializer": {"class_name": "GlorotUniform", "config": {"seed": None}},
+                                "bias_initializer": {"class_name": "Zeros", "config": {}}
+                            }
+                        },
+                        {
+                            "class_name": "MaxPooling2D",
+                            "config": {
+                                "name": "max_pooling2d_1",
+                                "trainable": True,
+                                "pool_size": [2, 2],
+                                "padding": "valid",
+                                "strides": [2, 2],
+                                "data_format": "channels_last"
+                            }
+                        },
+                        {
+                            "class_name": "Conv2D",
+                            "config": {
+                                "name": "conv2d_2",
+                                "trainable": True,
+                                "filters": 64,
+                                "kernel_size": [3, 3],
+                                "strides": [1, 1],
+                                "padding": "valid",
+                                "data_format": "channels_last",
+                                "dilation_rate": [1, 1],
+                                "activation": "relu",
+                                "use_bias": True,
+                                "kernel_initializer": {"class_name": "GlorotUniform", "config": {"seed": None}},
+                                "bias_initializer": {"class_name": "Zeros", "config": {}}
+                            }
+                        },
+                        {
+                            "class_name": "MaxPooling2D",
+                            "config": {
+                                "name": "max_pooling2d_2",
+                                "trainable": True,
+                                "pool_size": [2, 2],
+                                "padding": "valid",
+                                "strides": [2, 2],
+                                "data_format": "channels_last"
+                            }
+                        },
+                        {
+                            "class_name": "Flatten",
+                            "config": {
+                                "name": "flatten_1",
+                                "trainable": True
+                            }
+                        },
+                        {
+                            "class_name": "Dense",
+                            "config": {
+                                "name": "dense_1",
+                                "trainable": True,
+                                "units": 128,
+                                "activation": "relu",
+                                "use_bias": True,
+                                "kernel_initializer": {"class_name": "GlorotUniform", "config": {"seed": None}},
+                                "bias_initializer": {"class_name": "Zeros", "config": {}}
+                            }
+                        },
+                        {
+                            "class_name": "Dense",
+                            "config": {
+                                "name": "dense_2",
+                                "trainable": True,
+                                "units": len(labels),  # Use actual number of labels
+                                "activation": "softmax",
+                                "use_bias": True,
+                                "kernel_initializer": {"class_name": "GlorotUniform", "config": {"seed": None}},
+                                "bias_initializer": {"class_name": "Zeros", "config": {}}
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "weightsManifest": [manifest]
+    }
 
     with open('public/assets/model/doodleModel.json', 'w') as f:
         json.dump(model_json, f, indent=2)
 
-    print("Model weights saved manually!")
+    print("Model weights saved manually with correct layer names and topology!")

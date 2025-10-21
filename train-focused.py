@@ -6,14 +6,7 @@ from sklearn.model_selection import train_test_split
 
 # Focus on these key labels for better accuracy
 focus_labels = [
-  "apple", "book", "bowtie", "candle", "cloud", "cup", "door", "envelope",
-  "eyeglasses", "guitar", "ice cream", "line", "moon", "mountain", "mouse",
-  "parachute", "pencil", "smiley face", "star", "sun", "t-shirt", "tree",
-  "umbrella", "watch", "wheel", "heart", "house", "car", "bicycle",
-  "airplane", "train", "boat", "fish", "cat", "dog", "flower", "balloon",
-  "cake", "chair", "table", "lamp", "phone", "key", "lock", "ring",
-  "shoe", "hat", "glasses", "camera", "clock", "map", "palm tree",
-  "rocket", "snowman", "treehouse", "volcano", "waterfall", "windmill"
+  "apple", "star", "moon", "mountain", "cup", "heart", "tree", "house", "snowman", "hat", "camera", "rocket", "boat", "phone", "balloon", "sun", "cloud", "umbrella"
 ]
 
 print(f"Training on {len(focus_labels)} focused labels")
