@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import * as Tone from "tone";
 
 interface TyperwriterTextProps {
   text: string;
@@ -15,11 +16,32 @@ export const TyperwriterText: React.FC<TyperwriterTextProps> = ({
   text,
   className = "",
   delay = 500,
-  speed = 60,
+  speed = 40,
   loop = false,
 }) => {
   const [displayedText, setDisplayedText] = useState("");
   const [index, setIndex] = useState(0);
+  const synthRef = useRef<Tone.Synth | null>(null);
+
+  useEffect(() => {
+    synthRef.current = new Tone.Synth({
+      oscillator: {
+        type: "square"
+      },
+      envelope: {
+        attack: 0.01,
+        decay: 0.1,
+        sustain: 0.1,
+        release: 0.1
+      }
+    }).toDestination();
+
+    return () => {
+      if (synthRef.current) {
+        synthRef.current.dispose();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -27,8 +49,14 @@ export const TyperwriterText: React.FC<TyperwriterTextProps> = ({
     const startTyping = () => {
       if (index < text.length) {
         timeout = setTimeout(() => {
+          const newIndex = index + 1;
           setDisplayedText((prev) => prev + text.charAt(index));
-          setIndex((i) => i + 1);
+          setIndex(newIndex);
+          if (synthRef.current) {
+            const notes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4"];
+            const randomNote = notes[Math.floor(Math.random() * notes.length)];
+            synthRef.current.triggerAttackRelease(randomNote, "8n");
+          }
         }, speed);
       } else if (loop) {
         setTimeout(() => {
