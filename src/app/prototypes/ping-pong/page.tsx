@@ -1,0 +1,177 @@
+"use client";
+import BackButton from '@/components/BackButton';
+import React, { useEffect, useRef, useState } from 'react';
+
+export default function PingPong() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [score, setScore] = useState({ player: 0, computer: 0 });
+  const [gameStarted, setGameStarted] = useState(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Game variables
+    const paddleWidth = 10;
+    const paddleHeight = 80;
+    const ballSize = 10;
+
+    let playerY = canvas.height / 2 - paddleHeight / 2;
+    let computerY = canvas.height / 2 - paddleHeight / 2;
+    let ballX = canvas.width / 2;
+    let ballY = canvas.height / 2;
+    let ballSpeedX = 5;
+    let ballSpeedY = 5;
+
+    // Draw function
+    const draw = () => {
+      // Clear canvas
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw paddles
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, playerY, paddleWidth, paddleHeight);
+      ctx.fillRect(canvas.width - paddleWidth, computerY, paddleWidth, paddleHeight);
+
+      // Draw ball
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, ballSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw center line
+      ctx.setLineDash([5, 15]);
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, 0);
+      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+      ctx.setLineDash([]);
+    };
+
+    // Update game logic
+    const update = () => {
+      if (!gameStarted) return;
+
+      // Move ball
+      ballX += ballSpeedX;
+      ballY += ballSpeedY;
+
+      // Ball collision with top and bottom
+      if (ballY <= 0 || ballY >= canvas.height) {
+        ballSpeedY = -ballSpeedY;
+      }
+
+      // Ball collision with paddles
+      if (
+        ballX <= paddleWidth &&
+        ballY >= playerY &&
+        ballY <= playerY + paddleHeight
+      ) {
+        ballSpeedX = -ballSpeedX;
+      }
+
+      if (
+        ballX >= canvas.width - paddleWidth - ballSize / 2 &&
+        ballY >= computerY &&
+        ballY <= computerY + paddleHeight
+      ) {
+        ballSpeedX = -ballSpeedX;
+      }
+
+      // Score points
+      if (ballX < 0) {
+        setScore(prev => ({ ...prev, computer: prev.computer + 1 }));
+        resetBall();
+      }
+
+      if (ballX > canvas.width) {
+        setScore(prev => ({ ...prev, player: prev.player + 1 }));
+        resetBall();
+      }
+
+      // Computer AI
+      if (computerY + paddleHeight / 2 < ballY) {
+        computerY += 3;
+      } else {
+        computerY -= 3;
+      }
+
+      // Keep computer paddle in bounds
+      computerY = Math.max(0, Math.min(canvas.height - paddleHeight, computerY));
+    };
+
+    const resetBall = () => {
+      ballX = canvas.width / 2;
+      ballY = canvas.height / 2;
+      ballSpeedX = -ballSpeedX;
+      ballSpeedY = Math.random() > 0.5 ? 5 : -5;
+    };
+
+    // Mouse movement for player paddle
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseY = e.clientY - rect.top;
+      playerY = mouseY - paddleHeight / 2;
+      playerY = Math.max(0, Math.min(canvas.height - paddleHeight, playerY));
+    };
+
+    canvas.addEventListener('mousemove', handleMouseMove);
+
+    // Game loop
+    const gameLoop = () => {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    };
+
+    gameLoop();
+
+    return () => {
+      canvas.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [gameStarted]);
+
+  const startGame = () => {
+    setGameStarted(true);
+    setScore({ player: 0, computer: 0 });
+  };
+
+  return (
+    <main className="relative min-h-screen bg-black text-white flex flex-col items-center justify-center p-8">
+      <div className="absolute top-4 left-4">
+        <BackButton />
+      </div>
+
+      <div className="text-center mb-4">
+        <h1 className="text-4xl font-bold mb-2">Ping Pong</h1>
+        <div className="text-xl">
+          Player: {score.player} | Computer: {score.computer}
+        </div>
+      </div>
+
+      <canvas
+        ref={canvasRef}
+        width={800}
+        height={400}
+        className="border border-white bg-black"
+      />
+
+      {!gameStarted && (
+        <button
+          onClick={startGame}
+          className="mt-4 px-6 py-2 bg-white text-black rounded hover:bg-gray-200 transition-colors"
+        >
+          Start Game
+        </button>
+      )}
+
+      <div className="mt-4 text-sm text-gray-400 text-center">
+        Move your mouse to control the left paddle
+      </div>
+    </main>
+  );
+}

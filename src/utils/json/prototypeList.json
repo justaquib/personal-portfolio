@@ -8,10 +8,10 @@
   },
   {
     "id": 2,
-    "slug": "sonic",
-    "title": "Sonic ⚡️",
-    "stack": "three js",
-    "comment": "three js animation module"
+    "slug": "ping-pong",
+    "title": "Ping Pong 🏓",
+    "stack": "canvas + react",
+    "comment": "classic ping pong game"
   },
   {
     "id": 3,
