@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-node": "^4.22.0",
     "@tsparticles/all": "^3.8.1",
@@ -18,11 +19,14 @@
     "framer-motion": "^12.22.0",
     "gsap": "^3.13.0",
     "lucide-react": "^0.525.0",
+    "mammoth": "^1.11.0",
     "next": "^16.1.6",
+    "pdfjs-dist": "^5.4.624",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.3.1",
-    "tone": "^15.1.22"
+    "tone": "^15.1.22",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
