@@ -24,8 +24,8 @@
     "id": 4,
     "slug": "pdf-generator",
     "title": "PDF Generator 📄",
-    "stack": "react-pdf",
-    "comment": "Custom resume or report generator"
+    "stack": "jsPDF + mammoth + xlsx",
+    "comment": "Convert images, DOCX, XLSX, CSV to PDF"
   },
   {
     "id": 5,
