@@ -6,6 +6,17 @@ export default function PingPong() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState({ player: 0, computer: 0 });
   const [gameStarted, setGameStarted] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  
+  // Use refs to track game state inside the game loop
+  const gameStartedRef = useRef(false);
+  const isPausedRef = useRef(false);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    gameStartedRef.current = gameStarted;
+    isPausedRef.current = isPaused;
+  }, [gameStarted, isPaused]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -54,7 +65,7 @@ export default function PingPong() {
 
     // Update game logic
     const update = () => {
-      if (!gameStarted) return;
+      if (!gameStartedRef.current || isPausedRef.current) return;
 
       // Move ball
       ballX += ballSpeedX;
@@ -66,29 +77,35 @@ export default function PingPong() {
       }
 
       // Ball collision with paddles
+      // Player paddle (left side) - only bounce if ball is moving left and hitting the paddle
       if (
-        ballX <= paddleWidth &&
+        ballSpeedX < 0 &&
+        ballX - ballSize / 2 <= paddleWidth &&
+        ballX + ballSize / 2 >= 0 &&
         ballY >= playerY &&
         ballY <= playerY + paddleHeight
       ) {
         ballSpeedX = -ballSpeedX;
       }
 
+      // Computer paddle (right side) - only bounce if ball is moving right and hitting the paddle
       if (
-        ballX >= canvas.width - paddleWidth - ballSize / 2 &&
+        ballSpeedX > 0 &&
+        ballX + ballSize / 2 >= canvas.width - paddleWidth &&
+        ballX - ballSize / 2 <= canvas.width &&
         ballY >= computerY &&
         ballY <= computerY + paddleHeight
       ) {
         ballSpeedX = -ballSpeedX;
       }
 
-      // Score points
-      if (ballX < 0) {
+      // Score points - only when ball goes completely out of bounds
+      if (ballX < -ballSize) {
         setScore(prev => ({ ...prev, computer: prev.computer + 1 }));
         resetBall();
       }
 
-      if (ballX > canvas.width) {
+      if (ballX > canvas.width + ballSize) {
         setScore(prev => ({ ...prev, player: prev.player + 1 }));
         resetBall();
       }
@@ -133,10 +150,25 @@ export default function PingPong() {
     return () => {
       canvas.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [gameStarted]);
+  }, []);
 
   const startGame = () => {
     setGameStarted(true);
+    setIsPaused(false);
+    setScore({ player: 0, computer: 0 });
+  };
+
+  const pauseGame = () => {
+    setIsPaused(true);
+  };
+
+  const resumeGame = () => {
+    setIsPaused(false);
+  };
+
+  const endGame = () => {
+    setGameStarted(false);
+    setIsPaused(false);
     setScore({ player: 0, computer: 0 });
   };
 
@@ -165,7 +197,34 @@ export default function PingPong() {
           onClick={startGame}
           className="mt-4 px-6 py-2 bg-white text-black rounded hover:bg-gray-200 transition-colors"
         >
-          Start Game
+          Play
+        </button>
+      )}
+
+      {gameStarted && !isPaused && (
+        <button
+          onClick={pauseGame}
+          className="mt-4 px-6 py-2 bg-white text-black rounded hover:bg-gray-200 transition-colors"
+        >
+          Pause
+        </button>
+      )}
+
+      {gameStarted && isPaused && (
+        <button
+          onClick={resumeGame}
+          className="mt-4 px-6 py-2 bg-white text-black rounded hover:bg-gray-200 transition-colors"
+        >
+          Resume
+        </button>
+      )}
+
+      {gameStarted && (
+        <button
+          onClick={endGame}
+          className="mt-4 px-6 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+        >
+          End Game
         </button>
       )}
 
