@@ -3,6 +3,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Editor from '@monaco-editor/react';
+import DetailsModal from '@/components/DetailsModal';
+import prototypeLists from '@/utils/json/prototypeList.json';
 import { 
   Play, 
   RotateCcw, 
@@ -239,6 +241,10 @@ export default function CodePlayground() {
   const [splitPosition, setSplitPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const [backendOutput, setBackendOutput] = useState<string>('');
+  
+  // Get prototype details from JSON
+  const prototype = prototypeLists.find(p => p.slug === 'code-playground');
+  const [showDetails, setShowDetails] = useState(false);
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const dragRef = useRef<{ startX: number; startPos: number } | null>(null);
@@ -555,6 +561,13 @@ export default function CodePlayground() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowDetails(true)}
+            className="p-2 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-lg transition-colors"
+            title="View Details"
+          >
+            <Info className="w-4 h-4" />
+          </button>
+          <button
             onClick={runCode}
             disabled={isRunning}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#e94560] to-[#ff6b6b] rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
@@ -582,6 +595,19 @@ export default function CodePlayground() {
           </button>
         </div>
       </header>
+
+      <DetailsModal
+        isOpen={showDetails}
+        onClose={() => setShowDetails(false)}
+        title={prototype?.title || 'Code Playground'}
+        details={{
+          problem: prototype?.problem || '',
+          approach: prototype?.approach || '',
+          challenges: prototype?.challenges || '',
+          optimizations: prototype?.optimizations || '',
+          improvements: prototype?.improvements || '',
+        }}
+      />
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">

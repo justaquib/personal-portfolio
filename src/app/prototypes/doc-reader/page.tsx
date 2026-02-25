@@ -1,6 +1,8 @@
 "use client";
 
 import BackButton from "@/components/BackButton";
+import DetailsModal from "@/components/DetailsModal";
+import prototypeLists from "@/utils/json/prototypeList.json";
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Upload, FileText, Send, Loader2, X, Sparkles, MessageCircle, FileQuestion, AlertCircle, Copy, Check, Eye, ChevronDown, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -57,6 +59,10 @@ export default function DocReader() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const contentEndRef = useRef<HTMLDivElement>(null);
+
+  // Get prototype details from JSON
+  const prototype = prototypeLists.find(p => p.slug === 'doc-reader');
+  const [showDetails, setShowDetails] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -338,8 +344,29 @@ export default function DocReader() {
         <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
           Doc Reader
         </h1>
-        <div className="w-10" />
+        <button
+          onClick={() => setShowDetails(true)}
+          className="p-2 bg-gray-800 hover:bg-gray-700 rounded-full transition-colors"
+          title="View Details"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
       </div>
+
+      <DetailsModal
+        isOpen={showDetails}
+        onClose={() => setShowDetails(false)}
+        title={prototype?.title || 'Doc Reader'}
+        details={{
+          problem: prototype?.problem || '',
+          approach: prototype?.approach || '',
+          challenges: prototype?.challenges || '',
+          optimizations: prototype?.optimizations || '',
+          improvements: prototype?.improvements || '',
+        }}
+      />
 
       {/* Main Content */}
       <div className="pt-20 px-4 pb-4 h-screen flex gap-4">

@@ -4,69 +4,119 @@
     "slug": "hello-world",
     "title": "Hello World ✋",
     "stack": "react + motion",
-    "comment": "react and framer motion"
+    "comment": "react and framer motion",
+    "problem": "Simple hello world page to demonstrate React and Framer Motion animations",
+    "approach": "Used Framer Motion for smooth entrance animations and text effects",
+    "challenges": "Learning Framer Motion API and timing animations correctly",
+    "optimizations": "Minimal code, optimized animation performance with useMemo",
+    "improvements": "Add more interactive elements and particle effects"
   },
   {
     "id": 2,
     "slug": "ping-pong",
     "title": "Ping Pong 🏓",
     "stack": "canvas + react",
-    "comment": "classic ping pong game"
+    "comment": "classic ping pong game",
+    "problem": "Create an interactive ping pong game that runs in the browser",
+    "approach": "Used HTML5 Canvas for rendering and React for state management",
+    "challenges": "Collision detection between ball and paddles, ball physics",
+    "optimizations": "RequestAnimationFrame for smooth 60fps gameplay",
+    "improvements": "Add AI opponent, multiple difficulty levels, sound effects"
   },
   {
     "id": 3,
     "slug": "doc-reader",
     "title": "Doc Reader 📖",
     "stack": "GPT-Wrapper",
-    "comment": "PDF/Doc AI reader"
+    "comment": "PDF/Doc AI reader",
+    "problem": "Users need to quickly understand content from PDF/DOCX files without reading entire documents",
+    "approach": "Integrated Gemini AI to summarize and answer questions about uploaded documents",
+    "challenges": "File parsing, handling large files, API rate limits",
+    "optimizations": "Chunked file processing, caching summaries",
+    "improvements": "Add multi-file support, better error handling, streaming responses"
   },
   {
     "id": 4,
     "slug": "pdf-generator",
     "title": "PDF Generator 📄",
     "stack": "jsPDF + mammoth + xlsx",
-    "comment": "Convert images, DOCX, XLSX, CSV to PDF"
+    "comment": "Convert images, DOCX, XLSX, CSV to PDF",
+    "problem": "Users need to convert various file formats (images, DOCX, XLSX, CSV) to PDF",
+    "approach": "Used jsPDF for PDF creation, mammoth for DOCX, xlsx for spreadsheet conversion",
+    "challenges": "Handling different file formats, maintaining formatting during conversion",
+    "optimizations": "Client-side processing to reduce server load",
+    "improvements": "Add batch conversion, more format support, PDF editing features"
   },
   {
     "id": 5,
     "slug": "ai-chatbot",
     "title": "AI Chatbot 🤖",
     "stack": "Socket + NLP",
-    "comment": "Service chat bot with natural language processing"
+    "comment": "Service chat bot with natural language processing",
+    "problem": "Create an interactive chatbot that can understand and respond to user queries",
+    "approach": "Used Socket.io for real-time communication and NLP for intent recognition",
+    "challenges": "Natural language understanding, maintaining conversation context",
+    "optimizations": "Caching frequent responses, debouncing API calls",
+    "improvements": "Add more NLP capabilities, voice input, custom training"
   },
   {
     "id": 6,
     "slug": "doodle-predictor",
     "title": "Doodle Predictor ✏️",
     "stack": "Canvas + TensorFlow",
-    "comment": "Draw-and-guess AI using TensorFlow.js"
+    "comment": "Draw-and-guess AI using TensorFlow.js",
+    "problem": "Create an AI that can recognize hand-drawn doodles in real-time",
+    "approach": "Trained a CNN model using TensorFlow and converted to TensorFlow.js for browser execution",
+    "challenges": "Model size optimization, real-time inference performance",
+    "optimizations": "Quantized model weights, efficient canvas rendering",
+    "improvements": "Add more categories, improve accuracy, custom drawing tools"
   },
   {
     "id": 7,
     "slug": "code-playground",
     "title": "Code Playground 💻",
     "stack": "Monaco + Sandbox",
-    "comment": "Live code editor with HTML/CSS/JS/PHP support"
+    "comment": "Live code editor with HTML/CSS/JS/PHP support",
+    "problem": "Provide a browser-based code editor that can execute HTML, CSS, JS, and PHP code",
+    "approach": "Used Monaco Editor for the code editor and server-side execution via API routes",
+    "challenges": "Secure code execution, handling PHP backend execution",
+    "optimizations": "Sandboxed execution environment, timeout handling",
+    "improvements": "Add more languages, live preview, code sharing features"
   },
   {
     "id": 8,
     "slug": "taskflow",
     "title": "TaskFlow ✅",
     "stack": "Kanban",
-    "comment": "Kanban board or productivity app"
+    "comment": "Kanban board or productivity app",
+    "problem": "Need a visual task management tool with drag-and-drop Kanban boards",
+    "approach": "Built a React-based Kanban board with drag-and-drop functionality",
+    "challenges": "State management for drag operations, data persistence",
+    "optimizations": "Optimized re-renders with React.memo",
+    "improvements": "Add subtasks, due dates, team collaboration features"
   },
   {
     "id": 9,
     "slug": "mood-journal",
     "title": "Mood Journal 🌈",
     "stack": "AI, Wrapper",
-    "comment": " Daily emotion tracker + AI insights"
+    "comment": "Daily emotion tracker + AI insights",
+    "problem": "Track daily moods and get AI-powered insights about emotional patterns",
+    "approach": "Combined mood logging with Gemini AI for pattern analysis and insights",
+    "challenges": "Storing mood history, generating meaningful insights",
+    "optimizations": "Efficient data storage, cached AI responses",
+    "improvements": "Add visualizations, more detailed analytics, reminders"
   },
   {
     "id": 10,
     "slug": "stock-tracker",
     "title": "Stock Tracker 📈",
     "stack": "React Native",
-    "comment": "Real-time stock dashboard"
+    "comment": "Real-time stock dashboard",
+    "problem": "Track real-time stock prices and display financial data",
+    "approach": "Built with React Native for cross-platform mobile support",
+    "challenges": "Real-time data fetching, handling market hours",
+    "optimizations": "WebSocket for live updates, efficient list rendering",
+    "improvements": "Add portfolio tracking, alerts, more chart types"
   }
 ]
