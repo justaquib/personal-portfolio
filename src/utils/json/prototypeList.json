@@ -43,10 +43,10 @@
   },
   {
     "id": 7,
-    "slug": "code-summarizer",
-    "title": "Code Summarizer 🧠",
-    "stack": "AI, Wrapper",
-    "comment": "AI tool that explains code snippets"
+    "slug": "code-playground",
+    "title": "Code Playground 💻",
+    "stack": "Monaco + Sandbox",
+    "comment": "Live code editor with HTML/CSS/JS/PHP support"
   },
   {
     "id": 8,
