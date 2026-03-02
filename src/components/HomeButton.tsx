@@ -6,7 +6,7 @@ import React from "react";
 
 const HomeButton = () => {
   return (
-    <Link href={BASE_URL} className="p-2">
+    <Link href={BASE_URL} className="">
       <GlareHover
         glareColor="#ffffff"
         glareOpacity={0.3}

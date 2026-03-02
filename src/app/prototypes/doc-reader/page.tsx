@@ -484,17 +484,20 @@ export default function DocReader() {
 
             {/* Center Column - Summary */}
             <div className="w-1/3 min-w-[300px] flex flex-col gap-3 overflow-hidden">
+              {/* Summary Section Header with Controls */}
               <div className="flex items-center gap-2 bg-gray-800/50 backdrop-blur-sm rounded-xl p-3">
                 <Sparkles className="w-5 h-5 text-purple-400" />
                 <span className="font-medium text-sm">AI Summary</span>
                 {summary && (
-                  <button
-                    onClick={() => copyToClipboard(summary)}
-                    className="ml-auto p-1.5 hover:bg-gray-700 rounded-lg transition-colors"
-                    title="Copy summary"
-                  >
-                    {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                  </button>
+                  <div className="ml-auto flex items-center gap-1">
+                    <button
+                      onClick={() => copyToClipboard(summary)}
+                      className="p-1.5 hover:bg-gray-700 rounded-lg transition-colors"
+                      title="Copy summary"
+                    >
+                      {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -521,7 +524,7 @@ export default function DocReader() {
                     </button>
                   </div>
                 ) : summary ? (
-                  <div className="flex-1 overflow-y-auto p-4">
+                  <div className="overflow-y-auto p-4">
                     <div className="prose prose-invert prose-sm max-w-none">
                       <div className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
                         {summary}

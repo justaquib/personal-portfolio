@@ -87,13 +87,13 @@
     "id": 8,
     "slug": "taskflow",
     "title": "TaskFlow ✅",
-    "stack": "Kanban",
-    "comment": "Kanban board or productivity app",
-    "problem": "Design an intuitive visual task management system that helps individuals and teams organize work, track progress, and maintain focus through a drag-and-drop Kanban interface.",
-    "approach": "Built a React-based Kanban board with smooth drag-and-drop functionality using @dnd-kit. Implemented customizable columns, task cards with rich metadata, and persistent storage for user data.",
-    "challenges": "Creating smooth drag interactions across different devices and browsers. Managing complex state updates during drag operations. Implementing undo/redo functionality. Supporting offline mode and data sync.",
-    "optimizations": "Used virtualized lists for large datasets, optimized re-renders with React.memo, implemented optimistic updates for instant feedback, and employed debounced auto-save.",
-    "improvements": "Would add team collaboration features, time tracking, calendar integration, custom workflows, reporting dashboards, and automation rules. Implement keyboard shortcuts and accessibility features."
+    "stack": "SQLite + React",
+    "comment": "Task management with persistent SQLite storage",
+    "problem": "Create a task management system that persists data across page refreshes and sessions, providing a reliable way to track tasks without losing data.",
+    "approach": "Built a React-based task management app with better-sqlite3 for persistent SQLite storage. Implemented a RESTful API for CRUD operations and a responsive UI with board and list views.",
+    "challenges": "Setting up SQLite with Next.js API routes, handling database initialization, managing async data fetching, and creating a smooth user experience with modals and filters.",
+    "optimizations": "Used SQLite prepared statements for secure queries, implemented proper error handling, and created an efficient data fetching strategy with useCallback and useEffect hooks.",
+    "improvements": "Would add drag-and-drop between columns, team collaboration features, due date reminders, task categories, and export/import functionality."
   },
   {
     "id": 9,
