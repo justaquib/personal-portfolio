@@ -342,7 +342,7 @@ export default function DocReader() {
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
         <BackButton />
         <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-          Doc Reader
+          AI Document Intelligence Workspace
         </h1>
         <button
           onClick={() => setShowDetails(true)}
@@ -358,7 +358,7 @@ export default function DocReader() {
       <DetailsModal
         isOpen={showDetails}
         onClose={() => setShowDetails(false)}
-        title={prototype?.title || 'Doc Reader'}
+        title={prototype?.title || 'AI Document Intelligence Workspace'}
         details={{
           problem: prototype?.problem || '',
           approach: prototype?.approach || '',

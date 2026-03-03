@@ -75,7 +75,7 @@ const PrototypeList = () => {
           >
             <div className="flex items-center gap-3">
               <div>{p.title}</div>
-              {p.details && (
+              {/* {p.details && (
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -86,7 +86,7 @@ const PrototypeList = () => {
                 >
                   Details
                 </button>
-              )}
+              )} */}
             </div>
             <div className="text-sm">{p.stack}</div>
           </div>

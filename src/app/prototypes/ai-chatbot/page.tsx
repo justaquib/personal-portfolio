@@ -69,6 +69,7 @@ export default function AIChatbot() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const initializedRef = useRef(false);
   
   // Get prototype details from JSON
   const prototype = prototypeLists.find(p => p.slug === 'ai-chatbot');
@@ -132,7 +133,7 @@ export default function AIChatbot() {
       messages: [
         {
           role: "assistant",
-          content: "Hello! I'm your AI-powered chat assistant with NLP capabilities. I can understand natural language, recognize your intent, and provide contextual responses. How can I help you today?",
+          content: "Hello! I'm Aquib's website assistant. I can answer questions about this website, Aquib Shahbaz, and all the projects. What would you like to know?",
           timestamp: new Date(),
         },
       ],
@@ -147,7 +148,8 @@ export default function AIChatbot() {
 
   // Initialize with a new session on first load
   useEffect(() => {
-    if (sessions.length === 0) {
+    if (sessions.length === 0 && !initializedRef.current) {
+      initializedRef.current = true;
       createNewSession();
     }
   }, []);
@@ -181,12 +183,10 @@ export default function AIChatbot() {
     setError(null);
 
     try {
-      const response = await fetch("/api/gemini", {
+      const response = await fetch("/api/local-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "chat",
-          content: "",
           question: userMessage.content,
           history: updatedSession.messages.map(m => ({
             role: m.role,

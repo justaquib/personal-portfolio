@@ -26,7 +26,7 @@
   {
     "id": 3,
     "slug": "doc-reader",
-    "title": "Doc Reader 📖",
+    "title": "AI Document Intelligence Workspace 📖",
     "stack": "GPT-Wrapper",
     "comment": "PDF/Doc AI reader",
     "problem": "Enable users to extract meaningful insights from documents without reading through lengthy content. Need a solution that handles multiple file formats while providing AI-powered summarization and Q&A capabilities.",
@@ -97,15 +97,15 @@
   },
   {
     "id": 9,
-    "slug": "mood-journal",
-    "title": "Mood Journal 🌈",
-    "stack": "AI, Wrapper",
-    "comment": "Daily emotion tracker + AI insights",
-    "problem": "Create a personal wellness tool that helps users track their emotional states over time and gain actionable insights through AI-powered pattern recognition and personalized feedback.",
-    "approach": "Developed a mood tracking system with daily check-ins and Gemini AI integration for generating insights. Visualized mood patterns over time and provided contextual recommendations based on trends.",
-    "challenges": "Designing an intuitive mood input system that captures nuanced emotions. Processing and analyzing temporal mood data. Generating meaningful, actionable insights without overwhelming the user. Ensuring privacy for sensitive emotional data.",
-    "optimizations": "Implemented efficient data storage with IndexedDB, cached AI responses, and optimized trend calculations using sliding windows. Used lazy loading for historical data visualization.",
-    "improvements": "Would add journaling with prompts, meditation integrations, goal setting, habit tracking, visualization dashboards, export capabilities, and therapist sharing features. Implement AI-generated action plans."
+    "slug": "collab-board",
+    "title": "Collaboration Board 🎨",
+    "stack": "WebSocket + Canvas",
+    "comment": "Real-time collaborative whiteboard",
+    "problem": "Build a real-time collaboration board where users can create or join virtual rooms using unique room IDs, enabling multiple participants to simultaneously view and edit a shared canvas with various tools.",
+    "approach": "Implemented a WebSocket-based real-time synchronization server with room management. Created an HTML5 Canvas-based drawing application supporting pencil, shapes, text, and sticky notes. Added cursor presence to show other users' positions in real-time.",
+    "challenges": "Handling real-time synchronization without conflicts. Managing canvas state across multiple users. Implementing smooth cursor tracking. Ensuring responsive UI while drawing.",
+    "optimizations": "Used efficient WebSocket message routing per room. Implemented canvas optimization with requestAnimationFrame. Added throttling for cursor updates to reduce network traffic.",
+    "improvements": "Would add support for more shape types, image import, collaborative selection, zoom/pan, and persistent room storage. Could integrate with external storage for session persistence."
   },
   {
     "id": 10,
