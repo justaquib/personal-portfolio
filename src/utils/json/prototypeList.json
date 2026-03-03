@@ -109,14 +109,14 @@
   },
   {
     "id": 10,
-    "slug": "stock-tracker",
-    "title": "Stock Tracker 📈",
-    "stack": "React Native",
-    "comment": "Real-time stock dashboard",
-    "problem": "Build a mobile-first financial dashboard that provides real-time stock prices, portfolio tracking, and market insights for investors who need quick access to market data on the go.",
-    "approach": "Developed a React Native application with real-time WebSocket connections for live price updates. Implemented intuitive portfolio management, watchlists, and customizable alerts.",
-    "challenges": "Handling real-time data streams without battery drain. Managing offline mode and data synchronization. Providing accurate historical data visualization. Handling market hours and after-hours trading data.",
-    "optimizations": "Implemented efficient WebSocket management with reconnection logic, used FlatList virtualization for large watchlists, optimized chart rendering, and employed background refresh strategies.",
-    "improvements": "Would add advanced charting with technical indicators, paper trading simulation, news integration, analyst ratings, options tracking, tax lot management, and multi-portfolio support."
+    "slug": "market-intelligence",
+    "title": "Market Intelligence Dashboard 📊",
+    "stack": "React + Recharts + AI",
+    "comment": "AI-powered stock analysis and portfolio tracking",
+    "problem": "Create a comprehensive market intelligence platform with interactive charts, investment projections, AI-powered stock analysis, and natural language queries for investors seeking data-driven insights.",
+    "approach": "Built a Next.js dashboard with virtualized chart system using Recharts, integrated AI analysis for stock summaries and technical indicators, implemented investment projection calculator with historical trends, and added floating chat interface for natural language queries.",
+    "challenges": "Handling real-time data visualization with multiple timeframes and technical indicators. Creating responsive design with dark/light mode support. Implementing intuitive watchlist and portfolio management. Building AI-powered chat with data citations.",
+    "optimizations": "Used React useMemo for performance optimization, implemented virtualized list rendering, optimized chart updates with requestAnimationFrame, and used efficient state management for real-time updates.",
+    "improvements": "Would integrate live API data from financial services, add more technical indicators, implement paper trading simulation, add advanced portfolio analytics, and enhance AI chat with more sophisticated NLP capabilities."
   }
 ]
