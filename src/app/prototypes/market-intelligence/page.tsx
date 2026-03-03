@@ -196,9 +196,9 @@ export default function MarketIntelligenceDashboard() {
   ]);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMinimized, setChatMinimized] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { id: '1', role: 'assistant', content: 'Hello! I\'m your AI stock assistant. Ask me anything about stocks!', timestamp: new Date() },
-  ]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(
+    []
+  );
   const [chatInput, setChatInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [timeframe, setTimeframe] = useState<'1D' | '1W' | '1M' | '3M' | '1Y' | '5Y'>('1M');
@@ -219,12 +219,12 @@ export default function MarketIntelligenceDashboard() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
   
-  // Clear search when switching tabs
+  // Clear search when switching tabs or when stock is selected
   useEffect(() => {
     setStockSearch('');
     setSearchResults([]);
     setSearchedStock(null);
-  }, [activeTab]);
+  }, [activeTab, selectedStock?.symbol]);
   
   useEffect(() => {
     const loadData = async () => {
@@ -292,6 +292,15 @@ export default function MarketIntelligenceDashboard() {
     if (currentStocks.length > 0) return currentStocks[0];
     return getStocksByMarket(market)[0];
   }, [selectedStock, currentStocks, market]);
+  
+  // Initialize chat with welcome message when stock changes
+  useEffect(() => {
+    if (safeSelectedStock) {
+      setChatMessages([
+        { id: '1', role: 'assistant', content: `Hello! I'm your AI stock assistant for ${safeSelectedStock.symbol}. Ask me anything about this stock!`, timestamp: new Date() },
+      ]);
+    }
+  }, [safeSelectedStock?.symbol]);
   
   const stockData = useMemo(() => {
     const stock = safeSelectedStock;
@@ -396,8 +405,9 @@ export default function MarketIntelligenceDashboard() {
     setAlerts(alerts.filter(a => a.id !== id));
   };
   
-  const sendChatMessage = () => {
-    if (!chatInput.trim()) return;
+  const sendChatMessage = async () => {
+    if (!chatInput.trim() || !safeSelectedStock) return;
+    
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -405,20 +415,54 @@ export default function MarketIntelligenceDashboard() {
       timestamp: new Date(),
     };
     setChatMessages(prev => [...prev, userMessage]);
+    const currentInput = chatInput;
+    const currentHistory = chatMessages.filter(m => m.role !== 'assistant' || m.id !== '1');
     setChatInput('');
     setLoading(true);
-    setTimeout(() => {
-      const { response, sources } = generateAIResponse(chatInput, currentStocks, market);
+    
+    try {
+      console.log('Sending chat request for stock:', safeSelectedStock.symbol);
+      const response = await fetch('/api/stock-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stock: safeSelectedStock,
+          question: currentInput,
+          history: currentHistory.map(m => ({ role: m.role, content: m.content }))
+        })
+      });
+      
+      console.log('Chat response status:', response.status);
+      const data = await response.json();
+      console.log('Chat response data:', data);
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response,
+        content: data.answer,
+        timestamp: new Date(),
+        sources: [safeSelectedStock.symbol],
+      };
+      setChatMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      // Fallback to local response
+      const { response, sources } = generateAIResponse(currentInput, currentStocks, market);
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `I apologize, but I couldn't connect to the AI service. Here's a basic response:\n\n${response}\n\nNote: For better answers, please ensure the Gemini API key is properly configured.`,
         timestamp: new Date(),
         sources,
       };
       setChatMessages(prev => [...prev, assistantMessage]);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
   
   const formatCurrency = (value: number): string => {
@@ -1141,7 +1185,7 @@ export default function MarketIntelligenceDashboard() {
               </div>
               <div>
                 <p className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>AI Stock Assistant</p>
-                <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Ask me anything!</p>
+                <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Chatting about {safeSelectedStock?.symbol || 'stocks'}</p>
               </div>
             </div>
             <button 
@@ -1188,7 +1232,7 @@ export default function MarketIntelligenceDashboard() {
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
-                    placeholder="Ask about stocks..."
+                    placeholder={`Ask about ${safeSelectedStock?.symbol || 'stocks'}...`}
                     className={`flex-1 px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-100 border-gray-200 text-gray-900'} border outline-none focus:ring-2 focus:ring-blue-500`}
                   />
                   <button onClick={sendChatMessage} disabled={loading || !chatInput.trim()} className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50">
