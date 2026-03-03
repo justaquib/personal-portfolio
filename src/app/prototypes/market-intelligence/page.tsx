@@ -3,12 +3,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  AreaChart, Area
+  AreaChart, Area, PieChart as RechartsPieChart, Pie, Cell, Legend
 } from 'recharts';
 import { 
   Search, TrendingUp, TrendingDown, Star, Bell, Moon, Sun,
   RefreshCw, X, AlertTriangle, MessageCircle, Send, Minimize2, Maximize2, 
-  Briefcase, BarChart3, Calculator, Target, Wallet, Eye, EyeOff
+  Briefcase, BarChart3, Calculator, Target, Wallet, Eye, EyeOff, Home, PieChart
 } from 'lucide-react';
 import { 
   Stock, 
@@ -19,6 +19,8 @@ import {
   searchStocks,
   getStockQuote
 } from '@/utils/stockApi';
+import { BASE_URL } from '@/constants';
+import Link from 'next/link';
 
 // Additional types
 interface WatchlistItem {
@@ -486,14 +488,15 @@ export default function MarketIntelligenceDashboard() {
       <header className={`${darkMode ? 'bg-gray-800' : 'bg-white'} border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'} px-6 py-4 sticky top-0 z-40`}>
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className={`w-8 h-8 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-              <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>MarketIntel</h1>
-            </div>
-            <nav className="hidden md:flex items-center gap-1 ml-8">
+            <Link href={BASE_URL} className="flex items-center gap-2">
+              <div className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                <Home className={`w-5 h-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+              </div>
+            </Link>
+            <nav className="hidden md:flex items-center gap-1 ml-4">
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-                { id: 'charts', label: 'Charts', icon: LineChart },
+                { id: 'charts', label: 'Charts', icon: PieChart },
                 { id: 'calculator', label: 'Calculator', icon: Calculator },
                 { id: 'search', label: 'Search', icon: Search },
                 { id: 'portfolio', label: 'Portfolio', icon: Briefcase },
@@ -771,65 +774,145 @@ export default function MarketIntelligenceDashboard() {
         
         {/* Charts Tab */}
         {activeTab === 'charts' && (
-          <div className={`p-6 rounded-2xl ${darkMode ? 'bg-gray-800' : 'bg-white'} border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Interactive Charts</h2>
-                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
-                  {safeSelectedStock?.symbol} - {safeSelectedStock?.name}
-                </p>
-              </div>
-              <select
-                value={safeSelectedStock?.symbol || 'AAPL'}
-                onChange={(e) => {
-                  const stock = currentStocks.find(s => s.symbol === e.target.value);
-                  if (stock) setSelectedStock(stock);
-                }}
-                className={`px-4 py-2 rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'} border outline-none`}
-              >
-                {(dataMode === 'real' && realStocks.length > 0 ? realStocks : currentStocks).map(s => (
-                  <option key={s.symbol} value={s.symbol}>{s.name} ({s.symbol})</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-2 mb-6">
-              {(['1D', '1W', '1M', '3M', '1Y', '5Y'] as const).map(tf => (
-                <button
-                  key={tf}
-                  onClick={() => setTimeframe(tf)}
-                  className={`px-4 py-2 rounded-lg font-medium ${timeframe === tf ? 'bg-blue-600 text-white' : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}
+          <div className="space-y-6">
+            {/* Stock Chart Section */}
+            <div className={`p-6 rounded-2xl ${darkMode ? 'bg-gray-800' : 'bg-white'} border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Interactive Charts</h2>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                    {safeSelectedStock?.symbol} - {safeSelectedStock?.name}
+                  </p>
+                </div>
+                <select
+                  value={safeSelectedStock?.symbol || 'AAPL'}
+                  onChange={(e) => {
+                    const stock = currentStocks.find(s => s.symbol === e.target.value);
+                    if (stock) setSelectedStock(stock);
+                  }}
+                  className={`px-4 py-2 rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'} border outline-none`}
                 >
-                  {tf}
-                </button>
-              ))}
+                  {(dataMode === 'real' && realStocks.length > 0 ? realStocks : currentStocks).map(s => (
+                    <option key={s.symbol} value={s.symbol}>{s.name} ({s.symbol})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2 mb-6">
+                {(['1D', '1W', '1M', '3M', '1Y', '5Y'] as const).map(tf => (
+                  <button
+                    key={tf}
+                    onClick={() => setTimeframe(tf)}
+                    className={`px-4 py-2 rounded-lg font-medium ${timeframe === tf ? 'bg-blue-600 text-white' : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="flex items-center gap-4 mb-4">
+                <span className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {formatCurrency(safeSelectedStock?.price || 0)}
+                </span>
+                <span className={`flex items-center gap-1 ${(safeSelectedStock?.changePercent || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {(safeSelectedStock?.changePercent || 0) >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+                  {((safeSelectedStock?.changePercent || 0) >= 0 ? '+' : '')}{(safeSelectedStock?.changePercent || 0).toFixed(2)}%
+                </span>
+              </div>
+              
+              <div className="h-96">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={stockData}>
+                    <defs>
+                      <linearGradient id="colorPrice2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+                    <XAxis dataKey="date" stroke={darkMode ? '#9ca3af' : '#6b7280'} fontSize={12} />
+                    <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} fontSize={12} domain={['auto', 'auto']} />
+                    <Tooltip contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#fff', border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`, borderRadius: '8px' }} />
+                    <Area type="monotone" dataKey="close" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorPrice2)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
             
-            <div className="flex items-center gap-4 mb-4">
-              <span className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                {formatCurrency(safeSelectedStock?.price || 0)}
-              </span>
-              <span className={`flex items-center gap-1 ${(safeSelectedStock?.changePercent || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {(safeSelectedStock?.changePercent || 0) >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
-                {((safeSelectedStock?.changePercent || 0) >= 0 ? '+' : '')}{(safeSelectedStock?.changePercent || 0).toFixed(2)}%
-              </span>
-            </div>
-            
-            <div className="h-96">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={stockData}>
-                  <defs>
-                    <linearGradient id="colorPrice2" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
-                  <XAxis dataKey="date" stroke={darkMode ? '#9ca3af' : '#6b7280'} fontSize={12} />
-                  <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} fontSize={12} domain={['auto', 'auto']} />
-                  <Tooltip contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#fff', border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`, borderRadius: '8px' }} />
-                  <Area type="monotone" dataKey="close" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorPrice2)" />
-                </AreaChart>
-              </ResponsiveContainer>
+            {/* Shareholding Distribution */}
+            <div className={`p-6 rounded-2xl ${darkMode ? 'bg-gray-800' : 'bg-white'} border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-6`}>Shareholding Distribution</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Pie Chart */}
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <Pie
+                        data={[
+                          { name: 'Promoters', value: 52, color: '#3b82f6' },
+                          { name: 'FII', value: 18, color: '#8b5cf6' },
+                          { name: 'DII', value: 12, color: '#10b981' },
+                          { name: 'Public', value: 18, color: '#f59e0b' },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {[
+                          { name: 'Promoters', value: 52, color: '#3b82f6' },
+                          { name: 'FII', value: 18, color: '#8b5cf6' },
+                          { name: 'DII', value: 12, color: '#10b981' },
+                          { name: 'Public', value: 18, color: '#f59e0b' },
+                        ].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: darkMode ? '#1f2937' : '#fff', 
+                          border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`, 
+                          borderRadius: '8px' 
+                        }}
+                      />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                {/* Legend */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-blue-500/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full bg-blue-500"></div>
+                      <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Promoters</span>
+                    </div>
+                    <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>52%</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-purple-500/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full bg-purple-500"></div>
+                      <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>FII (Foreign Institutional)</span>
+                    </div>
+                    <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>18%</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-green-500/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                      <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>DII (Domestic Institutional)</span>
+                    </div>
+                    <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>12%</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-yellow-500/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
+                      <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Public / Retail</span>
+                    </div>
+                    <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>18%</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

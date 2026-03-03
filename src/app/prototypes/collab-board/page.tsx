@@ -4,8 +4,10 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Pencil, Square, Circle, Type, MoveRight, MousePointer2,
   Download, Save, Trash2, Users, Copy, Check, X,
-  Minus, Plus, Undo, Redo, ZoomIn, ZoomOut, Hand, Triangle, Eraser
+  Minus, Plus, Undo, Redo, ZoomIn, ZoomOut, Hand, Triangle, Eraser, Home
 } from 'lucide-react';
+import Link from 'next/link';
+import { BASE_URL } from '@/constants';
 
 // WebSocket connection URL - can be configured via environment variable
 const WS_URL = typeof window !== 'undefined' 
@@ -757,6 +759,11 @@ export default function CollaborationBoard() {
     <div className="h-screen flex flex-col bg-gray-100">
       <div className="bg-white shadow-sm border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
+          <Link href={BASE_URL} className="flex items-center gap-2">
+            <div className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+              <Home className="w-5 h-5 text-gray-600" />
+            </div>
+          </Link>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
             <span className="font-semibold text-gray-800">Room: {roomId}</span>
