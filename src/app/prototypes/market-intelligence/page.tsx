@@ -205,7 +205,7 @@ export default function MarketIntelligenceDashboard() {
   const [loading, setLoading] = useState(false);
   const [timeframe, setTimeframe] = useState<'1D' | '1W' | '1M' | '3M' | '1Y' | '5Y'>('1M');
   const [investmentAmount, setInvestmentAmount] = useState(1000);
-  const [lastRefresh] = useState(new Date());
+  const [lastRefresh, setLastRefresh] = useState(new Date());
   const [searchResults, setSearchResults] = useState<Stock[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchedStock, setSearchedStock] = useState<Stock | null>(null);
@@ -518,8 +518,25 @@ export default function MarketIntelligenceDashboard() {
           </div>
           
           <div className="flex items-center gap-3">
-            <button className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'}`}>
-              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            <button 
+              onClick={async () => {
+                if (dataMode === 'real') {
+                  setIsLoadingData(true);
+                  setLastRefresh(new Date());
+                  const { stocks, isReal, source } = await fetchRealTimeData(market);
+                  if (isReal && stocks && stocks.length > 0) {
+                    setRealStocks(stocks);
+                    setDataSource('real');
+                    setDataSourceName(source || 'Live');
+                  }
+                  setIsLoadingData(false);
+                } else {
+                  setLastRefresh(new Date());
+                }
+              }}
+              className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'}`}
+            >
+              <RefreshCw className={`w-5 h-5 ${isLoadingData ? 'animate-spin' : ''}`} />
             </button>
             <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'}`}>
               {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
