@@ -2,6 +2,21 @@
 @import "tailwindcss";
 @import "../utils/styles/layers.css";
 
+/* Global base styles */
+@layer base {
+  * {
+    @apply text-gray-400;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-gray-900;
+  }
+  
+  p {
+    @apply text-gray-600;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
