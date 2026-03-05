@@ -1639,146 +1639,138 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Calculate Earnings */}
+            {/* Calculate Earnings from Invoice Records */}
             {(() => {
               const earningsMonthDate = new Date(earningsMonth + '-01')
               const earningsYear = earningsMonthDate.getFullYear()
               const earningsMonthNum = earningsMonthDate.getMonth() + 1
+              const earningsMonthStr = `${earningsYear}-${String(earningsMonthNum).padStart(2, '0')}`
               
-              // Get all active subscriptions (started before or during the selected month)
-              const activeSubscriptions = subscriptions.filter(sub => {
-                const subscriptionStart = sub.started_at || new Date().toISOString().split('T')[0]
-                const startDate = new Date(subscriptionStart)
-                const startYear = startDate.getFullYear()
-                const startMonth = startDate.getMonth() + 1
-                // Include if subscription started in or before the selected month
-                return (startYear < earningsYear) || (startYear === earningsYear && startMonth <= earningsMonthNum)
-              })
-
-              // Calculate totals
+              // Get all main invoice payments (not sub-invoices)
+              const mainInvoices = payments.filter(p => 
+                !p.sub_invoice_id
+              )
+              
+              // Filter by month if selected
+              const filteredMainInvoices = mainInvoices.filter(p => 
+                p.payment_month && p.payment_month.startsWith(earningsMonthStr)
+              )
+              
+              // Use filtered invoices if month has data, otherwise use all
+              const displayInvoices = filteredMainInvoices.length > 0 ? filteredMainInvoices : mainInvoices
+              
+              // Calculate totals from actual invoice/payment records (including sub-invoices)
               let totalRevenue = 0
               let totalCost = 0
-              let totalDue = 0  // Due for selected month only
-              let totalOutstanding = 0  // Total unpaid across all months
-              const serviceEarnings: Record<string, { revenue: number; cost: number; profit: number; due: number; outstanding: number }> = {}
-              const contactEarnings: Record<string, { revenue: number; cost: number; profit: number; due: number; outstanding: number }> = {}
+              let totalDue = 0
+              let totalOutstanding = 0
+              const serviceEarnings: Record<string, { revenue: number; cost: number; profit: number; due: number; outstanding: number; invoiceCount: number }> = {}
+              const contactEarnings: Record<string, { revenue: number; cost: number; profit: number; due: number; outstanding: number; invoiceCount: number }> = {}
 
-              activeSubscriptions.forEach(sub => {
-                const amount = sub.service?.amount || 0
-                const cost = sub.service?.actual_cost || 0
+              // Process each main invoice and include sub-invoices
+              displayInvoices.forEach(payment => {
+                const subscription = subscriptions.find(s => s.id === payment.subscription_id)
+                if (!subscription) return
                 
-                // Calculate for selected month only (Due) and all months (Outstanding)
-                const subscriptionStart = sub.started_at || new Date().toISOString().split('T')[0]
-                const startDate = new Date(subscriptionStart)
-                const startYear = startDate.getFullYear()
-                const startMonth = startDate.getMonth() + 1
+                const service = subscription.service
+                const contact = contacts.find(c => c.id === subscription.contact_id)
                 
-                let paidAmount = 0
-                let outstandingAmount = 0
+                if (!service) return
                 
-                // Calculate from subscription start to selected month
-                for (let year = startYear; year <= earningsYear; year++) {
-                  const monthStart = (year === startYear) ? startMonth : 1
-                  const monthEnd = (year === earningsYear) ? earningsMonthNum : 12
-                  
-                  for (let month = monthStart; month <= monthEnd; month++) {
-                    // Find all payments for this subscription
-                    const subPayments = payments.filter(p => p.subscription_id === sub.id)
-                    
-                    // Find payment for this specific month
-                    const paymentForMonth = subPayments.find(p => {
-                      const paymentDate = new Date(p.payment_month)
-                      return paymentDate.getFullYear() === year && paymentDate.getMonth() + 1 === month
-                    })
-                    
-                    const isPaidForMonth = paymentForMonth && paymentForMonth.amount_paid >= paymentForMonth.amount_due
-                    
-                    // For selected month only, calculate due
-                    if (year === earningsYear && month === earningsMonthNum) {
-                      // Due for current month
-                      if (!isPaidForMonth) {
-                        totalDue += amount
-                      }
-                    }
-                    
-                    // Track outstanding across all months
-                    if (!isPaidForMonth) {
-                      outstandingAmount += amount
-                    } else if (paymentForMonth) {
-                      paidAmount += paymentForMonth.amount_paid
-                    }
-                  }
-                }
+                // Get all sub-invoices for this main invoice
+                const subInvoices = payments.filter(p => p.invoice_id === payment.invoice_id && p.sub_invoice_id)
                 
-                const revenue = paidAmount
+                // Calculate total paid: main invoice + all sub-invoices
+                const mainPaid = payment.amount_paid || 0
+                const subInvoicesPaid = subInvoices.reduce((sum, sub) => sum + (sub.amount_paid || 0), 0)
+                const totalPaid = mainPaid + subInvoicesPaid
+                
+                // Use main invoice's amount_due as the total due (matching Payments tab logic)
+                const mainDue = payment.amount_due || 0
+                
+                const serviceCost = service.actual_cost || 0
+                
+                // Revenue = total paid
+                const revenue = totalPaid
+                // Cost applies to the main invoice (service cost)
+                const cost = serviceCost
                 const profit = revenue - cost
                 
+                // Calculate remaining due - if totalPaid >= mainDue, then fully paid
+                const remainingDue = totalPaid >= mainDue ? 0 : (mainDue - totalPaid)
+                
+                // Add to totals
                 totalRevenue += revenue
                 totalCost += cost
-                totalOutstanding += outstandingAmount
-
+                totalDue += remainingDue
+                totalOutstanding += remainingDue
+                
                 // By Service
-                const serviceName = sub.service?.name || 'Unknown'
+                const serviceName = service.name || 'Unknown Service'
                 if (!serviceEarnings[serviceName]) {
-                  serviceEarnings[serviceName] = { revenue: 0, cost: 0, profit: 0, due: 0, outstanding: 0 }
+                  serviceEarnings[serviceName] = { revenue: 0, cost: 0, profit: 0, due: 0, outstanding: 0, invoiceCount: 0 }
                 }
                 serviceEarnings[serviceName].revenue += revenue
                 serviceEarnings[serviceName].cost += cost
                 serviceEarnings[serviceName].profit += profit
-                // Due for selected month
-                const subPayments = payments.filter(p => p.subscription_id === sub.id)
-                const dueForMonth = subPayments.some(p => {
-                  const pd = new Date(p.payment_month)
-                  return pd.getFullYear() === earningsYear && pd.getMonth() + 1 === earningsMonthNum && p.amount_paid >= p.amount_due
-                }) ? 0 : amount
-                serviceEarnings[serviceName].due += dueForMonth
-                serviceEarnings[serviceName].outstanding += outstandingAmount
-
+                serviceEarnings[serviceName].due += remainingDue
+                serviceEarnings[serviceName].outstanding += remainingDue
+                serviceEarnings[serviceName].invoiceCount += 1
+                
                 // By Contact
-                const contact = contacts.find(c => c.id === sub.contact_id)
-                const contactName = contact?.name || 'Unknown'
+                const contactName = contact?.name || 'Unknown Contact'
                 if (!contactEarnings[contactName]) {
-                  contactEarnings[contactName] = { revenue: 0, cost: 0, profit: 0, due: 0, outstanding: 0 }
+                  contactEarnings[contactName] = { revenue: 0, cost: 0, profit: 0, due: 0, outstanding: 0, invoiceCount: 0 }
                 }
                 contactEarnings[contactName].revenue += revenue
                 contactEarnings[contactName].cost += cost
                 contactEarnings[contactName].profit += profit
-                contactEarnings[contactName].due += dueForMonth
-                contactEarnings[contactName].outstanding += outstandingAmount
+                contactEarnings[contactName].due += remainingDue
+                contactEarnings[contactName].outstanding += remainingDue
+                contactEarnings[contactName].invoiceCount += 1
               })
 
               const totalProfit = totalRevenue - totalCost
 
-              if (activeSubscriptions.length === 0) {
-                return <EmptyState message={`No subscriptions found for ${earningsMonth}.`} />
+              if (displayInvoices.length === 0) {
+                return <EmptyState message={`No invoice records found. Add payments in the Payments tab to see earnings.`} />
               }
+
+              const showingMonth = filteredMainInvoices.length > 0
 
               return (
                 <div className="space-y-6">
                   {/* Summary Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    <div className="p-4 bg-green-50 rounded-xl">
-                      <p className="text-sm text-green-600">Total Revenue</p>
-                      <p className="text-2xl font-bold text-green-700">{CURRENCY_SYMBOL}{totalRevenue.toFixed(2)}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 flex-1">
+                      <div className="p-4 bg-green-50 rounded-xl">
+                        <p className="text-sm text-green-600">Total Revenue</p>
+                        <p className="text-2xl font-bold text-green-700">{CURRENCY_SYMBOL}{totalRevenue.toFixed(2)}</p>
+                      </div>
+                      <div className="p-4 bg-red-50 rounded-xl">
+                        <p className="text-sm text-red-600">Total Cost</p>
+                        <p className="text-2xl font-bold text-red-700">{CURRENCY_SYMBOL}{totalCost.toFixed(2)}</p>
+                      </div>
+                      <div className={`p-4 rounded-xl ${totalProfit >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
+                        <p className={`text-sm ${totalProfit >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>Net Profit</p>
+                        <p className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
+                          {CURRENCY_SYMBOL}{totalProfit.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-yellow-50 rounded-xl">
+                        <p className="text-sm text-yellow-600">Total Due</p>
+                        <p className="text-2xl font-bold text-yellow-700">{CURRENCY_SYMBOL}{totalDue.toFixed(2)}</p>
+                      </div>
+                      <div className="p-4 bg-orange-50 rounded-xl">
+                        <p className="text-sm text-orange-600">Outstanding</p>
+                        <p className="text-2xl font-bold text-orange-700">{CURRENCY_SYMBOL}{totalOutstanding.toFixed(2)}</p>
+                      </div>
                     </div>
-                    <div className="p-4 bg-red-50 rounded-xl">
-                      <p className="text-sm text-red-600">Total Cost</p>
-                      <p className="text-2xl font-bold text-red-700">{CURRENCY_SYMBOL}{totalCost.toFixed(2)}</p>
-                    </div>
-                    <div className={`p-4 rounded-xl ${totalProfit >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
-                      <p className={`text-sm ${totalProfit >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>Net Profit</p>
-                      <p className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
-                        {CURRENCY_SYMBOL}{totalProfit.toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="p-4 bg-yellow-50 rounded-xl">
-                      <p className="text-sm text-yellow-600">Total Due</p>
-                      <p className="text-2xl font-bold text-yellow-700">{CURRENCY_SYMBOL}{totalDue.toFixed(2)}</p>
-                    </div>
-                    <div className="p-4 bg-orange-50 rounded-xl">
-                      <p className="text-sm text-orange-600">Outstanding</p>
-                      <p className="text-2xl font-bold text-orange-700">{CURRENCY_SYMBOL}{totalOutstanding.toFixed(2)}</p>
-                    </div>
+                  </div>
+                  
+                  {/* Time period indicator */}
+                  <div className="text-sm text-gray-500">
+                    {showingMonth ? `Showing earnings for ${earningsMonth}` : 'Showing all-time earnings (use month filter to see specific month)'}
                   </div>
 
                   {/* By Service */}
@@ -1790,6 +1782,7 @@ export default function DashboardPage() {
                           <thead>
                             <tr className="border-b">
                               <th className="text-left py-3 px-4 font-medium text-gray-600">Service</th>
+                              <th className="text-left py-3 px-4 font-medium text-gray-600">Invoices</th>
                               <th className="text-left py-3 px-4 font-medium text-gray-600">Revenue</th>
                               <th className="text-left py-3 px-4 font-medium text-gray-600">Cost</th>
                               <th className="text-left py-3 px-4 font-medium text-gray-600">Profit</th>
@@ -1801,6 +1794,7 @@ export default function DashboardPage() {
                             {Object.entries(serviceEarnings).map(([service, data]) => (
                               <tr key={service} className="border-b hover:bg-gray-50">
                                 <td className="py-3 px-4 font-medium">{service}</td>
+                                <td className="py-3 px-4 text-gray-600">{data.invoiceCount}</td>
                                 <td className="py-3 px-4 text-green-600">{CURRENCY_SYMBOL}{data.revenue.toFixed(2)}</td>
                                 <td className="py-3 px-4 text-red-600">{CURRENCY_SYMBOL}{data.cost.toFixed(2)}</td>
                                 <td className={`py-3 px-4 font-medium ${data.profit >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
@@ -1827,6 +1821,7 @@ export default function DashboardPage() {
                           <thead>
                             <tr className="border-b">
                               <th className="text-left py-3 px-4 font-medium text-gray-600">Contact</th>
+                              <th className="text-left py-3 px-4 font-medium text-gray-600">Invoices</th>
                               <th className="text-left py-3 px-4 font-medium text-gray-600">Revenue</th>
                               <th className="text-left py-3 px-4 font-medium text-gray-600">Cost</th>
                               <th className="text-left py-3 px-4 font-medium text-gray-600">Profit</th>
@@ -1838,6 +1833,7 @@ export default function DashboardPage() {
                             {Object.entries(contactEarnings).map(([contact, data]) => (
                               <tr key={contact} className="border-b hover:bg-gray-50">
                                 <td className="py-3 px-4 font-medium">{contact}</td>
+                                <td className="py-3 px-4 text-gray-600">{data.invoiceCount}</td>
                                 <td className="py-3 px-4 text-green-600">{CURRENCY_SYMBOL}{data.revenue.toFixed(2)}</td>
                                 <td className="py-3 px-4 text-red-600">{CURRENCY_SYMBOL}{data.cost.toFixed(2)}</td>
                                 <td className={`py-3 px-4 font-medium ${data.profit >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
