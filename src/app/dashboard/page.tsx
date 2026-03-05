@@ -80,6 +80,19 @@ const DeleteIcon = () => (
   </svg>
 )
 
+const PlusIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  </svg>
+)
+
+const EyeIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+)
+
 // Helper function to get current month
 const getCurrentMonth = () => {
   const now = new Date()
@@ -139,6 +152,8 @@ export default function DashboardPage() {
   const [showServiceForm, setShowServiceForm] = useState(false)
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null)
+  const [addingSubInvoiceFor, setAddingSubInvoiceFor] = useState<Payment | null>(null)
+  const [viewingPayment, setViewingPayment] = useState<Payment | null>(null)
   const [editingService, setEditingService] = useState<Service | null>(null)
   const [isSending, setIsSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
@@ -162,6 +177,9 @@ export default function DashboardPage() {
   const [paymentMonth, setPaymentMonth] = useState<string>(getCurrentMonth())
   const [subscriptionStartMonth, setSubscriptionStartMonth] = useState<string>(getCurrentMonth())
   const [earningsMonth, setEarningsMonth] = useState<string>(getCurrentMonth())
+  
+  // Expanded invoices state for nested sub-invoices display
+  const [expandedInvoices, setExpandedInvoices] = useState<Set<string>>(new Set())
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -352,6 +370,8 @@ export default function DashboardPage() {
       })
     }
     
+    // Update subscription's total_paid and refresh
+    fetchSubscriptions()
     fetchPayments()
   }
 
@@ -740,7 +760,7 @@ export default function DashboardPage() {
                             <div className="flex flex-wrap gap-1">
                               {getSubscriptions(contact.id).map((sub) => (
                                 <span key={sub.id} className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">
-                                  {sub.service?.name} (${sub.service?.amount})
+                                  {sub.service?.name} ({CURRENCY_SYMBOL}{sub.service?.amount}/{sub.service?.payment_cycle || 'month'})
                                 </span>
                               ))}
                             </div>
@@ -824,9 +844,9 @@ export default function DashboardPage() {
                         <div className="flex items-start justify-between">
                           <div>
                             <h4 className="font-medium text-gray-900">{service.name}</h4>
-                            <p className="text-sm text-gray-600 mt-1">${service.amount}</p>
+                            <p className="text-sm text-gray-600 mt-1">{CURRENCY_SYMBOL}{service.amount} <span className="text-xs">/ {service.payment_cycle || 'month'}</span></p>
                             {service.actual_cost > 0 && (
-                              <p className="text-xs text-red-500 mt-1">Cost: ${service.actual_cost}</p>
+                              <p className="text-xs text-red-500 mt-1">Cost: {CURRENCY_SYMBOL}{service.actual_cost}</p>
                             )}
                             <p className="text-xs text-gray-500 mt-1">{service.description}</p>
                           </div>
@@ -868,7 +888,7 @@ export default function DashboardPage() {
                     >
                       <option value="">Choose a service...</option>
                       {services.map((service) => (
-                        <option key={service.id} value={service.id}>{service.name} - ${service.amount}</option>
+                        <option key={service.id} value={service.id}>{service.name} - {CURRENCY_SYMBOL}{service.amount}/{service.payment_cycle || 'month'}</option>
                       ))}
                     </select>
                   </div>
@@ -920,7 +940,7 @@ export default function DashboardPage() {
                               <tr key={sub.id} className="border-b hover:bg-gray-50">
                                 <td className="py-3 px-4">{contact?.name || 'Unknown'}</td>
                                 <td className="py-3 px-4">{sub.service?.name || 'Unknown'}</td>
-                                <td className="py-3 px-4">${sub.service?.amount || 0}</td>
+                                <td className="py-3 px-4">{CURRENCY_SYMBOL}{sub.service?.amount || 0} <span className="text-xs text-gray-500">/ {sub.service?.payment_cycle || 'month'}</span></td>
                                 <td className="py-3 px-4 text-sm text-gray-600">
                                   {startedAt}
                                 </td>
@@ -951,24 +971,28 @@ export default function DashboardPage() {
         {activeTab === 'payments' && (
           <Card title="Payments">
             {/* Add Payment Record Form */}
-            {(showPaymentForm || editingPayment) && (
+            {(showPaymentForm || editingPayment || addingSubInvoiceFor) && (
               <div className="mb-6">
                 <h4 className="font-medium text-gray-900 mb-3">
-                  {editingPayment ? 'Edit Payment' : 'Add Payment Record'}
+                  {addingSubInvoiceFor ? `Add Sub-Invoice to Invoice ${addingSubInvoiceFor.invoice_id}` : editingPayment ? 'Edit Payment' : 'Add Payment Record'}
                 </h4>
                 <PaymentForm
                   subscriptions={subscriptions}
                   contacts={contacts}
                   existingPayment={editingPayment || undefined}
+                  parentInvoice={addingSubInvoiceFor || undefined}
                   onSave={async (data) => {
+                    // Just use the regular savePayment - it handles sub-invoices automatically
                     await savePayment({ ...data, user_id: user.id }, editingPayment?.id)
                     setShowPaymentForm(false)
                     setEditingPayment(null)
+                    setAddingSubInvoiceFor(null)
                     fetchPayments()
                   }}
                   onCancel={() => {
                     setShowPaymentForm(false)
                     setEditingPayment(null)
+                    setAddingSubInvoiceFor(null)
                   }}
                 />
               </div>
@@ -1011,90 +1035,456 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Payment Records from Database */}
-            {payments.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Contact</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Service</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Month</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Amount Due</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Amount Paid</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Payment Date</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Method</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payments
-                      .filter(payment => {
-                        // Filter by month if selected
-                        if (filterPaymentStatus !== 'all') {
-                          const paymentDate = new Date(payment.payment_month)
-                          const paymentMonthStr = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
-                          if (paymentMonthStr !== filterMonth) return false
+            {/* Payment Records from Database - Grouped by Invoice */}
+            {(() => {
+              // Group payments by invoice_id (main invoices only, no sub-invoices)
+              const mainInvoices = payments.filter(p => !p.sub_invoice_id)
+              
+              // Filter main invoices based on status and month
+              const filteredInvoices = mainInvoices.filter(payment => {
+                // Use remaining_due field to determine status
+                const remainingDue = payment.remaining_due || 0
+                const isPaid = remainingDue <= 0
+                
+                if (filterPaymentStatus !== 'all') {
+                  const paymentDate = new Date(payment.payment_month)
+                  const paymentMonthStr = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
+                  if (paymentMonthStr !== filterMonth) return false
+                  
+                  if (filterPaymentStatus === 'paid' && !isPaid) return false
+                  if (filterPaymentStatus === 'unpaid' && isPaid) return false
+                }
+                return true
+              })
+              
+              if (filteredInvoices.length === 0) {
+                return <EmptyState message="No payment records found. Click 'Add Payment Record' to create one." />
+              }
+              
+              return (
+                <div className="space-y-2">
+                  {filteredInvoices.map((payment) => {
+                    const subscription = subscriptions.find(s => s.id === payment.subscription_id)
+                    const contact = subscription ? contacts.find(c => c.id === subscription.contact_id) : null
+                    const subInvoices = payments.filter(p => p.invoice_id === payment.invoice_id && p.sub_invoice_id)
+                    const subInvoiceCount = subInvoices.length
+                    // Calculate total paid: main invoice + all sub-invoices
+                    const totalPaid = (payment.amount_paid || 0) + subInvoices.reduce((sum, sub) => sum + (sub.amount_paid || 0), 0)
+                    // Show remaining_due = 0 if fully paid, otherwise show remaining_due field
+                    const displayRemainingDue = totalPaid >= (payment.amount_due || 0) ? 0 : ((payment.amount_due || 0) - totalPaid)
+                    const isPaid = displayRemainingDue <= 0
+                    const isExpanded = expandedInvoices.has(payment.invoice_id)
+                    
+                    return (
+                      <div key={payment.id} className="border rounded-lg overflow-hidden">
+                        {/* Main Invoice Row */}
+                        <div 
+                          className={`flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer ${!isPaid ? 'bg-white' : 'bg-green-50/50'}`}
+                          onClick={() => {
+                            const newExpanded = new Set(expandedInvoices)
+                            if (isExpanded) {
+                              newExpanded.delete(payment.invoice_id)
+                            } else {
+                              newExpanded.add(payment.invoice_id)
+                            }
+                            setExpandedInvoices(newExpanded)
+                          }}
+                        >
+                          <div className="flex items-center gap-4">
+                            {/* Expand/Collapse icon - always show */}
+                            <svg 
+                              className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                            
+                            {/* Invoice ID */}
+                            <span className="font-mono font-medium text-gray-900">
+                              {payment.invoice_id}
+                            </span>
+                            
+                            {/* Sub-invoice indicator */}
+                            <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">
+                              {subInvoiceCount} sub-invoice{subInvoiceCount !== 1 ? 's' : ''}
+                            </span>
+                            
+                            {/* Contact */}
+                            <span className="text-gray-600">{contact?.name || 'Unknown'}</span>
+                            
+                            {/* Service */}
+                            <span className="text-gray-600">{subscription?.service?.name || 'Unknown'}</span>
+                            
+                            {/* Month */}
+                            <span className="text-gray-500 text-sm">
+                              {payment.payment_month ? new Date(payment.payment_month).toISOString().slice(0, 7) : '-'}
+                            </span>
+                          </div>
                           
-                          const isPaid = payment.amount_paid >= payment.amount_due
-                          if (filterPaymentStatus === 'paid' && !isPaid) return false
-                          if (filterPaymentStatus === 'unpaid' && isPaid) return false
-                        }
-                        return true
-                      })
-                      .map((payment) => {
-                        const subscription = subscriptions.find(s => s.id === payment.subscription_id)
-                        const contact = subscription ? contacts.find(c => c.id === subscription.contact_id) : null
-                        const isPaid = payment.amount_paid >= payment.amount_due
-                        
-                        return (
-                          <tr key={payment.id} className="border-b hover:bg-gray-50">
-                            <td className="py-3 px-4">{contact?.name || 'Unknown'}</td>
-                            <td className="py-3 px-4">{subscription?.service?.name || 'Unknown'}</td>
-                            <td className="py-3 px-4">{payment.payment_month ? new Date(payment.payment_month).toISOString().slice(0, 7) : '-'}</td>
-                            <td className="py-3 px-4 font-medium">{CURRENCY_SYMBOL}{payment.amount_due || 0}</td>
-                            <td className="py-3 px-4">{CURRENCY_SYMBOL}{payment.amount_paid || 0}</td>
-                            <td className="py-3 px-4">
-                              <span className={`px-2 py-1 rounded-full text-xs ${isPaid ? 'bg-green-100 text-green-700' : payment.amount_paid > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
-                                {isPaid ? 'Paid' : payment.amount_paid > 0 ? 'Partial' : 'Unpaid'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4">{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : '-'}</td>
-                            <td className="py-3 px-4">{payment.payment_method || '-'}</td>
-                            <td className="py-3 px-4">
-                              <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-6">
+                            {/* Amount - show remaining_due as Due, and full paid amount when fully paid */}
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <p className="text-xs text-gray-500">Due</p>
+                                <p className="font-medium">{CURRENCY_SYMBOL}{displayRemainingDue}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-gray-500">Paid</p>
+                                <p className="font-medium text-green-600">{CURRENCY_SYMBOL}{totalPaid}</p>
+                              </div>
+                            </div>
+                            
+                            {/* Status */}
+                            <span className={`px-2 py-1 rounded-full text-xs ${isPaid ? 'bg-green-100 text-green-700' : payment.amount_paid > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                              {isPaid ? 'Paid' : payment.amount_paid > 0 ? 'Partial' : 'Unpaid'}
+                            </span>
+                            
+                            {/* Payment Date */}
+                            <span className="text-sm text-gray-500">
+                              {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : '-'}
+                            </span>
+                            
+                            {/* Actions - hide edit for invoices with sub-invoices */}
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setViewingPayment(payment); }}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                                title="View Details"
+                              >
+                                <EyeIcon />
+                              </button>
+                              {subInvoiceCount === 0 && (
                                 <button
-                                  onClick={() => { setEditingPayment(payment); setShowPaymentForm(true); }}
+                                  onClick={(e) => { e.stopPropagation(); setEditingPayment(payment); setShowPaymentForm(true); }}
                                   className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
                                   title="Edit"
                                 >
                                   <EditIcon />
                                 </button>
-                                <button
-                                  onClick={async () => {
-                                    if (confirm('Delete this payment record?')) {
-                                      await deletePayment(payment.id)
-                                      fetchPayments()
+                              )}
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation()
+                                  if (confirm('Delete this payment record? This will also delete all sub-invoices.')) {
+                                    const subInvoicesToDelete = payments.filter(p => p.invoice_id === payment.invoice_id && p.sub_invoice_id)
+                                    for (const sub of subInvoicesToDelete) {
+                                      await deletePayment(sub.id)
                                     }
-                                  }}
-                                  className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                                  title="Delete"
-                                >
-                                  <DeleteIcon />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <EmptyState message="No payment records found. Click 'Add Payment Record' to create one." />
-            )}
+                                    await deletePayment(payment.id)
+                                    fetchPayments()
+                                  }
+                                }}
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                                title="Delete"
+                              >
+                                <DeleteIcon />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Expandable section - shows all invoices (main + sub-invoices) in table format */}
+                        {isExpanded && (
+                          <div className="bg-gray-50 border-t">
+                            <div className="p-3 pl-12">
+                              <table className="w-full">
+                                <thead>
+                                  <tr className="text-xs text-gray-500">
+                                    <th className="text-left py-2 px-3 font-medium">Invoice</th>
+                                    <th className="text-left py-2 px-3 font-medium">Amount</th>
+                                    <th className="text-left py-2 px-3 font-medium">Status</th>
+                                    <th className="text-left py-2 px-3 font-medium">Date</th>
+                                    <th className="text-left py-2 px-3 font-medium">Method</th>
+                                    <th className="text-left py-2 px-3 font-medium">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {/* Main Invoice */}
+                                  <tr key={payment.id} className="border-t border-gray-200">
+                                    <td className="py-2 px-3">
+                                      <span className="font-mono text-sm font-medium">{payment.invoice_id}</span>
+                                      <span className="text-xs text-gray-500 ml-1">(Main)</span>
+                                    </td>
+                                    <td className="py-2 px-3">
+                                      <span className="font-medium">{CURRENCY_SYMBOL}{payment.amount_paid}</span>
+                                      <span className="text-gray-400 text-xs"> / {CURRENCY_SYMBOL}{payment.amount_due}</span>
+                                    </td>
+                                    <td className="py-2 px-3">
+                                      <span className={`px-2 py-0.5 rounded-full text-xs ${isPaid ? 'bg-green-100 text-green-700' : payment.amount_paid > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                        {isPaid ? 'Paid' : payment.amount_paid > 0 ? 'Partial' : 'Unpaid'}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 px-3 text-sm">
+                                      {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : '-'}
+                                    </td>
+                                    <td className="py-2 px-3 text-sm">
+                                      {payment.payment_method || '-'}
+                                    </td>
+                                    <td className="py-2 px-3">
+                                      <div className="flex gap-1">
+                                        <button
+                                          onClick={() => setViewingPayment(payment)}
+                                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                          title="View"
+                                        >
+                                          <EyeIcon />
+                                        </button>
+                                        <button
+                                          onClick={() => { setEditingPayment(payment); setShowPaymentForm(true); }}
+                                          className="p-1 text-purple-600 hover:bg-purple-50 rounded"
+                                          title="Edit"
+                                        >
+                                          <EditIcon />
+                                        </button>
+                                        <button
+                                          onClick={async () => {
+                                            if (confirm('Delete this payment record? This will also delete all sub-invoices.')) {
+                                              const subInvoicesToDelete = payments.filter(p => p.invoice_id === payment.invoice_id && p.sub_invoice_id)
+                                              for (const sub of subInvoicesToDelete) {
+                                                await deletePayment(sub.id)
+                                              }
+                                              await deletePayment(payment.id)
+                                              fetchPayments()
+                                            }
+                                          }}
+                                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                          title="Delete"
+                                        >
+                                          <DeleteIcon />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                  {/* Sub-Invoices */}
+                                  {subInvoices.map(sub => {
+                                    const subIsPaid = sub.amount_paid >= sub.amount_due
+                                    return (
+                                      <tr key={sub.id} className="border-t border-gray-200">
+                                        <td className="py-2 px-3">
+                                          <span className="font-mono text-sm">{sub.sub_invoice_id}</span>
+                                        </td>
+                                        <td className="py-2 px-3">
+                                          <span className="font-medium">{CURRENCY_SYMBOL}{sub.amount_paid}</span>
+                                          <span className="text-gray-400 text-xs"> / {CURRENCY_SYMBOL}{sub.amount_due}</span>
+                                        </td>
+                                        <td className="py-2 px-3">
+                                          <span className={`px-2 py-0.5 rounded-full text-xs ${subIsPaid ? 'bg-green-100 text-green-700' : sub.amount_paid > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                            {subIsPaid ? 'Paid' : sub.amount_paid > 0 ? 'Partial' : 'Unpaid'}
+                                          </span>
+                                        </td>
+                                        <td className="py-2 px-3 text-sm">
+                                          {sub.payment_date ? new Date(sub.payment_date).toLocaleDateString() : '-'}
+                                        </td>
+                                        <td className="py-2 px-3 text-sm">
+                                          {sub.payment_method || '-'}
+                                        </td>
+                                        <td className="py-2 px-3">
+                                          <div className="flex gap-1">
+                                            <button
+                                              onClick={() => setViewingPayment(sub)}
+                                              className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                              title="View"
+                                            >
+                                              <EyeIcon />
+                                            </button>
+                                            <button
+                                              onClick={() => { setEditingPayment(sub); setShowPaymentForm(true); }}
+                                              className="p-1 text-purple-600 hover:bg-purple-50 rounded"
+                                              title="Edit"
+                                            >
+                                              <EditIcon />
+                                            </button>
+                                            <button
+                                              onClick={async () => {
+                                                if (confirm('Delete this sub-invoice?')) {
+                                                  await deletePayment(sub.id)
+                                                  fetchPayments()
+                                                }
+                                              }}
+                                              className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                              title="Delete"
+                                            >
+                                              <DeleteIcon />
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
           </Card>
+        )}
+
+        {/* View Payment Details Modal */}
+        {viewingPayment && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    Invoice {viewingPayment.invoice_id}
+                    {viewingPayment.sub_invoice_id && <span className="text-gray-400">-{viewingPayment.sub_invoice_id.split('-')[1]}</span>}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingPayment(viewingPayment)
+                        setViewingPayment(null)
+                        setShowPaymentForm(true)
+                      }}
+                      className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg"
+                      title="Edit"
+                    >
+                      <EditIcon />
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (confirm('Delete this payment record? This will also delete all sub-invoices.')) {
+                          const subInvoicesToDelete = payments.filter(p => p.invoice_id === viewingPayment.invoice_id && p.sub_invoice_id)
+                          for (const sub of subInvoicesToDelete) {
+                            await deletePayment(sub.id)
+                          }
+                          await deletePayment(viewingPayment.id)
+                          fetchPayments()
+                          setViewingPayment(null)
+                        }
+                      }}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                      title="Delete"
+                    >
+                      <DeleteIcon />
+                    </button>
+                    <button onClick={() => setViewingPayment(null)} className="text-gray-400 hover:text-gray-600 p-2">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Main Invoice Details */}
+                {(() => {
+                  const subscription = subscriptions.find(s => s.id === viewingPayment.subscription_id)
+                  const contact = subscription ? contacts.find(c => c.id === subscription.contact_id) : null
+                  const isPaid = viewingPayment.amount_paid >= viewingPayment.amount_due
+                  const subInvoices = payments.filter(p => p.invoice_id === viewingPayment.invoice_id && p.sub_invoice_id)
+                  
+                  return (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">Contact</p>
+                          <p className="font-medium">{contact?.name || 'Unknown'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Service</p>
+                          <p className="font-medium">{subscription?.service?.name || 'Unknown'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Month</p>
+                          <p className="font-medium">{viewingPayment.payment_month ? new Date(viewingPayment.payment_month).toISOString().slice(0, 7) : '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Status</p>
+                          <span className={`px-2 py-1 rounded-full text-xs ${isPaid ? 'bg-green-100 text-green-700' : viewingPayment.amount_paid > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                            {isPaid ? 'Paid' : viewingPayment.amount_paid > 0 ? 'Partial' : 'Unpaid'}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Amount Due</p>
+                          <p className="font-medium">{CURRENCY_SYMBOL}{viewingPayment.amount_due || 0}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Amount Paid</p>
+                          <p className="font-medium">{CURRENCY_SYMBOL}{viewingPayment.amount_paid || 0}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Payment Date</p>
+                          <p className="font-medium">{viewingPayment.payment_date ? new Date(viewingPayment.payment_date).toLocaleDateString() : '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Payment Method</p>
+                          <p className="font-medium">{viewingPayment.payment_method || '-'}</p>
+                        </div>
+                      </div>
+                      
+                      {viewingPayment.notes && (
+                        <div>
+                          <p className="text-sm text-gray-500">Notes</p>
+                          <p className="font-medium">{viewingPayment.notes}</p>
+                        </div>
+                      )}
+                      
+                      {/* Sub-Invoices Section */}
+                      {!viewingPayment.sub_invoice_id && (
+                        <div className="border-t pt-4 mt-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-medium text-gray-900">Sub-Invoices</h4>
+                            {!isPaid && (
+                              <button
+                                onClick={() => {
+                                  setAddingSubInvoiceFor(viewingPayment)
+                                  setViewingPayment(null)
+                                  setShowPaymentForm(true)
+                                }}
+                                className="px-3 py-1 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+                              >
+                                + Add Sub-Invoice
+                              </button>
+                            )}
+                          </div>
+                          
+                          {subInvoices.length > 0 ? (
+                            <div className="space-y-2">
+                              {subInvoices.map(sub => (
+                                <div key={sub.id} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+                                  <div>
+                                    <span className="font-mono text-sm">{sub.sub_invoice_id}</span>
+                                    <span className="text-gray-400 mx-2">|</span>
+                                    <span>{CURRENCY_SYMBOL}{sub.amount_paid}</span>
+                                    <span className="text-gray-400 mx-2">|</span>
+                                    <span className="text-sm text-gray-500">{sub.payment_date ? new Date(sub.payment_date).toLocaleDateString() : '-'}</span>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={async () => {
+                                        if (confirm('Delete this sub-invoice?')) {
+                                          await deletePayment(sub.id)
+                                          fetchPayments()
+                                          setViewingPayment(null)
+                                        }
+                                      }}
+                                      className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                    >
+                                      <DeleteIcon />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500">No sub-invoices yet</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Templates Tab */}
@@ -1518,7 +1908,7 @@ function SubscriptionItem({
       <div className="flex justify-between items-start">
         <div>
           <p className="font-medium text-gray-900">{subscription.service?.name || 'Unknown Service'}</p>
-          <p className="text-sm text-gray-500">${subscription.service?.amount || 0}</p>
+          <p className="text-sm text-gray-500">{CURRENCY_SYMBOL}{subscription.service?.amount || 0} <span className="text-xs">/ {subscription.service?.payment_cycle || 'month'}</span></p>
         </div>
         {paid && (
           <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">

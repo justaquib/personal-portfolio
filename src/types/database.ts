@@ -20,6 +20,7 @@ export interface Service {
   amount: number
   actual_cost: number
   description: string
+  payment_cycle: 'monthly' | 'quarterly' | 'yearly'
   created_at: string
 }
 
@@ -46,6 +47,8 @@ export interface Subscription {
   started_at: string
   ended_at: string | null
   created_at: string
+  total_due?: number  // Track total amount due for the subscription
+  last_payment_date?: string | null  // Track last payment date
   payments?: Payment[]
 }
 
@@ -55,8 +58,12 @@ export interface Payment {
   user_id: string
   subscription_id: string
   payment_month: string
+  billing_month: string
+  invoice_id: string  // Main invoice: 0001, 0002, etc.
+  sub_invoice_id: string | null  // Sub-invoice: 0001-a, 0001-b, etc.
   amount_due: number
   amount_paid: number
+  remaining_due: number  // Remaining amount due after partial payments
   payment_date: string | null
   payment_method: string | null
   notes: string | null
@@ -67,8 +74,12 @@ export interface Payment {
 export interface PaymentFormData {
   subscription_id: string
   payment_month: string
+  billing_month?: string
+  invoice_id?: string
+  sub_invoice_id?: string
   amount_due: number
   amount_paid: number
+  remaining_due?: number
   payment_date: string | null
   payment_method: string
   notes: string
@@ -89,6 +100,7 @@ export interface ServiceFormData {
   amount: number
   actual_cost: number
   description: string
+  payment_cycle: 'monthly' | 'quarterly' | 'yearly'
 }
 
 export interface ContactServiceFormData {

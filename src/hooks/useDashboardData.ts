@@ -124,25 +124,191 @@ export function usePayments() {
   }, [])
 
   const savePayment = useCallback(async (data: PaymentFormData & { user_id?: string }, id?: string) => {
-    if (id) {
-      const { error } = await supabase
-        .from('subscription_payments')
-        .update({
-          amount_due: data.amount_due,
-          amount_paid: data.amount_paid,
-          payment_date: data.payment_date,
-          payment_method: data.payment_method,
-          notes: data.notes
-        })
-        .eq('id', id)
-      if (error) throw error
-    } else {
-      const { error } = await supabase
-        .from('subscription_payments')
-        .insert({ ...data, user_id: data.user_id })
-      if (error) throw error
+    try {
+      console.log('Saving payment with data:', JSON.stringify(data, null, 2))
+      
+      // Get the service amount
+      const { data: subData, error: subError } = await supabase
+        .from('service_subscriptions')
+        .select('service:services(amount), total_due')
+        .eq('id', data.subscription_id)
+        .single()
+      
+      if (subError) {
+        console.error('Error fetching subscription:', subError)
+        throw new Error('Subscription not found')
+      }
+      
+      console.log('Subscription data:', JSON.stringify(subData, null, 2))
+      
+      const serviceAmount = (subData as any)?.service?.amount || data.amount_due || 0
+      let currentTotalDue = (subData as any)?.total_due || 0
+      
+      // Helper function to generate invoice ID (0001, 0002, etc.)
+      const generateInvoiceId = async (): Promise<string> => {
+        const { data: lastInvoice } = await supabase
+          .from('subscription_payments')
+          .select('invoice_id')
+          .not('invoice_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          
+        let nextNum = 1
+        if (lastInvoice && lastInvoice[0]?.invoice_id) {
+          const lastNum = parseInt(lastInvoice[0].invoice_id) || 0
+          nextNum = lastNum + 1
+        }
+        console.log('Generated invoice ID:', String(nextNum).padStart(4, '0'))
+        return String(nextNum).padStart(4, '0')
+      }
+      
+      // Helper function to generate sub-invoice ID (0001-a, 0001-b, etc.)
+      const generateSubInvoiceId = async (invoiceId: string): Promise<string> => {
+        const { data: existingSubInvoices } = await supabase
+          .from('subscription_payments')
+          .select('sub_invoice_id')
+          .eq('invoice_id', invoiceId)
+          .not('sub_invoice_id', 'is', null)
+        
+        const letterCode = 97 + (existingSubInvoices?.length || 0) // 97 = 'a'
+        const subId = `${invoiceId}-${String.fromCharCode(letterCode)}`
+        console.log('Generated sub-invoice ID:', subId, 'existing count:', existingSubInvoices?.length)
+        return subId
+      }
+      
+      if (id) {
+        // Update existing payment by ID
+        const remainingDue = data.amount_due - data.amount_paid
+        const { error } = await supabase
+          .from('subscription_payments')
+          .update({
+            amount_due: serviceAmount,
+            amount_paid: data.amount_paid,
+            remaining_due: Math.max(0, remainingDue),
+            payment_date: data.payment_date,
+            payment_method: data.payment_method,
+            notes: data.notes
+          })
+          .eq('id', id)
+        if (error) throw error
+        
+        // Update subscription's last_payment_date
+        await supabase
+          .from('service_subscriptions')
+          .update({ last_payment_date: data.payment_date })
+          .eq('id', data.subscription_id)
+      } else {
+        // Check if invoice already exists for this payment month
+        let existingInvoice: any[] | null = null
+        try {
+          const result = await supabase
+            .from('subscription_payments')
+            .select('id, invoice_id, amount_due, amount_paid')
+            .eq('subscription_id', data.subscription_id)
+            .eq('payment_month', data.payment_month)
+            .is('sub_invoice_id', null)
+            .limit(1)
+          existingInvoice = result.data
+          if (result.error) throw result.error
+        } catch (err) {
+          console.log('Error checking existing invoice:', err)
+          existingInvoice = null
+        }
+
+        if (existingInvoice && existingInvoice.length > 0) {
+          // Partial payment - add sub_invoice to existing invoice
+          const mainInvoice = existingInvoice[0]
+          console.log('Found existing invoice for partial payment:', mainInvoice)
+          const newSubInvoiceId = await generateSubInvoiceId(mainInvoice.invoice_id)
+          
+          // Calculate remaining amount to be paid (original amount - already paid)
+          const remainingAmount = mainInvoice.amount_due - mainInvoice.amount_paid
+          console.log('Remaining amount:', remainingAmount)
+          
+          // Try to insert sub-invoice
+          let insertError: any = null
+          const remainingDueSub = remainingAmount - data.amount_paid
+          const { error } = await supabase
+            .from('subscription_payments')
+            .insert({
+              subscription_id: data.subscription_id,
+              payment_month: data.payment_month,
+              invoice_id: mainInvoice.invoice_id,
+              sub_invoice_id: newSubInvoiceId,
+              amount_due: remainingAmount,
+              amount_paid: data.amount_paid,
+              remaining_due: Math.max(0, remainingDueSub),
+              payment_date: data.payment_date,
+              payment_method: data.payment_method,
+              notes: data.notes || 'Partial payment',
+              user_id: data.user_id
+            })
+          insertError = error
+          
+          if (insertError) {
+            console.error('Error inserting sub-invoice:', insertError)
+            console.error('Error code:', insertError?.code)
+            console.error('Error message:', insertError?.message)
+            throw insertError
+          }
+          
+          // Success! (Don't update main invoice - keep original amount_paid unchanged)
+          // The remaining_due tracking is just for display purposes
+          
+          // Decrease total_due by payment amount
+          currentTotalDue = Math.max(0, currentTotalDue - data.amount_paid)
+          
+          await supabase
+            .from('service_subscriptions')
+            .update({
+              total_due: currentTotalDue,
+              last_payment_date: data.payment_date
+            })
+            .eq('id', data.subscription_id)
+        } else {
+          // New invoice - create new payment record with new invoice_id
+          const newInvoiceId = await generateInvoiceId()
+          console.log('Creating new invoice with ID:', newInvoiceId)
+          const newRemainingDue = serviceAmount - data.amount_paid
+          
+          const { error } = await supabase
+            .from('subscription_payments')
+            .insert({ 
+              subscription_id: data.subscription_id,
+              payment_month: data.payment_month,
+              invoice_id: newInvoiceId,
+              sub_invoice_id: null,
+              amount_due: serviceAmount,
+              amount_paid: data.amount_paid,
+              remaining_due: Math.max(0, newRemainingDue),
+              payment_date: data.payment_date,
+              payment_method: data.payment_method,
+              notes: data.notes,
+              user_id: data.user_id
+            })
+          if (error) {
+            console.error('Error inserting new invoice:', error)
+            throw error
+          }
+          
+          // Increase total_due for new billing period
+          currentTotalDue = currentTotalDue + serviceAmount
+          
+          await supabase
+            .from('service_subscriptions')
+            .update({
+              total_due: currentTotalDue,
+              last_payment_date: data.payment_date
+            })
+            .eq('id', data.subscription_id)
+        }
+      }
+      await fetchPayments()
+    } catch (err: any) {
+      console.error('Error saving payment:', err)
+      console.error('Error details:', JSON.stringify(err, Object.getOwnPropertyNames(err)))
+      throw err
     }
-    await fetchPayments()
   }, [fetchPayments])
 
   const deletePayment = useCallback(async (id: string) => {

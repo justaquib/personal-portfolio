@@ -14,6 +14,7 @@ const initialFormData: ServiceFormData = {
   amount: 0,
   actual_cost: 0,
   description: '',
+  payment_cycle: 'monthly',
 }
 
 export function ServiceForm({ service, onSave, onCancel }: ServiceFormProps) {
@@ -24,6 +25,7 @@ export function ServiceForm({ service, onSave, onCancel }: ServiceFormProps) {
           amount: service.amount,
           actual_cost: service.actual_cost || 0,
           description: service.description || '',
+          payment_cycle: service.payment_cycle || 'monthly',
         }
       : initialFormData
   )
@@ -38,6 +40,7 @@ export function ServiceForm({ service, onSave, onCancel }: ServiceFormProps) {
         amount: service.amount,
         actual_cost: service.actual_cost || 0,
         description: service.description || '',
+        payment_cycle: service.payment_cycle || 'monthly',
       })
     } else {
       setFormData(initialFormData)
@@ -59,7 +62,7 @@ export function ServiceForm({ service, onSave, onCancel }: ServiceFormProps) {
   }
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target
     setFormData((prev) => ({
@@ -94,7 +97,7 @@ export function ServiceForm({ service, onSave, onCancel }: ServiceFormProps) {
           />
         </div>
         <div>
-          <label className="form-label">Monthly Amount *</label>
+          <label className="form-label">Amount *</label>
           <input
             type="number"
             name="amount"
@@ -106,6 +109,7 @@ export function ServiceForm({ service, onSave, onCancel }: ServiceFormProps) {
             step="0.01"
             required
           />
+          <p className="text-xs text-gray-500 mt-1">Amount per {formData.payment_cycle}</p>
         </div>
         <div>
           <label className="form-label">Actual Cost *</label>
@@ -132,6 +136,19 @@ export function ServiceForm({ service, onSave, onCancel }: ServiceFormProps) {
             rows={2}
             className="form-textarea"
           />
+        </div>
+        <div>
+          <label className="form-label">Payment Cycle</label>
+          <select
+            name="payment_cycle"
+            value={formData.payment_cycle}
+            onChange={handleChange}
+            className="form-input"
+          >
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="yearly">Yearly</option>
+          </select>
         </div>
       </div>
 
