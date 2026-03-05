@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { TabType, ContactFormData, TemplateFormData, Contact, MessageTemplate, Subscription, Payment, ServiceFormData, Service, PaymentFormData } from '@/types/database'
 import { CURRENCY_SYMBOL } from '@/constants'
 import './dashboard.css'
+import { Unlink } from 'lucide-react'
 
 // Icons as components for reusability
 const SendIcon = () => (
@@ -415,41 +416,68 @@ export default function DashboardPage() {
     
     result = result.replace(/\{\{amount\}\}/g, String(serviceAmount))
     result = result.replace(/\{\{service\}\}/g, serviceName)
-    result = result.replace(/\{\{month\}\}/g, getCurrentMonth())
     
-    // Calculate outstanding balance for this service
+    // Calculate outstanding balance and due months from actual payment records (including sub-invoices)
     let outstandingBalance = 0
-    if (subscription) {
-      // Use sync calculation with existing payments if available
-      const serviceAmount2 = subscription.service?.amount || 0
-      const subscriptionStart = subscription.started_at || new Date().toISOString().split('T')[0]
-      const startDate = new Date(subscriptionStart)
-      const startYear = startDate.getFullYear()
-      const startMonth = startDate.getMonth() + 1
-      const currentYear = new Date().getFullYear()
-      const currentMonthNum = new Date().getMonth() + 1
+    let dueMonths: string[] = []
+    
+    if (subscription && subscription.payments) {
+      // Group payments by invoice_id (main invoices only)
+      const mainInvoices = subscription.payments.filter(p => !p.sub_invoice_id)
       
-      let outstanding = 0
-      for (let year = startYear; year <= currentYear; year++) {
-        const monthStart = (year === startYear) ? startMonth : 1
-        const monthEnd = (year === currentYear) ? currentMonthNum : 12
+      // Calculate outstanding from actual payment records
+      mainInvoices.forEach(payment => {
+        // Get all sub-invoices for this main invoice
+        const subInvoices = subscription.payments!.filter(p => 
+          p.invoice_id === payment.invoice_id && p.sub_invoice_id
+        )
         
-        for (let month = monthStart; month <= monthEnd; month++) {
-          const checkMonth = `${year}-${String(month).padStart(2, '0')}`
+        // Calculate total paid: main invoice + all sub-invoices
+        const mainPaid = payment.amount_paid || 0
+        const subInvoicesPaid = subInvoices.reduce((sum, sub) => sum + (sub.amount_paid || 0), 0)
+        const totalPaid = mainPaid + subInvoicesPaid
+        
+        // Calculate remaining due
+        const mainDue = payment.amount_due || 0
+        const remainingDue = totalPaid >= mainDue ? 0 : (mainDue - totalPaid)
+        
+        if (remainingDue > 0) {
+          outstandingBalance += remainingDue
+          // Add the month to due months
+          const paymentMonth = payment.payment_month ? new Date(payment.payment_month).toISOString().slice(0, 7) : ''
+          if (paymentMonth && !dueMonths.includes(paymentMonth)) {
+            dueMonths.push(paymentMonth)
+          }
+        }
+      })
+      
+      // If no payment records exist, calculate from subscription start to current month
+      if (mainInvoices.length === 0) {
+        const subscriptionStart = subscription.started_at || new Date().toISOString().split('T')[0]
+        const startDate = new Date(subscriptionStart)
+        const startYear = startDate.getFullYear()
+        const startMonth = startDate.getMonth() + 1
+        const currentYear = new Date().getFullYear()
+        const currentMonthNum = new Date().getMonth() + 1
+        
+        for (let year = startYear; year <= currentYear; year++) {
+          const monthStart = (year === startYear) ? startMonth : 1
+          const monthEnd = (year === currentYear) ? currentMonthNum : 12
           
-          const paymentForMonth = subscription.payments?.find(p => {
-            const paymentDate = new Date(p.payment_month)
-            return paymentDate.getFullYear() === year && paymentDate.getMonth() + 1 === month
-          })
-          
-          const isPaidForMonth = paymentForMonth && paymentForMonth.amount_paid >= paymentForMonth.amount_due
-          if (!isPaidForMonth) {
-            outstanding += serviceAmount2
+          for (let month = monthStart; month <= monthEnd; month++) {
+            const checkMonth = `${year}-${String(month).padStart(2, '0')}`
+            dueMonths.push(checkMonth)
+            outstandingBalance += serviceAmount
           }
         }
       }
-      outstandingBalance = outstanding
     }
+    
+    // Replace month placeholder - show all due/unpaid months (comma-separated)
+    const displayMonth = dueMonths.length > 0 
+      ? dueMonths.sort().join(', ') 
+      : getCurrentMonth()
+    result = result.replace(/\{\{month\}\}/g, displayMonth)
     result = result.replace(/\{\{outstanding\}\}/g, String(outstandingBalance))
     
     return result
@@ -774,8 +802,14 @@ export default function DashboardPage() {
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <button onClick={() => { setEditingContact(contact); setShowContactForm(true); }} className="text-purple-600 hover:underline mr-3">Edit</button>
-                          <button onClick={() => deleteContact(contact.id)} className="text-red-600 hover:underline">Delete</button>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => { setEditingContact(contact); setShowContactForm(true); }} className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Edit">
+                              <EditIcon />
+                            </button>
+                            <button onClick={() => deleteContact(contact.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete">
+                              <DeleteIcon />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -850,9 +884,13 @@ export default function DashboardPage() {
                             )}
                             <p className="text-xs text-gray-500 mt-1">{service.description}</p>
                           </div>
-                          <div>
-                            <button onClick={() => { setEditingService(service); setShowServiceForm(true); }} className="text-purple-600 hover:underline mr-3">Edit</button>
-                            <button onClick={() => deleteService(service.id)} className="text-red-600 hover:underline">Delete</button>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => { setEditingService(service); setShowServiceForm(true); }} className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Edit">
+                              <EditIcon />
+                            </button>
+                            <button onClick={() => deleteService(service.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete">
+                              <DeleteIcon />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -947,9 +985,10 @@ export default function DashboardPage() {
                                 <td className="py-3 px-4">
                                   <button 
                                     onClick={() => handleUnlinkService(sub.id)} 
-                                    className="text-red-600 hover:underline"
+                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                                    title="Unlink"
                                   >
-                                    Unlink
+                                    <Unlink />
                                   </button>
                                 </td>
                               </tr>
@@ -1520,9 +1559,13 @@ export default function DashboardPage() {
                         <h4 className="font-medium text-gray-900">{template.name}</h4>
                         <p className="text-sm text-gray-600 mt-1">{template.content}</p>
                       </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => { setEditingTemplate(template); setShowTemplateForm(true); }} className="text-purple-600 hover:underline">Edit</button>
-                        <button onClick={() => deleteTemplate(template.id)} className="text-red-600 hover:underline">Delete</button>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => { setEditingTemplate(template); setShowTemplateForm(true); }} className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Edit">
+                          <EditIcon />
+                        </button>
+                        <button onClick={() => deleteTemplate(template.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete">
+                          <DeleteIcon />
+                        </button>
                       </div>
                     </div>
                   </div>
