@@ -30,7 +30,7 @@ export function useSubscriptions() {
   }, [])
 
   const saveSubscription = useCallback(async (
-    data: { contact_id: string; service_id: string; started_at?: string },
+    data: { contact_id: string; service_id: string; started_at?: string; user_id?: string },
     id?: string
   ) => {
     if (id) {
@@ -49,7 +49,8 @@ export function useSubscriptions() {
         .insert({
           contact_id: data.contact_id,
           service_id: data.service_id,
-          started_at: data.started_at || new Date().toISOString().split('T')[0]
+          started_at: data.started_at || new Date().toISOString().split('T')[0],
+          user_id: data.user_id
         })
       if (error) throw error
     }

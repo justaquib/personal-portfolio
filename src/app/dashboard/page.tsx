@@ -465,11 +465,14 @@ export default function DashboardPage() {
     if (!selectedContactForService || !selectedServiceToLink) return
     
     setLinkServiceLoading(true)
+    if (!user) return
+    
     try {
       await saveSubscription({
         contact_id: selectedContactForService,
         service_id: selectedServiceToLink,
-        started_at: `${subscriptionStartMonth}-01`
+        started_at: `${subscriptionStartMonth}-01`,
+        user_id: user.id
       })
       setSelectedContactForService('')
       setSelectedServiceToLink('')
@@ -1472,7 +1475,7 @@ export default function DashboardPage() {
 }
 
 // Subscription item component for displaying in the list
-async function SubscriptionItem({ 
+function SubscriptionItem({ 
   subscription, 
   isSelected, 
   onClick 
