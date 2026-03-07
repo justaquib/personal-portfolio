@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Card, EmptyState, LoadingState, Badge } from '../ui'
-import { usePayments, useSubscriptions, useServices } from '@/hooks/useDashboardData'
+import { usePayments, useSubscriptions, useServices, useContacts } from '@/hooks/useDashboardData'
 import dayjs from 'dayjs'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
 
@@ -16,16 +16,19 @@ export function EarningsTab({ userId }: EarningsTabProps) {
   const { payments, loading: paymentsLoading, fetchPayments } = usePayments()
   const { subscriptions, loading: subscriptionsLoading, fetchSubscriptions } = useSubscriptions()
   const { services, loading: servicesLoading, fetchServices } = useServices()
+  const { contacts, loading: contactsLoading, fetchContacts } = useContacts()
   
   const [filterYear, setFilterYear] = useState<string>('all')
+  const [earningsTab, setEarningsTab] = useState<'service' | 'contact'>('service')
 
   useEffect(() => {
     fetchPayments()
     fetchSubscriptions()
     fetchServices()
-  }, [fetchPayments, fetchSubscriptions, fetchServices])
+    fetchContacts()
+  }, [fetchPayments, fetchSubscriptions, fetchServices, fetchContacts])
 
-  const loading = paymentsLoading || subscriptionsLoading || servicesLoading
+  const loading = paymentsLoading || subscriptionsLoading || servicesLoading || contactsLoading
 
   const getServiceName = (serviceId: string) => {
     const service = services.find(s => s.id === serviceId)
@@ -55,7 +58,7 @@ export function EarningsTab({ userId }: EarningsTabProps) {
     return acc
   }, {})
 
-  // Calculate monthly earnings for the selected year (or all years)
+  // Calculate monthly earnings for the selected year
   const monthlyEarnings = payments.reduce((acc: Record<string, number>, payment) => {
     const parsedDate = parseDate(payment.payment_date)
     if (parsedDate && parsedDate.isValid()) {
@@ -68,75 +71,106 @@ export function EarningsTab({ userId }: EarningsTabProps) {
     return acc
   }, {})
 
-  // Calculate earnings by service (for selected year or all years)
-  const earningsByService = payments.reduce((acc: Record<string, number>, payment) => {
-    const parsedDate = parseDate(payment.payment_date)
-    if (parsedDate && parsedDate.isValid() && (filterYear === 'all' || parsedDate.year().toString() === filterYear.toString())) {
-      const subscription = subscriptions.find(s => s.id === payment.subscription_id)
-      if (subscription) {
-        const serviceName = getServiceName(subscription.service_id)
-        acc[serviceName] = (acc[serviceName] || 0) + (payment.amount_paid || 0)
-      }
-    }
-    return acc
-  }, {})
-
-  // Calculate profit (revenue - costs)
-  const calculateProfit = (serviceId: string) => {
-    const service = services.find(s => s.id === serviceId)
-    const revenue = earningsByService[service?.name || ''] || 0
-    const cost = service?.actual_cost || 0
-    return revenue - cost
-  }
-
   // Total earnings for selected year (or all years)
   const totalEarnings = Object.values(monthlyEarnings).reduce((sum, val) => sum + val, 0)
   
-  // Total Revenue - sum of all amount_paid for selected year (or all years if no filter)
-  const yearFilteredPayments = filterYear === 'all' 
-    ? payments 
-    : payments.filter(p => {
+  // Total Revenue, Cost, and Due - calculated from main invoice records (including sub-invoices)
+  // Using the old logic: each main invoice has one cost (service.actual_cost)
+  const mainInvoices = payments.filter(p => !p.sub_invoice_id)
+  
+  // Filter by year if not "all"
+  const filteredMainInvoices = filterYear === 'all' 
+    ? mainInvoices 
+    : mainInvoices.filter(p => {
         const parsedDate = parseDate(p.payment_date)
         return parsedDate && parsedDate.isValid() && parsedDate.year().toString() === filterYear.toString()
       })
   
-  const totalRevenue = yearFilteredPayments.reduce((sum, p) => sum + (p.amount_paid || 0), 0)
+  let totalRevenue = 0
+  let totalCost = 0
+  let remainingDue = 0
   
-  // Total Cost - sum of actual_cost from unique services that have payments (subscriptions)
-  const uniqueServiceIds = new Set<string>()
-  yearFilteredPayments.forEach(payment => {
+  // Calculate earnings by service using same logic as summary cards
+  const serviceEarningsMap: Record<string, { revenue: number; cost: number; due: number; lastInvoiceDate: string | null }> = {}
+  
+  // Calculate earnings by contact using same logic as summary cards
+  const contactEarningsMap: Record<string, { revenue: number; cost: number; due: number; lastInvoiceDate: string | null }> = {}
+  
+  filteredMainInvoices.forEach(payment => {
     const subscription = subscriptions.find(s => s.id === payment.subscription_id)
-    if (subscription) {
-      uniqueServiceIds.add(subscription.service_id)
+    if (!subscription) return
+    
+    const service = services.find(s => s.id === subscription.service_id)
+    if (!service) return
+    
+    const contact = contacts.find(c => c.id === subscription.contact_id)
+    const serviceName = service.name || 'Unknown Service'
+    const contactName = contact?.name || 'Unknown Contact'
+    
+    // Get all sub-invoices for this main invoice
+    const subInvoices = payments.filter(p => p.invoice_id === payment.invoice_id && p.sub_invoice_id)
+    
+    // Calculate total paid: main invoice + all sub-invoices
+    const mainPaid = payment.amount_paid || 0
+    const subInvoicesPaid = subInvoices.reduce((sum, sub) => sum + (sub.amount_paid || 0), 0)
+    const totalPaid = mainPaid + subInvoicesPaid
+    
+    // Use main invoice's amount_due as the total due
+    const mainDue = payment.amount_due || 0
+    
+    // Cost applies to the main invoice (service cost)
+    const cost = service.actual_cost || 0
+    
+    // Revenue = total paid
+    const revenue = totalPaid
+    
+    // Calculate remaining due
+    const invoiceDue = totalPaid >= mainDue ? 0 : (mainDue - totalPaid)
+    
+    // Initialize and add to service totals
+    if (!serviceEarningsMap[serviceName]) {
+      serviceEarningsMap[serviceName] = { revenue: 0, cost: 0, due: 0, lastInvoiceDate: null }
     }
+    serviceEarningsMap[serviceName].revenue += revenue
+    serviceEarningsMap[serviceName].cost += cost
+    serviceEarningsMap[serviceName].due += invoiceDue
+    // Update last invoice date if this payment is newer
+    if (payment.payment_date) {
+      const currentLastDate = serviceEarningsMap[serviceName].lastInvoiceDate
+      if (!currentLastDate || payment.payment_date > currentLastDate) {
+        serviceEarningsMap[serviceName].lastInvoiceDate = payment.payment_date
+      }
+    }
+    
+    // Initialize and add to contact totals
+    if (!contactEarningsMap[contactName]) {
+      contactEarningsMap[contactName] = { revenue: 0, cost: 0, due: 0, lastInvoiceDate: null }
+    }
+    contactEarningsMap[contactName].revenue += revenue
+    contactEarningsMap[contactName].cost += cost
+    contactEarningsMap[contactName].due += invoiceDue
+    // Update last invoice date if this payment is newer
+    if (payment.payment_date) {
+      const currentLastDate = contactEarningsMap[contactName].lastInvoiceDate
+      if (!currentLastDate || payment.payment_date > currentLastDate) {
+        contactEarningsMap[contactName].lastInvoiceDate = payment.payment_date
+      }
+    }
+    
+    // Add to totals
+    totalRevenue += revenue
+    totalCost += cost
+    remainingDue += invoiceDue
   })
-  
-  const totalCost = Array.from(uniqueServiceIds).reduce((sum, serviceId) => {
-    const service = services.find(s => s.id === serviceId)
-    return sum + (service?.actual_cost || 0)
-  }, 0)
   
   // Net Profit - Revenue minus Cost
   const netProfit = totalRevenue - totalCost
   
-  // Total Received - sum of all amount_paid for selected year
-  const totalReceivedFromPayments = yearFilteredPayments.reduce((sum, p) => sum + (p.amount_paid || 0), 0)
-  
-  // Remaining Due - properly calculate including sub-invoices
-  // For each main invoice: remaining = amount_due - (main_invoice_paid + all_sub_invoices_paid)
-  const remainingDue = payments
-    .filter(p => !p.sub_invoice_id) // Only main invoices
-    .reduce((sum, mainInvoice) => {
-      // Find all sub-invoices for this main invoice
-      const subInvoices = payments.filter(p => p.invoice_id === mainInvoice.invoice_id && p.sub_invoice_id)
-      const subInvoicesTotal = subInvoices.reduce((s, p) => s + (p.amount_paid || 0), 0)
-      const totalPaidForInvoice = (mainInvoice.amount_paid || 0) + subInvoicesTotal
-      const remainingForInvoice = Math.max(0, (mainInvoice.amount_due || 0) - totalPaidForInvoice)
-      return sum + remainingForInvoice
-    }, 0)
-  
-  // Outstanding - same as remaining due (for backwards compatibility)
+  // Outstanding - same as remaining due
   const outstanding = remainingDue
+  
+  // Total Received (same as totalRevenue for backwards compatibility)
+  const totalReceivedFromPayments = totalRevenue
 
   const months = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -196,55 +230,112 @@ export function EarningsTab({ userId }: EarningsTabProps) {
           </select>
         </div>
 
-        {/* Monthly Chart */}
+        {/* Chart - Yearly for All Years, Monthly for specific year */}
         <div className="mb-8">
-          <h4 className="text-sm font-medium text-gray-600 mb-4">Monthly Earnings ({filterYear === 'all' ? 'All Years' : filterYear})</h4>
+          <h4 className="text-sm font-medium text-gray-600 mb-4">
+            {filterYear === 'all' ? 'Yearly Earnings' : `Monthly Earnings (${filterYear})`}
+          </h4>
           <div className="flex items-end justify-between gap-2 h-48">
-            {months.map((month, index) => {
-              const monthKey = `${filterYear}-${String(index + 1).padStart(2, '0')}`
-              const amount = monthlyEarnings[monthKey] || 0
-              const maxAmount = Math.max(...Object.values(monthlyEarnings), 1)
-              // Use a minimum height of 4px for visibility, and scale to fill the container better
-              const height = maxAmount > 0 ? Math.max((amount / maxAmount) * 100, amount > 0 ? 8 : 0) : 0
-              
-              return (
-                <div key={month} className="flex-1 flex flex-col items-center">
-                  {amount > 0 && (
-                    <span className="text-xs font-medium text-gray-700 mb-1">₹{amount.toLocaleString()}</span>
-                  )}
-                  <div 
-                    className="w-full bg-purple-500 rounded-t transition-all hover:bg-purple-600"
-                    style={{ height: `${height}%`, minHeight: amount > 0 ? '8px' : '0' }}
-                    title={`₹${amount.toLocaleString()}`}
-                  />
-                  <span className="text-xs text-gray-500 mt-2">{month}</span>
-                </div>
-              )
-            })}
+            {filterYear === 'all' ? (
+              // Show yearly chart (12 years from 2025 forwards)
+              (() => {
+                const displayYears = []
+                for (let i = 0; i < 12; i++) {
+                  const year = String(2025 + i)
+                  displayYears.push(year)
+                }
+                return displayYears.map(year => {
+                  const amount = yearlyEarnings[year] || 0
+                  const maxAmount = Math.max(...Object.values(yearlyEarnings), 1)
+                  const height = maxAmount > 0 ? Math.max((amount / maxAmount) * 100, amount > 0 ? 8 : 0) : 0
+                  
+                  return (
+                    <div key={year} className="flex-1 flex flex-col items-center">
+                      {amount > 0 && (
+                        <span className="text-xs font-medium text-gray-700 mb-1">₹{amount.toLocaleString()}</span>
+                      )}
+                      <div 
+                        className="w-full bg-purple-500 rounded-t transition-all hover:bg-purple-600"
+                        style={{ height: `${height}%`, minHeight: amount > 0 ? '8px' : '0' }}
+                        title={`₹{amount.toLocaleString()}`}
+                      />
+                      <span className="text-xs text-gray-500 mt-2">{year}</span>
+                    </div>
+                  )
+                })
+              })()
+            ) : (
+              // Show monthly chart for selected year
+              months.map((month, index) => {
+                const monthKey = `${filterYear}-${String(index + 1).padStart(2, '0')}`
+                const amount = monthlyEarnings[monthKey] || 0
+                const maxAmount = Math.max(...Object.values(monthlyEarnings), 1)
+                const height = maxAmount > 0 ? Math.max((amount / maxAmount) * 100, amount > 0 ? 8 : 0) : 0
+                
+                return (
+                  <div key={month} className="flex-1 flex flex-col items-center">
+                    {amount > 0 && (
+                      <span className="text-xs font-medium text-gray-700 mb-1">₹{amount.toLocaleString()}</span>
+                    )}
+                    <div 
+                      className="w-full bg-purple-500 rounded-t transition-all hover:bg-purple-600"
+                      style={{ height: `${height}%`, minHeight: amount > 0 ? '8px' : '0' }}
+                      title={`₹{amount.toLocaleString()}`}
+                    />
+                    <span className="text-xs text-gray-500 mt-2">{month}</span>
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
 
+        {/* Earnings Tab Navigation */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setEarningsTab('service')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              earningsTab === 'service'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            By Service
+          </button>
+          <button
+            onClick={() => setEarningsTab('contact')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              earningsTab === 'contact'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            By Contact
+          </button>
+        </div>
+
         {/* Earnings by Service */}
+        {earningsTab === 'service' && (
         <div>
           <h4 className="text-sm font-medium text-gray-600 mb-4">Earnings by Service</h4>
-          {Object.keys(earningsByService).length === 0 ? (
+          {Object.keys(serviceEarningsMap).length === 0 ? (
             <EmptyState message="No earnings data available" />
           ) : (
             <div className="space-y-3">
-              {Object.entries(earningsByService).map(([service, earnings]) => {
-                const serviceData = services.find(s => s.name === service)
-                const profit = earnings - (serviceData?.actual_cost || 0)
+              {Object.entries(serviceEarningsMap).map(([service, data]) => {
+                const profit = data.revenue - data.cost
                 
                 return (
                   <div key={service} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <span className="font-medium text-gray-900">{service}</span>
                       <p className="text-xs text-gray-500">
-                        Cost: ₹{serviceData?.actual_cost || 0} | Revenue: ₹{earnings}
+                        Cost: ₹{data.cost.toLocaleString()} | Revenue: ₹{data.revenue.toLocaleString()}
+                        {data.lastInvoiceDate && ` | Last: ${data.lastInvoiceDate}`}
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold text-gray-900">₹{earnings.toLocaleString()}</div>
+                      <div className="font-semibold text-gray-900">₹{data.revenue.toLocaleString()}</div>
                       <div className={`text-xs ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         Profit: ₹{profit.toLocaleString()}
                       </div>
@@ -255,6 +346,41 @@ export function EarningsTab({ userId }: EarningsTabProps) {
             </div>
           )}
         </div>
+        )}
+
+        {/* Earnings by Contact */}
+        {earningsTab === 'contact' && (
+        <div>
+          <h4 className="text-sm font-medium text-gray-600 mb-4">Earnings by Contact</h4>
+          {Object.keys(contactEarningsMap).length === 0 ? (
+            <EmptyState message="No earnings data available" />
+          ) : (
+            <div className="space-y-3">
+              {Object.entries(contactEarningsMap).map(([contact, data]) => {
+                const profit = data.revenue - data.cost
+                
+                return (
+                  <div key={contact} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <span className="font-medium text-gray-900">{contact}</span>
+                      <p className="text-xs text-gray-500">
+                        Cost: ₹{data.cost.toLocaleString()} | Revenue: ₹{data.revenue.toLocaleString()}
+                        {data.lastInvoiceDate && ` | Last: ${data.lastInvoiceDate}`}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-gray-900">₹{data.revenue.toLocaleString()}</div>
+                      <div className={`text-xs ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        Profit: ₹{profit.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+        )}
       </Card>
 
       {/* Recent Payments */}
