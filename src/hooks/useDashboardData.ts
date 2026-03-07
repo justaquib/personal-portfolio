@@ -534,5 +534,20 @@ export function useNotifications() {
     return result
   }, [fetchNotifications])
 
-  return { notifications, loading, error, fetchNotifications, sendNotification }
+  const deleteNotification = useCallback(async (id: string) => {
+    console.log('Deleting notification with id:', id)
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', id)
+    
+    if (error) {
+      console.error('Error deleting notification:', error)
+      throw error
+    }
+    
+    await fetchNotifications()
+  }, [fetchNotifications])
+
+  return { notifications, loading, error, fetchNotifications, sendNotification, deleteNotification }
 }

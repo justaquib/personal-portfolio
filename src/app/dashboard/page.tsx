@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { useContacts, useTemplates, useNotifications, useServices, useSubscriptions, usePayments } from '@/hooks/useDashboardData'
 import { ContactForm } from '@/components/dashboard/ContactForm'
+import ConfirmModal from '@/components/ConfirmModal'
 import { TemplateForm } from '@/components/dashboard/TemplateForm'
 import { ServiceForm } from '@/components/dashboard/ServiceForm'
 import { PaymentForm } from '@/components/dashboard/PaymentForm'
@@ -136,7 +137,7 @@ export default function DashboardPage() {
   const { user, loading: authLoading, signOut } = useAuth()
   const { contacts, loading: contactsLoading, fetchContacts, saveContact, deleteContact } = useContacts()
   const { templates, loading: templatesLoading, fetchTemplates, saveTemplate, deleteTemplate } = useTemplates()
-  const { notifications, loading: notificationsLoading, fetchNotifications, sendNotification } = useNotifications()
+  const { notifications, loading: notificationsLoading, fetchNotifications, sendNotification, deleteNotification } = useNotifications()
   const { services, loading: servicesLoading, fetchServices, saveService, deleteService } = useServices()
   const { subscriptions, loading: subscriptionsLoading, fetchSubscriptions, saveSubscription, deleteSubscription, getSubscriptionsForContact } = useSubscriptions()
   const { payments, loading: paymentsLoading, fetchPayments, savePayment, deletePayment, fetchPaymentsForSubscription } = usePayments()
@@ -171,6 +172,9 @@ export default function DashboardPage() {
   // History tab filters
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'paid' | 'unpaid'>('all')
   const [filterMonth, setFilterMonth] = useState<string>(getCurrentMonth())
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null)
+  const [paymentToDelete, setPaymentToDelete] = useState<{ id: string; invoiceId: string; isSubInvoice: boolean; subInvoiceId?: string } | null>(null)
 
   // Earnings tab filters
   const [earningsFilter, setEarningsFilter] = useState<'all' | 'service' | 'contact'>('all')
@@ -1061,8 +1065,23 @@ export default function DashboardPage() {
                 </select>
               </div>
               <button
-                onClick={() => { fetchSubscriptions(); fetchPayments(); }}
+                onClick={() => {
+                  setFilterMonth(getCurrentMonth())
+                  setFilterPaymentStatus('all')
+                }}
+                className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700"
+                title="Clear filters"
+              >
+                Clear Filters
+              </button>
+              <button
+                onClick={() => { 
+                  console.log('Refreshing payments...');
+                  fetchSubscriptions(); 
+                  fetchPayments(); 
+                }}
                 className="p-2 text-gray-400 hover:text-gray-600"
+                title="Refresh"
               >
                 <RefreshIcon />
               </button>
@@ -1094,6 +1113,11 @@ export default function DashboardPage() {
                   if (filterPaymentStatus === 'unpaid' && isPaid) return false
                 }
                 return true
+              }).sort((a, b) => {
+                // Sort by invoice_id (numerical sorting, descending - newest first)
+                const invoiceNumA = parseInt(a.invoice_id || '0')
+                const invoiceNumB = parseInt(b.invoice_id || '0')
+                return invoiceNumB - invoiceNumA
               })
               
               if (filteredInvoices.length === 0) {
@@ -1206,14 +1230,7 @@ export default function DashboardPage() {
                               <button
                                 onClick={async (e) => {
                                   e.stopPropagation()
-                                  if (confirm('Delete this payment record? This will also delete all sub-invoices.')) {
-                                    const subInvoicesToDelete = payments.filter(p => p.invoice_id === payment.invoice_id && p.sub_invoice_id)
-                                    for (const sub of subInvoicesToDelete) {
-                                      await deletePayment(sub.id)
-                                    }
-                                    await deletePayment(payment.id)
-                                    fetchPayments()
-                                  }
+                                  setPaymentToDelete({ id: payment.id, invoiceId: payment.invoice_id || '', isSubInvoice: false })
                                 }}
                                 className="p-1.5 text-red-600 hover:bg-red-50 rounded"
                                 title="Delete"
@@ -1278,15 +1295,8 @@ export default function DashboardPage() {
                                           <EditIcon />
                                         </button>
                                         <button
-                                          onClick={async () => {
-                                            if (confirm('Delete this payment record? This will also delete all sub-invoices.')) {
-                                              const subInvoicesToDelete = payments.filter(p => p.invoice_id === payment.invoice_id && p.sub_invoice_id)
-                                              for (const sub of subInvoicesToDelete) {
-                                                await deletePayment(sub.id)
-                                              }
-                                              await deletePayment(payment.id)
-                                              fetchPayments()
-                                            }
+                                          onClick={() => {
+                                            setPaymentToDelete({ id: payment.id, invoiceId: payment.invoice_id || '', isSubInvoice: false })
                                           }}
                                           className="p-1 text-red-600 hover:bg-red-50 rounded"
                                           title="Delete"
@@ -1336,11 +1346,8 @@ export default function DashboardPage() {
                                               <EditIcon />
                                             </button>
                                             <button
-                                              onClick={async () => {
-                                                if (confirm('Delete this sub-invoice?')) {
-                                                  await deletePayment(sub.id)
-                                                  fetchPayments()
-                                                }
+                                              onClick={() => {
+                                                setPaymentToDelete({ id: sub.id, invoiceId: sub.invoice_id || '', isSubInvoice: true, subInvoiceId: sub.sub_invoice_id || undefined })
                                               }}
                                               className="p-1 text-red-600 hover:bg-red-50 rounded"
                                               title="Delete"
@@ -1368,7 +1375,7 @@ export default function DashboardPage() {
 
         {/* View Payment Details Modal */}
         {viewingPayment && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -1389,16 +1396,8 @@ export default function DashboardPage() {
                       <EditIcon />
                     </button>
                     <button
-                      onClick={async () => {
-                        if (confirm('Delete this payment record? This will also delete all sub-invoices.')) {
-                          const subInvoicesToDelete = payments.filter(p => p.invoice_id === viewingPayment.invoice_id && p.sub_invoice_id)
-                          for (const sub of subInvoicesToDelete) {
-                            await deletePayment(sub.id)
-                          }
-                          await deletePayment(viewingPayment.id)
-                          fetchPayments()
-                          setViewingPayment(null)
-                        }
+                      onClick={() => {
+                        setPaymentToDelete({ id: viewingPayment.id, invoiceId: viewingPayment.invoice_id || '', isSubInvoice: false })
                       }}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                       title="Delete"
@@ -1498,12 +1497,8 @@ export default function DashboardPage() {
                                   </div>
                                   <div className="flex gap-2">
                                     <button
-                                      onClick={async () => {
-                                        if (confirm('Delete this sub-invoice?')) {
-                                          await deletePayment(sub.id)
-                                          fetchPayments()
-                                          setViewingPayment(null)
-                                        }
+                                      onClick={() => {
+                                        setPaymentToDelete({ id: sub.id, invoiceId: sub.invoice_id || '', isSubInvoice: true, subInvoiceId: sub.sub_invoice_id || undefined })
                                       }}
                                       className="p-1 text-red-600 hover:bg-red-50 rounded"
                                     >
@@ -1612,22 +1607,42 @@ export default function DashboardPage() {
                     }
                     return true
                   })
-                  .map((notification) => (
-                    <div key={notification.id} className="p-4 bg-gray-50 rounded-xl">
+                  .map((notification) => {
+                    // Find contact by phone number
+                    const contact = contacts.find(c => c.phone_number === notification.phone_number)
+                    const displayName = contact?.name || notification.phone_number
+                    return (
+                    <div key={notification.id} className="p-4 bg-gray-50 rounded-xl group">
                       <div className="flex items-start justify-between mb-2">
-                        <span className="font-medium text-gray-900">{notification.phone_number}</span>
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          notification.status === 'sent' ? 'bg-green-100 text-green-700' :
-                          notification.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {notification.status}
-                        </span>
+                        <span className="font-medium text-gray-900">{displayName}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            notification.status === 'sent' ? 'bg-green-100 text-green-700' :
+                            notification.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {notification.status}
+                          </span>
+                          <button
+                            onClick={() => {
+                              console.log('Delete button clicked, notification.id:', notification.id)
+                              setNotificationToDelete(notification.id)
+                              setDeleteModalOpen(true)
+                            }}
+                            className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Delete notification"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                       <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
                       <p className="text-xs text-gray-400">{new Date(notification.timestamp).toLocaleString()}</p>
                     </div>
-                  ))}
+                    )
+                  })}
               </div>
             )}
           </Card>
@@ -1899,6 +1914,71 @@ export default function DashboardPage() {
           </Card>
         )}
       </main>
+
+      {/* Delete Notification Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false)
+          setNotificationToDelete(null)
+        }}
+        onConfirm={async () => {
+          console.log('Confirm delete, notificationToDelete:', notificationToDelete)
+          if (notificationToDelete) {
+            try {
+              console.log('Calling deleteNotification for:', notificationToDelete)
+              await deleteNotification(notificationToDelete)
+              console.log('Delete successful')
+            } catch (err) {
+              console.error('Failed to delete notification:', err)
+            }
+          } else {
+            console.error('No notification ID to delete')
+          }
+        }}
+        title="Delete Notification"
+        message="Are you sure you want to delete this notification? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
+
+      {/* Delete Payment Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!paymentToDelete}
+        onClose={() => setPaymentToDelete(null)}
+        onConfirm={async () => {
+          if (paymentToDelete) {
+            try {
+              if (paymentToDelete.isSubInvoice) {
+                // Delete single sub-invoice
+                await deletePayment(paymentToDelete.id)
+              } else {
+                // Delete main invoice and all sub-invoices
+                const subInvoicesToDelete = payments.filter(p => p.invoice_id === paymentToDelete.invoiceId && p.sub_invoice_id)
+                for (const sub of subInvoicesToDelete) {
+                  await deletePayment(sub.id)
+                }
+                await deletePayment(paymentToDelete.id)
+              }
+              fetchPayments()
+              // Close viewing payment modal if open
+              if (viewingPayment && (viewingPayment.id === paymentToDelete.id || paymentToDelete.invoiceId === viewingPayment.invoice_id)) {
+                setViewingPayment(null)
+              }
+            } catch (err) {
+              console.error('Failed to delete payment:', err)
+            }
+          }
+        }}
+        title={paymentToDelete?.isSubInvoice ? 'Delete Sub-Invoice' : 'Delete Invoice'}
+        message={paymentToDelete?.isSubInvoice 
+          ? 'Are you sure you want to delete this sub-invoice?'
+          : 'Are you sure you want to delete this invoice? This will also delete all sub-invoices.'}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   )
 }
