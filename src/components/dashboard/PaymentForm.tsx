@@ -17,6 +17,7 @@ interface PaymentFormProps {
     payment_date: string | null
     payment_method: string
     notes: string
+    payment_status: 'paid' | 'partial' | 'unpaid'
   }, id?: string) => void
   onCancel: () => void
 }
@@ -32,7 +33,6 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
   )
   const [amountDue, setAmountDue] = useState(parentInvoice ? parentInvoice.amount_due - parentInvoice.amount_paid : existingPayment?.amount_due || 0)
   const [amountPaid, setAmountPaid] = useState(parentInvoice ? 0 : existingPayment?.amount_paid || 0)
-  const [paymentType, setPaymentType] = useState<'full' | 'partial'>(parentInvoice ? 'partial' : (existingPayment ? (existingPayment.amount_paid >= existingPayment.amount_due ? 'full' : 'partial') : 'full'))
   const [paymentDate, setPaymentDate] = useState(
     existingPayment?.payment_date 
       ? new Date(existingPayment.payment_date).toISOString().split('T')[0]
@@ -40,6 +40,11 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
   )
   const [paymentMethod, setPaymentMethod] = useState(existingPayment?.payment_method || 'cash')
   const [notes, setNotes] = useState(existingPayment?.notes || '')
+  const [paymentStatus, setPaymentStatus] = useState<'paid' | 'partial' | 'unpaid'>(
+    existingPayment?.payment_status || 
+    (parentInvoice ? 'paid' : (existingPayment?.amount_paid && existingPayment.amount_paid >= existingPayment.amount_due ? 'paid' : 
+     existingPayment?.amount_paid && existingPayment.amount_paid > 0 ? 'partial' : 'unpaid'))
+  )
 
   // Get selected subscription
   const selectedSubscription = subscriptions.find(s => s.id === subscriptionId)
@@ -50,31 +55,28 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
       // When editing, use existing payment values
       setAmountDue(existingPayment.amount_due || 0)
       setAmountPaid(existingPayment.amount_paid || 0)
-      setPaymentType(existingPayment.amount_paid >= existingPayment.amount_due ? 'full' : 'partial')
     } else if (parentInvoice) {
       // When adding sub-invoice, use remaining amount
       setAmountDue(parentInvoice.amount_due - parentInvoice.amount_paid)
       setAmountPaid(0)
+      setPaymentStatus('unpaid')
     } else if (selectedSubscription) {
       // When creating new, use subscription amount
       setAmountDue(selectedSubscription.service?.amount || 0)
-      // For partial, start at 0 so user can enter partial amount
       setAmountPaid(0)
+      setPaymentStatus('unpaid')
     }
   }, [selectedSubscription, existingPayment, parentInvoice])
 
-  // Update amount paid based on payment type
+  // Update amount paid based on payment status
   useEffect(() => {
-    if (paymentType === 'full') {
+    if (paymentStatus === 'paid') {
       setAmountPaid(amountDue)
-    } else if (paymentType === 'partial') {
-      // When switching to partial for new payments, reset amount to 0
-      // For editing existing, keep the existing value
-      if (!existingPayment) {
-        setAmountPaid(0)
-      }
+    } else if (paymentStatus === 'unpaid') {
+      setAmountPaid(0)
     }
-  }, [paymentType, amountDue, existingPayment])
+    // For 'partial', keep the current amountPaid value
+  }, [paymentStatus, amountDue])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,10 +85,11 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
       subscription_id: subscriptionId,
       payment_month: `${paymentMonth}-01`,
       amount_due: amountDue,
-      amount_paid: paymentType === 'full' ? amountDue : amountPaid,
-      payment_date: paymentType === 'full' ? paymentDate : (amountPaid > 0 ? paymentDate : null),
+      amount_paid: paymentStatus === 'paid' ? amountDue : (paymentStatus === 'unpaid' ? 0 : amountPaid),
+      payment_date: paymentStatus === 'unpaid' ? null : paymentDate,
       payment_method: paymentMethod,
-      notes
+      notes,
+      payment_status: paymentStatus
     }, existingPayment?.id)
   }
 
@@ -151,39 +154,24 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
           />
         </div>
 
-        {/* Payment Type - Hide when adding sub-invoice */}
-        {!parentInvoice && (
+        {/* Payment Status */}
+        {(!existingPayment || !!parentInvoice) && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Type</label>
-            <div className="flex gap-4 mt-2">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="paymentType"
-                  value="full"
-                  checked={paymentType === 'full'}
-                  onChange={(e) => setPaymentType(e.target.value as 'full')}
-                  className="mr-2"
-                />
-                Full Payment
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="paymentType"
-                  value="partial"
-                  checked={paymentType === 'partial'}
-                  onChange={(e) => setPaymentType(e.target.value as 'partial')}
-                  className="mr-2"
-                />
-                Partial Payment
-              </label>
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+            <select
+              value={paymentStatus}
+              onChange={(e) => setPaymentStatus(e.target.value as 'paid' | 'partial' | 'unpaid')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="unpaid">Unpaid</option>
+              <option value="partial">Partial</option>
+              <option value="paid">Paid</option>
+            </select>
           </div>
         )}
 
         {/* Amount Paid (for partial payments or sub-invoices) */}
-        {(paymentType === 'partial' || parentInvoice) && (
+        {(paymentStatus === 'partial' || parentInvoice || !existingPayment) && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Amount Paid ({CURRENCY_SYMBOL})</label>
             <input

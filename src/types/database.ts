@@ -58,7 +58,6 @@ export interface Payment {
   user_id: string
   subscription_id: string
   payment_month: string
-  billing_month: string
   invoice_id: string  // Main invoice: 0001, 0002, etc.
   sub_invoice_id: string | null  // Sub-invoice: 0001-a, 0001-b, etc.
   amount_due: number
@@ -67,6 +66,7 @@ export interface Payment {
   payment_date: string | null
   payment_method: string | null
   notes: string | null
+  payment_status: 'paid' | 'partial' | 'unpaid'  // Payment status: paid, partial, or unpaid
   created_at: string
 }
 
@@ -74,7 +74,6 @@ export interface Payment {
 export interface PaymentFormData {
   subscription_id: string
   payment_month: string
-  billing_month?: string
   invoice_id?: string
   sub_invoice_id?: string
   amount_due: number
@@ -83,6 +82,7 @@ export interface PaymentFormData {
   payment_date: string | null
   payment_method: string
   notes: string
+  payment_status?: 'paid' | 'partial' | 'unpaid'
 }
 
 export interface ContactFormData {
@@ -126,7 +126,7 @@ export interface Notification {
   status: 'pending' | 'sent' | 'failed'
 }
 
-export type TabType = 'send' | 'contacts' | 'services' | 'payments' | 'templates' | 'history' | 'earnings'
+export type TabType = 'send' | 'contacts' | 'services' | 'payments' | 'templates' | 'history' | 'earnings' | 'resume-builder'
 
 export interface TemplateFormData {
   name: string

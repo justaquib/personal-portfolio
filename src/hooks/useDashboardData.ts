@@ -187,7 +187,8 @@ export function usePayments() {
             remaining_due: Math.max(0, remainingDue),
             payment_date: data.payment_date,
             payment_method: data.payment_method,
-            notes: data.notes
+            notes: data.notes,
+            payment_status: data.payment_status || 'unpaid'
           })
           .eq('id', id)
         if (error) throw error
@@ -241,7 +242,8 @@ export function usePayments() {
               payment_date: data.payment_date,
               payment_method: data.payment_method,
               notes: data.notes || 'Partial payment',
-              user_id: data.user_id
+              user_id: data.user_id,
+              payment_status: data.payment_status || 'unpaid'
             })
           insertError = error
           
@@ -284,7 +286,8 @@ export function usePayments() {
               payment_date: data.payment_date,
               payment_method: data.payment_method,
               notes: data.notes,
-              user_id: data.user_id
+              user_id: data.user_id,
+              payment_status: data.payment_status || 'unpaid'
             })
           if (error) {
             console.error('Error inserting new invoice:', error)
