@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, EmptyState, LoadingState, Badge } from '../ui'
 import { usePayments, useSubscriptions, useServices, useContacts } from '@/hooks/useDashboardData'
+import { EarningsChart } from '../charts/EarningsChart'
 import dayjs from 'dayjs'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
 
@@ -172,11 +173,6 @@ export function EarningsTab({ userId }: EarningsTabProps) {
   // Total Received (same as totalRevenue for backwards compatibility)
   const totalReceivedFromPayments = totalRevenue
 
-  const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-  ]
-
   if (loading) {
     return (
       <div className="p-6">
@@ -236,59 +232,11 @@ export function EarningsTab({ userId }: EarningsTabProps) {
           <h4 className="text-sm font-medium text-gray-600 mb-4">
             {filterYear === 'all' ? 'Yearly Earnings' : `Monthly Earnings (${filterYear})`}
           </h4>
-          <div className="flex items-end justify-between gap-2 h-48">
-            {filterYear === 'all' ? (
-              // Show yearly chart (12 years from 2025 forwards)
-              (() => {
-                const displayYears = []
-                for (let i = 0; i < 12; i++) {
-                  const year = String(2025 + i)
-                  displayYears.push(year)
-                }
-                return displayYears.map(year => {
-                  const amount = yearlyEarnings[year] || 0
-                  const maxAmount = Math.max(...Object.values(yearlyEarnings), 1)
-                  const height = maxAmount > 0 ? Math.max((amount / maxAmount) * 100, amount > 0 ? 8 : 0) : 0
-                  
-                  return (
-                    <div key={year} className="flex-1 flex flex-col items-center">
-                      {amount > 0 && (
-                        <span className="text-xs font-medium text-gray-700 mb-1">₹{amount.toLocaleString()}</span>
-                      )}
-                      <div 
-                        className="w-full rounded-t transition-all"
-                        style={{ height: `${height}%`, minHeight: amount > 0 ? '8px' : '0', backgroundColor: '#212529' }}
-                        title={`₹{amount.toLocaleString()}`}
-                      />
-                      <span className="text-xs text-gray-500 mt-2">{year}</span>
-                    </div>
-                  )
-                })
-              })()
-            ) : (
-              // Show monthly chart for selected year
-              months.map((month, index) => {
-                const monthKey = `${filterYear}-${String(index + 1).padStart(2, '0')}`
-                const amount = monthlyEarnings[monthKey] || 0
-                const maxAmount = Math.max(...Object.values(monthlyEarnings), 1)
-                const height = maxAmount > 0 ? Math.max((amount / maxAmount) * 100, amount > 0 ? 8 : 0) : 0
-                
-                return (
-                  <div key={month} className="flex-1 flex flex-col items-center">
-                    {amount > 0 && (
-                      <span className="text-xs font-medium text-gray-700 mb-1">₹{amount.toLocaleString()}</span>
-                    )}
-                    <div 
-                      className="w-full rounded-t transition-all"
-                      style={{ height: `${height}%`, minHeight: amount > 0 ? '8px' : '0', backgroundColor: '#212529' }}
-                      title={`₹{amount.toLocaleString()}`}
-                    />
-                    <span className="text-xs text-gray-500 mt-2">{month}</span>
-                  </div>
-                )
-              })
-            )}
-          </div>
+          <EarningsChart 
+            data={filterYear === 'all' ? yearlyEarnings : monthlyEarnings}
+            type={filterYear === 'all' ? 'yearly' : 'monthly'}
+            filterYear={filterYear}
+          />
         </div>
 
         {/* Earnings Tab Navigation */}
