@@ -87,7 +87,7 @@ export default function Home() {
               </Magnet>
             </div>
             <div>
-              <p className="text-base mb-6 text-wrap">
+              <p className="text-base mb-6 text-wrap text-gray-400">
                 Hi, I&apos;m Aquib Shahbaz — a software engineer and creative
                 frontend developer focused on building smooth, scalable web apps
                 with human-friendly design.

@@ -61,4 +61,5 @@ body {
 .text-iceland {
   font-family: "Iceland", sans-serif;
   font-style: normal;
+  color: var(--foreground);
 }
