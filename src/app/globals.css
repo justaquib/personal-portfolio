@@ -2,6 +2,63 @@
 @import "tailwindcss";
 @import "../utils/styles/layers.css";
 
+/* Monochromatic Color Scheme - f8f9fa, e9ecef, dee2e6, ced4da, adb5bd, 6c757d, 495057, 343a40, 212529 */
+:root {
+  /* Monochromatic colors */
+  --mono-bg-lightest: #f8f9fa;
+  --mono-bg-lighter: #e9ecef;
+  --mono-bg-light: #dee2e6;
+  --mono-border-light: #ced4da;
+  --mono-text-muted: #adb5bd;
+  --mono-button: #6c757d;
+  --mono-button-hover: #495057;
+  --mono-text-secondary: #343a40;
+  --mono-text-primary: #212529;
+}
+
+/* Dashboard & Login Page Monochromatic Theme */
+.dashboard-theme {
+  /* Background colors */
+  --theme-bg-lightest: #f8f9fa;
+  --theme-bg-lighter: #e9ecef;
+  --theme-bg-light: #dee2e6;
+  
+  /* Border colors */
+  --theme-border-light: #ced4da;
+  --theme-border-medium: #adb5bd;
+  
+  /* Text colors */
+  --theme-text-primary: #212529;
+  --theme-text-secondary: #343a40;
+  --theme-text-muted: #6c757d;
+  --theme-text-muted-light: #adb5bd;
+  
+  /* Button colors */
+  --theme-button: #6c757d;
+  --theme-button-hover: #495057;
+  --theme-button-text: #ffffff;
+  
+  /* Status colors - using monochromatic grays */
+  --theme-success-bg: #e9ecef;
+  --theme-success-text: #495057;
+  --theme-warning-bg: #dee2e6;
+  --theme-warning-text: #495057;
+  --theme-error-bg: #dee2e6;
+  --theme-error-text: #495057;
+}
+
+/* Button hover effects */
+button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+/* Cursor pointer for clickable elements */
+button, 
+.btn,
+[role="button"] {
+  cursor: pointer;
+}
+
 /* Global base styles */
 @layer base {
   * {

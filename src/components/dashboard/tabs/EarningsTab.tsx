@@ -197,7 +197,7 @@ export function EarningsTab({ userId }: EarningsTabProps) {
           <div className="text-xs opacity-90">Total Cost</div>
           <div className="text-xl font-bold mt-1">₹{totalCost.toLocaleString()}</div>
         </Card>
-        <Card className="bg-purple-500 text-white p-4">
+        <Card className="p-4" style={{ backgroundColor: '#212529', color: '#ffffff' }}>
           <div className="text-xs opacity-90">Net Profit</div>
           <div className="text-xl font-bold mt-1">₹{netProfit.toLocaleString()}</div>
         </Card>
@@ -218,7 +218,8 @@ export function EarningsTab({ userId }: EarningsTabProps) {
           <select
             value={filterYear}
             onChange={(e) => setFilterYear(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+            className="px-3 py-2 border rounded-lg text-sm"
+            style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
           >
             <option value="all">All Years</option>
             {Object.keys(yearlyEarnings).sort().reverse().map(year => (
@@ -255,8 +256,8 @@ export function EarningsTab({ userId }: EarningsTabProps) {
                         <span className="text-xs font-medium text-gray-700 mb-1">₹{amount.toLocaleString()}</span>
                       )}
                       <div 
-                        className="w-full bg-purple-500 rounded-t transition-all hover:bg-purple-600"
-                        style={{ height: `${height}%`, minHeight: amount > 0 ? '8px' : '0' }}
+                        className="w-full rounded-t transition-all"
+                        style={{ height: `${height}%`, minHeight: amount > 0 ? '8px' : '0', backgroundColor: '#212529' }}
                         title={`₹{amount.toLocaleString()}`}
                       />
                       <span className="text-xs text-gray-500 mt-2">{year}</span>
@@ -278,8 +279,8 @@ export function EarningsTab({ userId }: EarningsTabProps) {
                       <span className="text-xs font-medium text-gray-700 mb-1">₹{amount.toLocaleString()}</span>
                     )}
                     <div 
-                      className="w-full bg-purple-500 rounded-t transition-all hover:bg-purple-600"
-                      style={{ height: `${height}%`, minHeight: amount > 0 ? '8px' : '0' }}
+                      className="w-full rounded-t transition-all"
+                      style={{ height: `${height}%`, minHeight: amount > 0 ? '8px' : '0', backgroundColor: '#212529' }}
                       title={`₹{amount.toLocaleString()}`}
                     />
                     <span className="text-xs text-gray-500 mt-2">{month}</span>
@@ -294,21 +295,45 @@ export function EarningsTab({ userId }: EarningsTabProps) {
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setEarningsTab('service')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              earningsTab === 'service'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: earningsTab === 'service' ? '#212529' : '#e9ecef',
+              color: earningsTab === 'service' ? '#ffffff' : '#495057',
+              cursor: 'pointer',
+              border: 'none',
+            }}
+            onMouseEnter={(e) => {
+              if (earningsTab !== 'service') {
+                e.currentTarget.style.backgroundColor = '#dee2e6';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (earningsTab !== 'service') {
+                e.currentTarget.style.backgroundColor = '#e9ecef';
+              }
+            }}
           >
             By Service
           </button>
           <button
             onClick={() => setEarningsTab('contact')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              earningsTab === 'contact'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: earningsTab === 'contact' ? '#212529' : '#e9ecef',
+              color: earningsTab === 'contact' ? '#ffffff' : '#495057',
+              cursor: 'pointer',
+              border: 'none',
+            }}
+            onMouseEnter={(e) => {
+              if (earningsTab !== 'contact') {
+                e.currentTarget.style.backgroundColor = '#dee2e6';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (earningsTab !== 'contact') {
+                e.currentTarget.style.backgroundColor = '#e9ecef';
+              }
+            }}
           >
             By Contact
           </button>

@@ -104,7 +104,7 @@ export function ContactsTab({ userId }: ContactsTabProps) {
                     <div className="flex items-center gap-1">
                       <button 
                         onClick={() => { setEditingContact(contact); setShowForm(true); }} 
-                        className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                        className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
                         title="Edit"
                       >
                         <Pencil className="w-4 h-4" />

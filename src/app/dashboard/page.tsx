@@ -68,10 +68,13 @@ export default function DashboardPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f8f9fa' }}>
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
+          <div 
+            className="w-12 h-12 border-4 animate-spin mx-auto mb-4" 
+            style={{ borderColor: '#6c757d', borderTopColor: 'transparent', borderRadius: '50%' }} 
+          />
+          <p style={{ color: '#6c757d' }}>Loading...</p>
         </div>
       </div>
     )
@@ -105,14 +108,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen flex" style={{ backgroundColor: '#f8f9fa' }}>
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-            <p className="text-sm text-gray-500 mt-1">{description}</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>{title}</h1>
+            <p className="text-sm mt-1" style={{ color: '#6c757d' }}>{description}</p>
           </div>
 
           {/* Tab Content */}

@@ -227,18 +227,18 @@ export function SendTab({ userId }: SendTabProps) {
                 key={contact.id}
                 onClick={() => handleSelectContact(contact)}
                 disabled={!contact.is_active}
-                className={`w-full text-left p-3 rounded-lg transition-colors ${
-                  selectedContact?.id === contact.id
-                    ? 'bg-purple-100 border-purple-500'
-                    : !contact.is_active
-                    ? 'bg-gray-50 cursor-not-allowed opacity-50'
-                    : 'bg-gray-50 hover:bg-gray-100'
-                }`}
+                className="w-full text-left p-3 rounded-lg transition-colors"
+                style={{
+                  backgroundColor: selectedContact?.id === contact.id ? '#dee2e6' : '#f8f9fa',
+                  color: selectedContact?.id === contact.id ? '#ffffff' : '#212529',
+                  cursor: contact.is_active ? 'pointer' : 'not-allowed',
+                  opacity: contact.is_active ? 1 : 0.5,
+                }}
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="font-medium text-gray-900">{contact.name}</p>
-                    <p className="text-sm text-gray-500">{contact.company || contact.phone_number}</p>
+                    <p className="font-medium">{contact.name}</p>
+                    <p className="text-sm">{contact.company || contact.phone_number}</p>
                   </div>
                 </div>
               </button>
@@ -262,16 +262,18 @@ export function SendTab({ userId }: SendTabProps) {
                 <button
                   key={sub.id}
                   onClick={() => handleSelectSubscription(sub)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors ${
-                    selectedSubscription?.id === sub.id
-                      ? 'bg-purple-100 border-purple-500'
-                      : 'bg-gray-50 hover:bg-gray-100'
-                  }`}
+                  className="w-full text-left p-3 rounded-lg transition-colors"
+                  style={{
+                    backgroundColor: selectedSubscription?.id === sub.id ? '#dee2e6' : '#f8f9fa',
+                    color: selectedSubscription?.id === sub.id ? '#ffffff' : '#212529',
+                    cursor: sub.is_active ? 'pointer' : 'not-allowed',
+                    opacity: sub.is_active ? 1 : 0.5,
+                  }}
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-medium text-gray-900">{sub.service?.name || 'Unknown Service'}</p>
-                      <p className="text-sm text-gray-500">{CURRENCY_SYMBOL}{sub.service?.amount || 0} <span className="text-xs">/ {sub.service?.payment_cycle || 'month'}</span></p>
+                      <p className="font-medium">{sub.service?.name || 'Unknown Service'}</p>
+                      <p className="text-sm">{CURRENCY_SYMBOL}{sub.service?.amount || 0} <span className="text-xs">/ {sub.service?.payment_cycle || 'month'}</span></p>
                     </div>
                   </div>
                 </button>
@@ -293,14 +295,14 @@ export function SendTab({ userId }: SendTabProps) {
               <button
                 key={template.id}
                 onClick={() => handleSelectTemplate(template)}
-                className={`w-full text-left p-3 rounded-lg transition-colors ${
-                  selectedTemplate?.id === template.id
-                    ? 'bg-green-100 border-green-500'
-                    : 'bg-gray-50 hover:bg-gray-100'
-                }`}
+                className="w-full text-left p-3 rounded-lg transition-colors"
+                style={{
+                  backgroundColor: selectedTemplate?.id === template.id ? '#dee2e6' : '#f8f9fa',
+                  color: selectedTemplate?.id === template.id ? '#ffffff' : '#212529',
+                }}
               >
-                <p className="font-medium text-gray-900">{template.name}</p>
-                <p className="text-sm text-gray-500 truncate">{template.content}</p>
+                <p className="font-medium">{template.name}</p>
+                <p className="text-sm truncate">{template.content}</p>
               </button>
             ))}
           </div>
@@ -312,27 +314,29 @@ export function SendTab({ userId }: SendTabProps) {
         <Card title="Send Notification">
           <form onSubmit={handleSend} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: '#495057' }}>Phone Number</label>
               <input
                 type="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="+1234567890"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-3 border rounded-xl focus:ring-2"
+                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
                 disabled={isSending}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: '#495057' }}>Message</label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={4}
                 placeholder="Enter your payment notification message..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border rounded-xl focus:ring-2 resize-none"
+                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
                 disabled={isSending}
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs mt-1" style={{ color: '#6c757d' }}>
                 Available placeholders: {'{{name}}'}, {'{{amount}}'}, {'{{service}}'}, {'{{month}}'}, {'{{outstanding}}'}
               </p>
             </div>
@@ -341,7 +345,8 @@ export function SendTab({ userId }: SendTabProps) {
             <button
               type="submit"
               disabled={!phoneNumber.trim() || !message.trim()}
-              className="w-full bg-green-600 text-white font-semibold py-3 rounded-xl hover:bg-green-700 disabled:opacity-50"
+              className="w-full font-semibold py-3 rounded-xl disabled:opacity-50"
+              style={{ backgroundColor: '#212529', color: '#ffffff', cursor: 'pointer' }}
             >
               Send Notification
             </button>

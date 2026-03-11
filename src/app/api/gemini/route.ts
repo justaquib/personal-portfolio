@@ -77,7 +77,7 @@ async function tryWithFallbacks<T>(
 
 export async function POST(request: NextRequest) {
   try {
-    const { action, content, question, history } = await request.json();
+    const { action, content, question, history, prompt } = await request.json();
 
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json(
@@ -102,6 +102,19 @@ ${content}`;
       );
 
       return NextResponse.json({ summary: text, usedModel });
+    }
+
+    if (action === "enhance") {
+      if (!prompt) {
+        return NextResponse.json({ error: "Prompt is required for enhance action" }, { status: 400 });
+      }
+
+      const { text, usedModel } = await tryWithFallbacks(
+        (modelName) => generateWithFallback(prompt, modelName),
+        "enhance"
+      );
+
+      return NextResponse.json({ answer: text, usedModel });
     }
 
     if (action === "chat") {

@@ -64,7 +64,7 @@ const TEMPLATES = [
     id: 'modern',
     name: 'Modern',
     description: 'Clean and professional with a contemporary look',
-    preview: 'bg-gradient-to-r from-purple-600 to-pink-600'
+    preview: 'bg-gradient-to-r from-gray-600 to-gray-800'
   },
   {
     id: 'classic',
@@ -241,34 +241,68 @@ export function ResumeBuilderTab() {
 
   const selectTemplate = (templateId: string) => {
     setResumeData(prev => ({ ...prev, template: templateId }))
-    setShowTemplates(false)
+    // Keep template selector open for user to close manually
   }
 
-  // Generate AI summary
+  // Enhance summary using Gemini AI - improves the existing summary
   const generateAISummary = async () => {
+    // Expand summary section first if collapsed
+    setActiveSection('summary')
+    
     setIsLoadingAI(true)
     try {
-      const response = await fetch('/api/ai-summary', {
+      const currentSummary = resumeData.summary
+      
+      let prompt = ''
+      
+      if (currentSummary) {
+        // Enhance existing summary
+        prompt = `You are a professional resume writer. Please enhance and improve the following professional summary to make it more impactful, professional, and compelling. Keep it concise (2-4 sentences). Return only the enhanced summary, nothing else.
+
+Current summary:
+${currentSummary}`
+      } else if (resumeData.experience.length > 0 || resumeData.education.length > 0 || resumeData.skills || resumeData.projects.length > 0) {
+        // Create summary from resume data
+        prompt = `You are a professional resume writer. Write a compelling professional summary (2-4 sentences) based on the following resume information. Make it impactful and professional. Return only the summary, nothing else.
+
+Experience: ${resumeData.experience.map(exp => `${exp.role} at ${exp.company} (${exp.startDate} - ${exp.current ? 'Present' : exp.endDate}): ${exp.description}`).join('\n')}
+
+Education: ${resumeData.education.map(edu => `${edu.degree} in ${edu.field} from ${edu.institution} (${edu.graduationDate})`).join('\n')}
+
+Skills: ${resumeData.skills}
+
+Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (${proj.technologies})`).join('\n')}`
+      } else {
+        // No content to work with - ask user to add content
+        setIsLoadingAI(false)
+        alert('Please add some content to your resume first (experience, education, skills, or projects) before enhancing the summary.')
+        return
+      }
+
+      const response = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          experience: resumeData.experience,
-          education: resumeData.education,
-          skills: resumeData.skills,
-          jobTitle: resumeData.experience[0]?.role,
-          industry: 'technology'
+          action: 'enhance',
+          prompt: prompt
         })
       })
 
       if (response.ok) {
         const data = await response.json()
-        if (data.summary) {
-          setResumeData(prev => ({ ...prev, summary: data.summary }))
-          setAiSuggestions([data.summary])
+        if (data.answer) {
+          setResumeData(prev => ({ ...prev, summary: data.answer }))
+          setAiSuggestions([data.answer])
+        } else if (data.error) {
+          alert('Error: ' + data.error)
         }
+      } else {
+        const errorData = await response.json()
+        alert('Failed to enhance summary: ' + (errorData.error || 'Unknown error'))
       }
     } catch (error) {
-      console.error('Error generating AI summary:', error)
+      console.error('Error enhancing AI summary:', error)
+      alert('Failed to enhance summary. Please try again.')
     } finally {
       setIsLoadingAI(false)
     }
@@ -716,6 +750,19 @@ export function ResumeBuilderTab() {
     setActiveSection(activeSection === section ? null : section)
   }
 
+  // Check if resume has any content to save
+  const hasResumeContent = () => {
+    return resumeData.personalInfo.name || 
+           resumeData.personalInfo.email || 
+           resumeData.personalInfo.phone || 
+           resumeData.summary || 
+           resumeData.experience.length > 0 || 
+           resumeData.education.length > 0 || 
+           resumeData.skills || 
+           resumeData.projects.length > 0
+  }
+
+  // Check if resume is complete enough for export
   const isResumeComplete = () => {
     return resumeData.personalInfo.name && 
            (resumeData.experience.length > 0 || resumeData.education.length > 0 || resumeData.skills)
@@ -730,7 +777,8 @@ export function ResumeBuilderTab() {
         <div className="flex flex-wrap gap-3 mb-6">
           <button
             onClick={() => setShowTemplates(!showTemplates)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: '#e9ecef', color: '#212529' }}
           >
             <Layout className="w-4 h-4" />
             {selectedTemplate.name} Template
@@ -738,7 +786,8 @@ export function ResumeBuilderTab() {
           
           <button
             onClick={() => setShowSaveModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: '#e9ecef', color: '#212529' }}
           >
             <Save className="w-4 h-4" />
             Save
@@ -746,7 +795,8 @@ export function ResumeBuilderTab() {
 
           {savedResumes.length > 0 && (
             <div className="relative">
-              <button className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+              <button className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+                style={{ backgroundColor: '#e9ecef', color: '#212529' }}>
                 <FileText className="w-4 h-4" />
                 My Resumes ({savedResumes.length})
               </button>
@@ -757,8 +807,12 @@ export function ResumeBuilderTab() {
             <button
               onClick={() => setShowPreview(false)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                !showPreview ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                !showPreview ? '' : ''
               }`}
+              style={{
+                backgroundColor: !showPreview ? '#212529' : '#e9ecef',
+                color: !showPreview ? '#ffffff' : '#212529',
+              }}
             >
               <Edit3 className="w-4 h-4" />
               Edit
@@ -766,8 +820,12 @@ export function ResumeBuilderTab() {
             <button
               onClick={() => setShowPreview(true)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                showPreview ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                showPreview ? '' : ''
               }`}
+              style={{
+                backgroundColor: showPreview ? '#212529' : '#e9ecef',
+                color: showPreview ? '#ffffff' : '#212529',
+              }}
             >
               <Eye className="w-4 h-4" />
               Preview
@@ -778,7 +836,15 @@ export function ResumeBuilderTab() {
         {/* Template Selector Dropdown */}
         {showTemplates && (
           <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-            <h3 className="font-medium mb-3">Choose a Template</h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-medium">Choose a Template</h3>
+              <button 
+                onClick={() => setShowTemplates(false)}
+                className="p-1 hover:bg-gray-200 rounded"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {TEMPLATES.map(template => (
                 <button
@@ -786,15 +852,18 @@ export function ResumeBuilderTab() {
                   onClick={() => selectTemplate(template.id)}
                   className={`p-4 rounded-xl border-2 transition-all ${
                     resumeData.template === template.id 
-                      ? 'border-purple-500 bg-white shadow-md' 
-                      : 'border-gray-200 bg-white hover:border-purple-300'
+                      ? 'border bg-white shadow-md' 
+                      : 'border bg-white'
                   }`}
+                  style={{
+                    borderColor: resumeData.template === template.id ? '#212529' : '#dee2e6',
+                  }}
                 >
                   <div className={`h-8 rounded-lg mb-3 ${template.preview}`}></div>
                   <h4 className="font-medium text-gray-900">{template.name}</h4>
                   <p className="text-xs text-gray-500 mt-1">{template.description}</p>
                   {resumeData.template === template.id && (
-                    <div className="mt-2 flex items-center gap-1 text-purple-600 text-sm">
+                    <div className="mt-2 flex items-center gap-1 text-sm" style={{ color: '#212529' }}>
                       <Check className="w-4 h-4" /> Selected
                     </div>
                   )}
@@ -819,10 +888,19 @@ export function ResumeBuilderTab() {
                 value={resumeName}
                 onChange={(e) => setResumeName(e.target.value)}
                 className="w-full px-4 py-2 border rounded-lg mb-4"
+                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
                 placeholder="Resume name"
               />
               <div className="flex gap-3">
-                <Button onClick={saveResume} disabled={isSaving} className="flex-1">
+                <Button 
+                  onClick={saveResume} 
+                  disabled={isSaving || !hasResumeContent()} 
+                  className="flex-1"
+                  style={{
+                    opacity: isSaving || !hasResumeContent() ? 0.5 : 1,
+                    cursor: isSaving || !hasResumeContent() ? 'not-allowed' : 'pointer'
+                  }}
+                >
                   {isSaving ? 'Saving...' : 'Save Resume'}
                 </Button>
                 <Button variant="secondary" onClick={() => setShowSaveModal(false)}>
@@ -842,7 +920,7 @@ export function ResumeBuilderTab() {
                 className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <User className="w-5 h-5 text-purple-600" />
+                  <User className="w-5 h-5" style={{ color: '#212529' }} />
                   <span className="font-medium">Personal Information</span>
                 </div>
                 {activeSection === 'personal' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -856,7 +934,8 @@ export function ResumeBuilderTab() {
                       type="text"
                       value={resumeData.personalInfo.name}
                       onChange={(e) => updatePersonalInfo('name', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2"
+                      style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
                       placeholder="John Doe"
                     />
                   </div>
@@ -866,7 +945,8 @@ export function ResumeBuilderTab() {
                       type="email"
                       value={resumeData.personalInfo.email}
                       onChange={(e) => updatePersonalInfo('email', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2"
+                      style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
                       placeholder="john@example.com"
                     />
                   </div>
@@ -876,7 +956,8 @@ export function ResumeBuilderTab() {
                       type="tel"
                       value={resumeData.personalInfo.phone}
                       onChange={(e) => updatePersonalInfo('phone', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2"
+                      style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
                       placeholder="+1 (555) 123-4567"
                     />
                   </div>
@@ -886,7 +967,7 @@ export function ResumeBuilderTab() {
                       type="text"
                       value={resumeData.personalInfo.location}
                       onChange={(e) => updatePersonalInfo('location', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                       placeholder="New York, NY"
                     />
                   </div>
@@ -896,7 +977,7 @@ export function ResumeBuilderTab() {
                       type="text"
                       value={resumeData.personalInfo.linkedin}
                       onChange={(e) => updatePersonalInfo('linkedin', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                       placeholder="linkedin.com/in/johndoe"
                     />
                   </div>
@@ -906,7 +987,7 @@ export function ResumeBuilderTab() {
                       type="text"
                       value={resumeData.personalInfo.portfolio}
                       onChange={(e) => updatePersonalInfo('portfolio', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                       placeholder="johndoe.com"
                     />
                   </div>
@@ -916,50 +997,50 @@ export function ResumeBuilderTab() {
 
             {/* Summary Section with AI */}
             <div className="border rounded-xl overflow-hidden">
-              <button
-                onClick={() => toggleSection('summary')}
+              <div
                 className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-purple-600" />
+                  <FileText className="w-5 h-5" style={{ color: '#212529' }} />
                   <span className="font-medium">Professional Summary</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); generateAISummary(); }}
+                    disabled={isLoadingAI}
+                    className="flex items-center gap-1 px-2 py-1 text-xs rounded-lg transition-colors"
+                    style={{ 
+                      backgroundColor: isLoadingAI ? '#6c757d' : '#212529',
+                      color: '#ffffff'
+                    }}
+                    title="Enhance with AI"
+                  >
+                    {isLoadingAI ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                    Enhance
+                  </button>
                 </div>
-                {activeSection === 'summary' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-              </button>
+                <button onClick={() => toggleSection('summary')} className="p-1">
+                  {activeSection === 'summary' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                </button>
+              </div>
               
               {activeSection === 'summary' && (
                 <div className="p-4">
-                  <div className="flex items-start gap-3 mb-3">
-                    <textarea
-                      value={resumeData.summary}
-                      onChange={(e) => setResumeData(prev => ({ ...prev, summary: e.target.value }))}
-                      className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      rows={4}
-                      placeholder="Write a brief summary of your professional background and career goals..."
-                    />
-                    <button
-                      onClick={generateAISummary}
-                      disabled={isLoadingAI || (!resumeData.experience.length && !resumeData.skills)}
-                      className="flex flex-col items-center gap-1 px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-all"
-                    >
-                      {isLoadingAI ? (
-                        <RefreshCw className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-5 h-5" />
-                      )}
-                      <span className="text-xs">AI Summary</span>
-                    </button>
-                  </div>
+                  <textarea
+                    value={resumeData.summary}
+                    onChange={(e) => setResumeData(prev => ({ ...prev, summary: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                    style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529', minHeight: '120px' }}
+                    placeholder="Write a brief summary of your professional background and career goals..."
+                  />
                   {aiSuggestions.length > 0 && (
-                    <div className="mt-3 p-3 bg-purple-50 rounded-lg">
-                      <p className="text-sm text-purple-700 mb-2">AI Suggestion:</p>
+                    <div className="mt-3 p-3 bg-gray-100 rounded-lg">
+                      <p className="text-sm text-gray-700 mb-2">AI Suggestion:</p>
                       <p className="text-sm text-gray-700">{aiSuggestions[0]}</p>
                       <button
                         onClick={() => {
                           setResumeData(prev => ({ ...prev, summary: aiSuggestions[0] }))
                           setAiSuggestions([])
                         }}
-                        className="mt-2 text-sm text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                        className="mt-2 text-sm text-gray-600 hover:text-gray-700 flex items-center gap-1"
                       >
                         <Copy className="w-4 h-4" /> Use this
                       </button>
@@ -976,7 +1057,7 @@ export function ResumeBuilderTab() {
                 className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <Briefcase className="w-5 h-5 text-purple-600" />
+                  <Briefcase className="w-5 h-5" style={{ color: '#212529' }} />
                   <span className="font-medium">Work Experience</span>
                   <span className="text-sm text-gray-500">({resumeData.experience.length})</span>
                 </div>
@@ -1001,14 +1082,14 @@ export function ResumeBuilderTab() {
                           type="text"
                           value={exp.company}
                           onChange={(e) => updateExperience(exp.id, 'company', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                           placeholder="Company Name"
                         />
                         <input
                           type="text"
                           value={exp.role}
                           onChange={(e) => updateExperience(exp.id, 'role', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                           placeholder="Job Title"
                         />
                       </div>
@@ -1017,14 +1098,14 @@ export function ResumeBuilderTab() {
                           type="text"
                           value={exp.startDate}
                           onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                           placeholder="Start Date (e.g., Jan 2020)"
                         />
                         <input
                           type="text"
                           value={exp.endDate}
                           onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                           placeholder="End Date (e.g., Dec 2023)"
                           disabled={exp.current}
                         />
@@ -1033,7 +1114,7 @@ export function ResumeBuilderTab() {
                             type="checkbox"
                             checked={exp.current}
                             onChange={(e) => updateExperience(exp.id, 'current', e.target.checked)}
-                            className="w-4 h-4 text-purple-600 rounded"
+                            className="w-4 h-4 text-gray-600 rounded"
                           />
                           <span className="text-sm text-gray-700">Currently working</span>
                         </label>
@@ -1041,7 +1122,7 @@ export function ResumeBuilderTab() {
                       <textarea
                         value={exp.description}
                         onChange={(e) => updateExperience(exp.id, 'description', e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                         rows={3}
                         placeholder="Describe your responsibilities and achievements..."
                       />
@@ -1049,7 +1130,7 @@ export function ResumeBuilderTab() {
                   ))}
                   <button
                     onClick={addExperience}
-                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-500 hover:text-purple-600 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-600 transition-colors"
                   >
                     <Plus className="w-5 h-5" />
                     Add Experience
@@ -1065,7 +1146,7 @@ export function ResumeBuilderTab() {
                 className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <GraduationCap className="w-5 h-5 text-purple-600" />
+                  <GraduationCap className="w-5 h-5" style={{ color: '#212529' }} />
                   <span className="font-medium">Education</span>
                   <span className="text-sm text-gray-500">({resumeData.education.length})</span>
                 </div>
@@ -1090,14 +1171,14 @@ export function ResumeBuilderTab() {
                           type="text"
                           value={edu.institution}
                           onChange={(e) => updateEducation(edu.id, 'institution', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                           placeholder="University/College"
                         />
                         <input
                           type="text"
                           value={edu.graduationDate}
                           onChange={(e) => updateEducation(edu.id, 'graduationDate', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                           placeholder="Graduation Date (e.g., May 2020)"
                         />
                       </div>
@@ -1106,14 +1187,14 @@ export function ResumeBuilderTab() {
                           type="text"
                           value={edu.degree}
                           onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                           placeholder="Degree (e.g., Bachelor of Science)"
                         />
                         <input
                           type="text"
                           value={edu.field}
                           onChange={(e) => updateEducation(edu.id, 'field', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                           placeholder="Field of Study (e.g., Computer Science)"
                         />
                       </div>
@@ -1121,7 +1202,7 @@ export function ResumeBuilderTab() {
                   ))}
                   <button
                     onClick={addEducation}
-                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-500 hover:text-purple-600 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-600 transition-colors"
                   >
                     <Plus className="w-5 h-5" />
                     Add Education
@@ -1137,7 +1218,7 @@ export function ResumeBuilderTab() {
                 className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <Code className="w-5 h-5 text-purple-600" />
+                  <Code className="w-5 h-5" style={{ color: '#212529' }} />
                   <span className="font-medium">Skills</span>
                 </div>
                 {activeSection === 'skills' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -1148,7 +1229,7 @@ export function ResumeBuilderTab() {
                   <textarea
                     value={resumeData.skills}
                     onChange={(e) => setResumeData(prev => ({ ...prev, skills: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                     rows={4}
                     placeholder="List your skills (e.g., JavaScript, Python, React, Node.js, AWS, Docker...)"
                   />
@@ -1164,7 +1245,7 @@ export function ResumeBuilderTab() {
                 className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <Folder className="w-5 h-5 text-purple-600" />
+                  <Folder className="w-5 h-5" style={{ color: '#212529' }} />
                   <span className="font-medium">Projects</span>
                   <span className="text-sm text-gray-500">({resumeData.projects.length})</span>
                 </div>
@@ -1188,13 +1269,13 @@ export function ResumeBuilderTab() {
                         type="text"
                         value={proj.name}
                         onChange={(e) => updateProject(proj.id, 'name', e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                         placeholder="Project Name"
                       />
                       <textarea
                         value={proj.description}
                         onChange={(e) => updateProject(proj.id, 'description', e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                         rows={2}
                         placeholder="Project description..."
                       />
@@ -1202,14 +1283,14 @@ export function ResumeBuilderTab() {
                         type="text"
                         value={proj.technologies}
                         onChange={(e) => updateProject(proj.id, 'technologies', e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
                         placeholder="Technologies used (e.g., React, Node.js, MongoDB)"
                       />
                     </div>
                   ))}
                   <button
                     onClick={addProject}
-                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-500 hover:text-purple-600 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-600 transition-colors"
                   >
                     <Plus className="w-5 h-5" />
                     Add Project
@@ -1250,7 +1331,7 @@ export function ResumeBuilderTab() {
           <div className="bg-white border rounded-xl p-8 max-w-2xl mx-auto shadow-lg">
             {/* Template-specific header styling */}
             <div className={`text-center border-b pb-6 mb-6 ${
-              resumeData.template === 'modern' ? 'bg-gradient-to-r from-purple-600 to-pink-600 -mx-8 -mt-8 p-8 rounded-t-xl' : ''
+              resumeData.template === 'modern' ? 'bg-gradient-to-r from-gray-600 to-gray-800 -mx-8 -mt-8 p-8 rounded-t-xl' : ''
             }`}>
               <h2 className={`text-2xl font-bold ${
                 resumeData.template === 'modern' ? 'text-white' : 
@@ -1274,7 +1355,7 @@ export function ResumeBuilderTab() {
             {resumeData.summary && (
               <div className="mb-6">
                 <h3 className={`text-lg font-bold border-b pb-2 mb-3 ${
-                  resumeData.template === 'modern' ? 'text-purple-600' :
+                  resumeData.template === 'modern' ? 'text-gray-600' :
                   resumeData.template === 'classic' ? 'text-gray-900 font-serif' :
                   resumeData.template === 'minimal' ? 'text-gray-700' :
                   'text-orange-600'
@@ -1286,7 +1367,7 @@ export function ResumeBuilderTab() {
             {resumeData.experience.length > 0 && (
               <div className="mb-6">
                 <h3 className={`text-lg font-bold border-b pb-2 mb-3 ${
-                  resumeData.template === 'modern' ? 'text-purple-600' :
+                  resumeData.template === 'modern' ? 'text-gray-600' :
                   resumeData.template === 'classic' ? 'text-gray-900 font-serif' :
                   resumeData.template === 'minimal' ? 'text-gray-700' :
                   'text-orange-600'
@@ -1309,7 +1390,7 @@ export function ResumeBuilderTab() {
             {resumeData.education.length > 0 && (
               <div className="mb-6">
                 <h3 className={`text-lg font-bold border-b pb-2 mb-3 ${
-                  resumeData.template === 'modern' ? 'text-purple-600' :
+                  resumeData.template === 'modern' ? 'text-gray-600' :
                   resumeData.template === 'classic' ? 'text-gray-900 font-serif' :
                   resumeData.template === 'minimal' ? 'text-gray-700' :
                   'text-orange-600'
@@ -1329,7 +1410,7 @@ export function ResumeBuilderTab() {
             {resumeData.skills && (
               <div className="mb-6">
                 <h3 className={`text-lg font-bold border-b pb-2 mb-3 ${
-                  resumeData.template === 'modern' ? 'text-purple-600' :
+                  resumeData.template === 'modern' ? 'text-gray-600' :
                   resumeData.template === 'classic' ? 'text-gray-900 font-serif' :
                   resumeData.template === 'minimal' ? 'text-gray-700' :
                   'text-orange-600'
@@ -1341,7 +1422,7 @@ export function ResumeBuilderTab() {
             {resumeData.projects.length > 0 && (
               <div>
                 <h3 className={`text-lg font-bold border-b pb-2 mb-3 ${
-                  resumeData.template === 'modern' ? 'text-purple-600' :
+                  resumeData.template === 'modern' ? 'text-gray-600' :
                   resumeData.template === 'classic' ? 'text-gray-900 font-serif' :
                   resumeData.template === 'minimal' ? 'text-gray-700' :
                   'text-orange-600'
@@ -1374,7 +1455,7 @@ export function ResumeBuilderTab() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => loadResume(resume)}
-                    className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg"
+                    className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg"
                     title="Load"
                   >
                     <Download className="w-4 h-4" />

@@ -5,11 +5,12 @@ interface CardProps {
   children: React.ReactNode
   className?: string
   actions?: React.ReactNode
+  style?: React.CSSProperties
 }
 
-export function Card({ title, children, className = '', actions }: CardProps) {
+export function Card({ title, children, className = '', actions, style }: CardProps) {
   return (
-    <div className={`bg-white rounded-2xl shadow-lg p-6 ${className}`}>
+    <div className={`bg-white rounded-2xl shadow-lg p-6 ${className}`} style={style}>
       {title && (
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
@@ -29,8 +30,8 @@ export function Card({ title, children, className = '', actions }: CardProps) {
 export function LoadingState({ message = 'Loading...' }: { message?: string }) {
   return (
     <div className="flex items-center justify-center py-8">
-      <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-      <span className="ml-3 text-gray-500">{message}</span>
+      <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: '#6c757d', borderTopColor: 'transparent' }} />
+      <span className="ml-3" style={{ color: '#6c757d' }}>{message}</span>
     </div>
   )
 }
@@ -147,21 +148,27 @@ export function Button({
   ...props 
 }: ButtonProps) {
   const variants = {
-    primary: 'bg-purple-600 text-white hover:bg-purple-700',
+    primary: 'text-white hover:opacity-90',
     secondary: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
-    danger: 'bg-red-50 text-red-600 hover:bg-red-100',
+    danger: 'text-white hover:opacity-90',
     ghost: 'bg-transparent text-gray-600 hover:bg-gray-100',
   }
 
   const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
+    sm: 'px-2 py-1 text-xs',
+    md: 'px-3 py-1.5 text-sm',
+    lg: 'px-4 py-2 text-sm',
   }
 
   return (
     <button
-      className={`inline-flex items-center justify-center font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex items-center justify-center font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${sizes[size]} ${className}`}
+      style={{
+        backgroundColor: variant === 'primary' ? '#212529' : variant === 'danger' ? '#343a40' : 'transparent',
+        color: variant === 'primary' || variant === 'danger' ? '#ffffff' : variant === 'secondary' ? '#212529' : '#495057',
+        border: variant === 'secondary' || variant === 'ghost' ? '1px solid #ced4da' : 'none',
+        cursor: 'pointer',
+      }}
       disabled={disabled || loading}
       {...props}
     >
@@ -186,17 +193,23 @@ export function Input({ label, error, className = '', ...props }: InputProps) {
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium mb-1" style={{ color: '#495057' }}>
           {label}
         </label>
       )}
       <input
-        className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors ${
+        className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 transition-colors ${
           error ? 'border-red-300' : ''
         } ${className}`}
+        style={{
+          borderColor: error ? '#ef4444' : '#ced4da',
+          backgroundColor: '#f8f9fa',
+          color: '#212529',
+          outline: 'none'
+        }}
         {...props}
       />
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-sm" style={{ color: '#495057' }}>{error}</p>}
     </div>
   )
 }
@@ -211,12 +224,18 @@ export function Select({ label, options, className = '', ...props }: SelectProps
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium mb-1" style={{ color: '#495057' }}>
           {label}
         </label>
       )}
       <select
-        className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors ${className}`}
+        className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 transition-colors ${className}`}
+        style={{
+          borderColor: '#ced4da',
+          backgroundColor: '#f8f9fa',
+          color: '#212529',
+          outline: 'none'
+        }}
         {...props}
       >
         {options.map((option) => (

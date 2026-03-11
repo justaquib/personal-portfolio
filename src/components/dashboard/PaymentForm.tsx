@@ -113,7 +113,7 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
             onChange={(e) => setSubscriptionId(e.target.value)}
             required
             disabled={!!existingPayment || !!parentInvoice}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
             <option value="">Select subscription...</option>
             {subscriptions.map(sub => {
@@ -136,7 +136,7 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
             onChange={(e) => setPaymentMonth(e.target.value)}
             required
             disabled={!!parentInvoice}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none disabled:bg-gray-100"
           />
         </div>
 
@@ -150,7 +150,7 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
             required
             min="0"
             step="0.01"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
           />
         </div>
 
@@ -161,7 +161,7 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
             <select
               value={paymentStatus}
               onChange={(e) => setPaymentStatus(e.target.value as 'paid' | 'partial' | 'unpaid')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
             >
               <option value="unpaid">Unpaid</option>
               <option value="partial">Partial</option>
@@ -182,7 +182,7 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
               min="0"
               max={amountDue}
               step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
             />
             <p className="text-xs text-gray-500 mt-1">
               {parentInvoice 
@@ -201,7 +201,7 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
             value={paymentDate}
             onChange={(e) => setPaymentDate(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
           />
         </div>
 
@@ -211,7 +211,7 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
           <select
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
           >
             {paymentMethods.map(method => (
               <option key={method.value} value={method.value}>{method.label}</option>
@@ -227,7 +227,7 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
             placeholder="Any additional notes..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
           />
         </div>
       </div>
@@ -243,7 +243,7 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
         >
           {existingPayment ? 'Update Payment' : 'Add Payment'}
         </button>

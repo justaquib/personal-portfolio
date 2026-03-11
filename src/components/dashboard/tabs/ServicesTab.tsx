@@ -166,7 +166,7 @@ export function ServicesTab({ userId }: ServicesTabProps) {
                     <div className="flex items-center gap-1">
                       <button 
                         onClick={() => { setEditingService(service); setShowForm(true); }} 
-                        className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                        className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
@@ -194,7 +194,8 @@ export function ServicesTab({ userId }: ServicesTabProps) {
               <select
                 value={selectedContactForService}
                 onChange={(e) => setSelectedContactForService(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2"
+                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
               >
                 <option value="">Choose a contact...</option>
                 {contacts.map((contact) => (
@@ -207,7 +208,8 @@ export function ServicesTab({ userId }: ServicesTabProps) {
               <select
                 value={selectedServiceToLink}
                 onChange={(e) => setSelectedServiceToLink(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2"
+                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
               >
                 <option value="">Choose a service...</option>
                 {services.map((service) => (
@@ -222,7 +224,8 @@ export function ServicesTab({ userId }: ServicesTabProps) {
               <select
                 value={subscriptionStartMonth}
                 onChange={(e) => setSubscriptionStartMonth(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2"
+                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
               >
                 {getYearOptions().map(year => 
                   getMonthOptions().map(month => (

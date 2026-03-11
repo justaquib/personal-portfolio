@@ -367,7 +367,8 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleEditSubscription(subscription)}
-                        className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                        className="p-1.5 rounded"
+                        style={{ color: '#6c757d' }}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -448,7 +449,8 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as 'all' | 'paid' | 'partial' | 'unpaid')}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="px-3 py-1.5 text-sm border rounded-lg focus:ring-2"
+              style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
             >
               <option value="all">All Status</option>
               <option value="paid">Paid</option>
@@ -462,7 +464,8 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
                 type="checkbox"
                 checked={showSubInvoices}
                 onChange={(e) => setShowSubInvoices(e.target.checked)}
-                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                className="rounded border"
+                style={{ borderColor: '#ced4da', color: '#6c757d' }}
               />
               Show Sub-Invoices
             </label>
@@ -521,7 +524,9 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
                           <td className="py-3 text-sm text-gray-500 font-mono">
                             {payment.invoice_id || '-'}{payment.sub_invoice_id ? `-${payment.sub_invoice_id}` : ''}
                             {!payment.sub_invoice_id && subInvoiceCount > 0 && (
-                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                                style={{ backgroundColor: '#e9ecef', color: '#495057' }}
+                              >
                                 S{subInvoiceCount}
                               </span>
                             )}
@@ -551,7 +556,8 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
                               </button>
                               <button
                                 onClick={() => setEditingPayment(payment)}
-                                className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                                className="p-1.5 rounded"
+                                style={{ color: '#6c757d' }}
                                 title="Edit"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -638,7 +644,8 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
                     setViewingFromSubInvoice(null)
                   }
                 }}
-                className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 mb-2"
+                className="flex items-center gap-2 text-sm mb-2"
+                style={{ color: '#6c757d' }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -763,7 +770,8 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
                     setParentInvoice(viewingPayment)
                     setViewingPayment(null)
                   }}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-4 py-2 rounded-lg"
+                  style={{ backgroundColor: '#6c757d', color: '#ffffff' }}
                 >
                   Create Sub-Invoice
                 </button>

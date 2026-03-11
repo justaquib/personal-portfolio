@@ -45,16 +45,22 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const resumeTabs = tabs.filter(t => t.category === 'resume')
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col">
+    <aside 
+      className="w-64 min-h-screen flex flex-col"
+      style={{ backgroundColor: '#f8f9fa', borderRight: '1px solid #dee2e6' }}
+    >
       {/* Logo/Brand */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6" style={{ borderBottom: '1px solid #dee2e6' }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center">
+          <div 
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ backgroundColor: '#212529' }}
+          >
             <LayoutDashboard className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Dashboard</h1>
-            <p className="text-xs text-gray-500">Payment Tracker</p>
+            <h1 className="text-lg font-bold" style={{ color: '#212529' }}>Dashboard</h1>
+            <p className="text-xs" style={{ color: '#6c757d' }}>Just Aquib</p>
           </div>
         </div>
       </div>
@@ -63,7 +69,10 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto py-4">
         {/* Payment Tracking Section */}
         <div className="px-4 mb-2">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">
+          <p 
+            className="text-xs font-semibold uppercase tracking-wider mb-2 px-2"
+            style={{ color: '#adb5bd' }}
+          >
             Payment Tracking
           </p>
           <ul className="space-y-1">
@@ -73,9 +82,13 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   onClick={() => onTabChange(tab.id)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     activeTab === tab.id
-                      ? 'bg-purple-50 text-purple-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? ''
+                      : ''
                   }`}
+                  style={{
+                    backgroundColor: activeTab === tab.id ? '#dee2e6' : 'transparent',
+                    color: activeTab === tab.id ? '#212529' : '#6c757d'
+                  }}
                 >
                   {tab.icon}
                   {tab.label}
@@ -87,7 +100,10 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
         {/* Resume Builder Section */}
         <div className="px-4 mt-6">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">
+          <p 
+            className="text-xs font-semibold uppercase tracking-wider mb-2 px-2"
+            style={{ color: '#adb5bd' }}
+          >
             Tools
           </p>
           <ul className="space-y-1">
@@ -95,16 +111,19 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
               <li key={tab.id}>
                 <button
                   onClick={() => onTabChange(tab.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-purple-50 text-purple-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                  style={{
+                    backgroundColor: activeTab === tab.id ? '#dee2e6' : 'transparent',
+                    color: activeTab === tab.id ? '#212529' : '#6c757d'
+                  }}
                 >
                   {tab.icon}
                   {tab.label}
                   {tab.id === 'resume-builder' && (
-                    <span className="ml-auto text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
+                    <span 
+                      className="ml-auto text-xs px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: '#e9ecef', color: '#495057' }}
+                    >
                       New
                     </span>
                   )}
@@ -116,25 +135,32 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       </nav>
 
       {/* User Section */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4" style={{ borderTop: '1px solid #dee2e6' }}>
         <div className="flex items-center gap-3 mb-3 px-2">
-          <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-            <span className="text-purple-700 font-medium text-sm">
+          <div 
+            className="w-8 h-8 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: '#e9ecef' }}
+          >
+            <span 
+              className="font-medium text-sm"
+              style={{ color: '#495057' }}
+            >
               {user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-sm font-medium truncate" style={{ color: '#212529' }}>
               {user?.user_metadata?.full_name || 'User'}
             </p>
-            <p className="text-xs text-gray-500 truncate">
+            <p className="text-xs truncate" style={{ color: '#6c757d' }}>
               {user?.email}
             </p>
           </div>
         </div>
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+          style={{ color: '#495057' }}
         >
           <LogOut className="w-5 h-5" />
           Sign Out

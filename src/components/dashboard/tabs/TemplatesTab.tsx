@@ -43,6 +43,9 @@ export function TemplatesTab({ userId }: TemplatesTabProps) {
             onSave={handleSave}
             onCancel={() => { setEditingTemplate(null); setShowForm(false); }}
           />
+          <p className="text-xs mt-1" style={{ color: '#6c757d' }}>
+            Available placeholders: {'{{name}}'}, {'{{amount}}'}, {'{{service}}'}, {'{{month}}'}, {'{{outstanding}}'}
+          </p>
         </div>
       )}
 
@@ -67,7 +70,7 @@ export function TemplatesTab({ userId }: TemplatesTabProps) {
                 <div className="flex items-center gap-1">
                   <button 
                     onClick={() => { setEditingTemplate(template); setShowForm(true); }} 
-                    className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                    className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
                     title="Edit"
                   >
                     <Pencil className="w-4 h-4" />

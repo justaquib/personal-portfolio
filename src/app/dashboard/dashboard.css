@@ -1,4 +1,17 @@
-/* Dashboard Styles */
+/* Dashboard Styles - Monochromatic Theme */
+
+/* Color Variables */
+:root {
+  --dash-bg-lightest: #f8f9fa;
+  --dash-bg-lighter: #e9ecef;
+  --dash-bg-light: #dee2e6;
+  --dash-border-light: #ced4da;
+  --dash-text-muted: #adb5bd;
+  --dash-button: #6c757d;
+  --dash-button-hover: #495057;
+  --dash-text-secondary: #343a40;
+  --dash-text-primary: #212529;
+}
 
 /* Animation Keyframes */
 @keyframes fadeIn {
@@ -43,17 +56,18 @@
 
 /* Card Styles */
 .dashboard-card {
-  background-color: #ffffff;
+  background-color: var(--dash-bg-lightest);
   border-radius: 1rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
   animation: fadeIn 0.3s ease-out;
+  border: 1px solid var(--dash-border-light);
 }
 
 .dashboard-card__title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--dash-text-primary);
   margin-bottom: 1rem;
 }
 
@@ -61,16 +75,18 @@
 .form-input {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--dash-border-light);
   border-radius: 0.75rem;
   transition: all 0.2s;
   font-size: 1rem;
+  background-color: var(--dash-bg-lightest);
+  color: var(--dash-text-primary);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #9333ea;
-  box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.2);
+  border-color: var(--dash-button);
+  box-shadow: 0 0 0 2px rgba(108, 117, 125, 0.2);
 }
 
 .form-input:disabled {
@@ -79,57 +95,59 @@
 }
 
 .form-input::placeholder {
-  color: #9ca3af;
+  color: var(--dash-text-muted);
 }
 
 .form-label {
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--dash-text-secondary);
   margin-bottom: 0.25rem;
 }
 
 .form-textarea {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--dash-border-light);
   border-radius: 0.75rem;
   resize: vertical;
   transition: all 0.2s;
   font-size: 1rem;
   font-family: inherit;
+  background-color: var(--dash-bg-lightest);
+  color: var(--dash-text-primary);
 }
 
 .form-textarea:focus {
   outline: none;
-  border-color: #9333ea;
-  box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.2);
+  border-color: var(--dash-button);
+  box-shadow: 0 0 0 2px rgba(108, 117, 125, 0.2);
 }
 
 .form-checkbox {
   width: 1rem;
   height: 1rem;
   border-radius: 0.25rem;
-  border-color: #d1d5db;
-  color: #9333ea;
+  border-color: var(--dash-border-light);
+  color: var(--dash-button);
 }
 
 .form-checkbox:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.2);
+  box-shadow: 0 0 0 2px rgba(108, 117, 125, 0.2);
 }
 
 .form-section {
   margin-bottom: 1.5rem;
   padding: 1rem;
-  background-color: #f9fafb;
+  background-color: var(--dash-bg-lighter);
   border-radius: 0.75rem;
 }
 
 .form-title {
   font-weight: 500;
-  color: #111827;
+  color: var(--dash-text-primary);
   margin-bottom: 1rem;
 }
 
@@ -184,39 +202,39 @@
 }
 
 .btn-primary {
-  background-color: #9333ea;
+  background-color: var(--dash-button);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #7e22ce;
+  background-color: var(--dash-button-hover);
 }
 
 .btn-secondary {
-  background-color: #e5e7eb;
-  color: #374151;
+  background-color: var(--dash-bg-light);
+  color: var(--dash-text-secondary);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: #d1d5db;
+  background-color: var(--dash-border-light);
 }
 
 .btn-danger {
-  background-color: #fef2f2;
-  color: #dc2626;
+  background-color: var(--dash-bg-light);
+  color: var(--dash-text-secondary);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: #fee2e2;
+  background-color: var(--dash-border-light);
 }
 
 .btn-success {
-  background-color: #16a34a;
+  background-color: var(--dash-button);
   color: white;
 }
 
 .btn-success:hover:not(:disabled) {
-  background-color: #15803d;
+  background-color: var(--dash-button-hover);
 }
 
 .btn-lg {
@@ -238,17 +256,19 @@
   text-align: left;
   padding: 0.75rem 1rem;
   font-weight: 500;
-  color: #4b5563;
-  border-bottom: 1px solid #e5e7eb;
+  color: var(--dash-text-secondary);
+  border-bottom: 1px solid var(--dash-border-light);
+  background-color: var(--dash-bg-lighter);
 }
 
 .data-table td {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--dash-border-light);
+  color: var(--dash-text-primary);
 }
 
 .data-table tr:hover td {
-  background-color: #f9fafb;
+  background-color: var(--dash-bg-lighter);
 }
 
 /* Status Badges */
@@ -261,23 +281,23 @@
 }
 
 .badge-success {
-  background-color: #dcfce7;
-  color: #15803d;
+  background-color: var(--dash-bg-light);
+  color: var(--dash-text-secondary);
 }
 
 .badge-warning {
-  background-color: #fef9c3;
-  color: #a16207;
+  background-color: var(--dash-bg-lighter);
+  color: var(--dash-text-secondary);
 }
 
 .badge-error {
-  background-color: #fee2e2;
-  color: #dc2626;
+  background-color: var(--dash-bg-light);
+  color: var(--dash-text-secondary);
 }
 
 .badge-inactive {
-  background-color: #f3f4f6;
-  color: #4b5563;
+  background-color: var(--dash-bg-lighter);
+  color: var(--dash-text-muted);
 }
 
 /* Alert Styles */
@@ -288,22 +308,22 @@
 }
 
 .alert-error {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
+  background-color: var(--dash-bg-light);
+  color: var(--dash-text-secondary);
+  border: 1px solid var(--dash-border-light);
 }
 
 .alert-success {
-  background-color: #dcfce7;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
+  background-color: var(--dash-bg-lighter);
+  color: var(--dash-text-secondary);
+  border: 1px solid var(--dash-border-light);
 }
 
 /* Tab Styles */
 .tabs {
   display: flex;
   gap: 2rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--dash-border-light);
 }
 
 .tab {
@@ -317,27 +337,28 @@
   border-top: none;
   border-left: none;
   border-right: none;
+  color: var(--dash-text-muted);
 }
 
 .tab-active {
-  border-bottom-color: #9333ea;
-  color: #9333ea;
+  border-bottom-color: var(--dash-button);
+  color: var(--dash-button);
 }
 
 .tab-inactive {
-  color: #6b7280;
+  color: var(--dash-text-muted);
 }
 
 .tab-inactive:hover {
-  color: #374151;
-  border-bottom-color: #d1d5db;
+  color: var(--dash-text-secondary);
+  border-bottom-color: var(--dash-border-light);
 }
 
 /* Loading Skeleton */
 .skeleton {
-  background-color: #e5e7eb;
+  background-color: var(--dash-bg-light);
   border-radius: 0.25rem;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, var(--dash-bg-lighter) 25%, var(--dash-bg-light) 50%, var(--dash-bg-lighter) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -346,14 +367,14 @@
 .empty-state {
   text-align: center;
   padding: 2rem;
-  color: #6b7280;
+  color: var(--dash-text-muted);
 }
 
 .empty-state__icon {
   width: 3rem;
   height: 3rem;
   margin: 0 auto 0.5rem;
-  color: #d1d5db;
+  color: var(--dash-border-light);
 }
 
 .empty-state__message {
@@ -368,20 +389,20 @@
   border-radius: 0.5rem;
   transition: all 0.2s;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: 1px solid var(--dash-border-light);
 }
 
 .quick-select-card--selected {
-  background-color: #f3e8ff;
-  border: 2px solid #9333ea;
+  background-color: var(--dash-bg-light);
+  border: 2px solid var(--dash-button);
 }
 
 .quick-select-card--default {
-  background-color: #f9fafb;
+  background-color: var(--dash-bg-lighter);
 }
 
 .quick-select-card--default:hover {
-  background-color: #f3f4f6;
+  background-color: var(--dash-bg-light);
 }
 
 .quick-select-card--disabled {
@@ -392,9 +413,10 @@
 /* Contact/Template Item */
 .item-card {
   padding: 1rem;
-  background-color: #f9fafb;
+  background-color: var(--dash-bg-lighter);
   border-radius: 0.75rem;
   transition: all 0.2s;
+  border: 1px solid var(--dash-border-light);
 }
 
 .item-card:hover {
@@ -402,8 +424,8 @@
 }
 
 .item-card--selected {
-  background-color: #dcfce7;
-  border: 1px solid #22c55e;
+  background-color: var(--dash-bg-light);
+  border: 1px solid var(--dash-button);
 }
 
 /* Animations */

@@ -1,0 +1,68 @@
+{
+  "schemes": [
+    {
+      "id": "monochromatic",
+      "name": "Monochromatic",
+      "description": "Clean gray monochromatic color scheme",
+      "colors": [
+        {
+          "name": "background-lightest",
+          "hex": "#f8f9fa",
+          "usage": "page backgrounds"
+        },
+        {
+          "name": "background-lighter",
+          "hex": "#e9ecef",
+          "usage": "card backgrounds, input backgrounds"
+        },
+        {
+          "name": "background-light",
+          "hex": "#dee2e6",
+          "usage": "hover states, secondary backgrounds"
+        },
+        {
+          "name": "border-light",
+          "hex": "#ced4da",
+          "usage": "borders, dividers"
+        },
+        {
+          "name": "text-muted",
+          "hex": "#adb5bd",
+          "usage": "placeholder text, disabled text"
+        },
+        {
+          "name": "button-primary",
+          "hex": "#6c757d",
+          "usage": "primary buttons"
+        },
+        {
+          "name": "button-hover",
+          "hex": "#495057",
+          "usage": "button hover states"
+        },
+        {
+          "name": "text-secondary",
+          "hex": "#343a40",
+          "usage": "secondary text, headings"
+        },
+        {
+          "name": "text-primary",
+          "hex": "#212529",
+          "usage": "primary text, body text"
+        }
+      ],
+      "cssVariables": {
+        "bg-lightest": "#f8f9fa",
+        "bg-lighter": "#e9ecef",
+        "bg-light": "#dee2e6",
+        "border-light": "#ced4da",
+        "text-muted": "#adb5bd",
+        "button": "#6c757d",
+        "button-hover": "#495057",
+        "text-secondary": "#343a40",
+        "text-primary": "#212529"
+      }
+    }
+  ],
+  "defaultScheme": "monochromatic"
+}
