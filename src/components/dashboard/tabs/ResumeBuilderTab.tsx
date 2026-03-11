@@ -9,7 +9,7 @@ import {
   Plus, Trash2, Download, FileText, Briefcase, 
   GraduationCap, Code, Folder, ChevronDown, ChevronUp,
   Save, Edit3, Eye, Sparkles, Layout, Trash, RefreshCw,
-  Check, Copy, X
+  Check, Copy, X, Upload
 } from 'lucide-react'
 
 // Types
@@ -105,6 +105,36 @@ const defaultResumeData: ResumeData = {
   projects: []
 }
 
+// Dynamic import for PDF.js to avoid SSR issues
+let pdfjsLib: typeof import("pdfjs-dist") | null = null;
+
+const getPdfLib = async () => {
+  if (!pdfjsLib) {
+    pdfjsLib = await import("pdfjs-dist");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+  }
+  return pdfjsLib;
+};
+
+// Extract text from PDF
+const extractTextFromPDF = async (file: File): Promise<string> => {
+  const lib = await getPdfLib();
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await lib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = "";
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map((item: unknown) => (item as { str: string }).str)
+      .join(" ");
+    fullText += `--- Page ${i} ---\n${pageText}\n\n`;
+  }
+
+  return fullText;
+};
+
 export function ResumeBuilderTab() {
   const { user } = useAuth()
   const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData)
@@ -114,10 +144,15 @@ export function ResumeBuilderTab() {
   const [showPreview, setShowPreview] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
   const [showSaveModal, setShowSaveModal] = useState(false)
+  const [showResumesDropdown, setShowResumesDropdown] = useState(false)
   const [resumeName, setResumeName] = useState('My Resume')
   const [isSaving, setIsSaving] = useState(false)
   const [isLoadingAI, setIsLoadingAI] = useState(false)
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
+  // PDF Import states
+  const [isImportingPDF, setIsImportingPDF] = useState(false)
+  const [importProgress, setImportProgress] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const resumeRef = useRef<HTMLDivElement>(null)
 
   // Load saved resumes on mount
@@ -151,6 +186,118 @@ export function ResumeBuilderTab() {
       }
     } catch (error) {
       console.error('Error loading resumes:', error)
+    }
+  }
+
+  // Handle PDF file selection
+  const handlePDFImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      alert('Please select a PDF file')
+      return
+    }
+
+    setIsImportingPDF(true)
+    setImportProgress('Reading PDF file...')
+
+    try {
+      // Step 1: Extract text from PDF
+      setImportProgress('Extracting text from PDF...')
+      const extractedText = await extractTextFromPDF(file)
+
+      if (!extractedText || extractedText.trim().length < 50) {
+        alert('Could not extract enough text from the PDF. Please try a different file.')
+        setIsImportingPDF(false)
+        setImportProgress('')
+        return
+      }
+
+      // Step 2: Parse resume data using AI
+      setImportProgress('Analyzing resume with AI...')
+      const response = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'parse_resume',
+          content: extractedText.substring(0, 50000)
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to parse resume data')
+      }
+
+      const data = await response.json()
+      const parsedData = data.parsedData
+
+      if (!parsedData) {
+        alert('Could not parse resume data. Please try again or enter manually.')
+        setIsImportingPDF(false)
+        setImportProgress('')
+        return
+      }
+
+      // Step 3: Update resume data with parsed information
+      setImportProgress('Populating resume form...')
+      
+      // Generate unique IDs for new entries
+      const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9)
+
+      const newResumeData: ResumeData = {
+        ...defaultResumeData,
+        personalInfo: {
+          name: parsedData.personalInfo?.name || '',
+          email: parsedData.personalInfo?.email || '',
+          phone: parsedData.personalInfo?.phone || '',
+          location: parsedData.personalInfo?.location || '',
+          linkedin: parsedData.personalInfo?.linkedin || '',
+          portfolio: parsedData.personalInfo?.portfolio || ''
+        },
+        summary: parsedData.summary || '',
+        experience: (parsedData.experience || []).map((exp: any) => ({
+          id: generateId(),
+          company: exp.company || '',
+          role: exp.role || '',
+          startDate: exp.startDate || '',
+          endDate: exp.endDate || '',
+          current: exp.current || false,
+          description: exp.description || ''
+        })),
+        education: (parsedData.education || []).map((edu: any) => ({
+          id: generateId(),
+          institution: edu.institution || '',
+          degree: edu.degree || '',
+          field: edu.field || '',
+          graduationDate: edu.graduationDate || ''
+        })),
+        skills: parsedData.skills || '',
+        projects: (parsedData.projects || []).map((proj: any) => ({
+          id: generateId(),
+          name: proj.name || '',
+          description: proj.description || '',
+          technologies: proj.technologies || ''
+        }))
+      }
+
+      setResumeData(newResumeData)
+      setResumeName('Imported Resume')
+      
+      // Open all sections to show imported data
+      setActiveSection(null)
+      
+      alert('Resume imported successfully! Please review and edit the information below.')
+    } catch (error) {
+      console.error('Error importing PDF:', error)
+      alert('Failed to import PDF. Please try again or enter your resume information manually.')
+    } finally {
+      setIsImportingPDF(false)
+      setImportProgress('')
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
@@ -315,6 +462,9 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
       return
     }
 
+    // Check if we're updating an existing resume
+    const isUpdating = resumeData.id !== undefined;
+    
     setIsSaving(true)
     try {
       const payload = {
@@ -328,7 +478,7 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
         education: resumeData.education,
         skills: resumeData.skills,
         projects: resumeData.projects,
-        isDefault: savedResumes.length === 0
+        isDefault: savedResumes.length === 0 && !isUpdating
       }
 
       const response = await fetch('/api/resumes', {
@@ -342,11 +492,52 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
         setResumeData({ ...resumeData, id: saved.id, name: resumeName })
         await loadResumes()
         setShowSaveModal(false)
-        alert('Resume saved successfully!')
+        alert(isUpdating ? 'Resume updated successfully!' : 'Resume saved successfully!')
       }
     } catch (error) {
       console.error('Error saving resume:', error)
       alert('Failed to save resume')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Update saved resume
+  const updateSavedResume = async () => {
+    if (!user?.id || !resumeData.id) {
+      alert('No resume selected to update')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const payload = {
+        id: resumeData.id,
+        userId: user.id,
+        name: resumeName,
+        template: resumeData.template,
+        personalInfo: resumeData.personalInfo,
+        summary: resumeData.summary,
+        experience: resumeData.experience,
+        education: resumeData.education,
+        skills: resumeData.skills,
+        projects: resumeData.projects,
+        isDefault: false
+      }
+
+      const response = await fetch('/api/resumes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+
+      if (response.ok) {
+        await loadResumes()
+        alert('Resume updated successfully!')
+      }
+    } catch (error) {
+      console.error('Error updating resume:', error)
+      alert('Failed to update resume')
     } finally {
       setIsSaving(false)
     }
@@ -775,6 +966,26 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
       <Card title="Resume Builder">
         {/* Header with template selector and saved resumes */}
         <div className="flex flex-wrap gap-3 mb-6">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            onChange={handlePDFImport}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImportingPDF}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: '#e9ecef', color: '#212529' }}
+          >
+            {isImportingPDF ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4" />
+            )}
+            {isImportingPDF ? 'Importing...' : 'Import from PDF'}
+          </button>
           <button
             onClick={() => setShowTemplates(!showTemplates)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
@@ -790,16 +1001,63 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
             style={{ backgroundColor: '#e9ecef', color: '#212529' }}
           >
             <Save className="w-4 h-4" />
-            Save
+            {resumeData.id ? 'Update' : 'Save'}
           </button>
 
           {savedResumes.length > 0 && (
             <div className="relative">
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
-                style={{ backgroundColor: '#e9ecef', color: '#212529' }}>
+              <button 
+                onClick={() => setShowResumesDropdown(!showResumesDropdown)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+                style={{ backgroundColor: '#e9ecef', color: '#212529' }}
+              >
                 <FileText className="w-4 h-4" />
                 My Resumes ({savedResumes.length})
+                <ChevronDown className={`w-4 h-4 transition-transform ${showResumesDropdown ? 'rotate-180' : ''}`} />
               </button>
+              
+              {/* Saved Resumes Dropdown */}
+              {showResumesDropdown && (
+                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+                  <div className="p-2">
+                    <div className="text-xs font-semibold text-gray-500 px-3 py-2">
+                      Your Saved Resumes
+                    </div>
+                    {savedResumes.map(resume => (
+                      <div 
+                        key={resume.id} 
+                        className={`flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 cursor-pointer ${
+                          resumeData.id === resume.id ? 'bg-blue-50 border border-blue-200' : ''
+                        }`}
+                        onClick={() => {
+                          loadResume(resume)
+                          setShowResumesDropdown(false)
+                        }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{resume.name}</p>
+                          <p className="text-xs text-gray-500">{resume.template} template</p>
+                        </div>
+                        <div className="flex items-center gap-1 ml-2">
+                          {resumeData.id === resume.id && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Import Progress Indicator */}
+          {isImportingPDF && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg text-blue-700">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span className="text-sm">{importProgress}</span>
             </div>
           )}
 
@@ -878,7 +1136,7 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Save Resume</h3>
+                <h3 className="text-lg font-semibold">{resumeData.id ? 'Update Resume' : 'Save Resume'}</h3>
                 <button onClick={() => setShowSaveModal(false)} className="p-1 hover:bg-gray-100 rounded">
                   <X className="w-5 h-5" />
                 </button>
@@ -892,20 +1150,41 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
                 placeholder="Resume name"
               />
               <div className="flex gap-3">
-                <Button 
-                  onClick={saveResume} 
-                  disabled={isSaving || !hasResumeContent()} 
-                  className="flex-1"
-                  style={{
-                    opacity: isSaving || !hasResumeContent() ? 0.5 : 1,
-                    cursor: isSaving || !hasResumeContent() ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {isSaving ? 'Saving...' : 'Save Resume'}
-                </Button>
-                <Button variant="secondary" onClick={() => setShowSaveModal(false)}>
-                  Cancel
-                </Button>
+                {resumeData.id ? (
+                  <>
+                    <Button 
+                      onClick={updateSavedResume} 
+                      disabled={isSaving || !hasResumeContent()} 
+                      className="flex-1"
+                      style={{
+                        backgroundColor: '#212529',
+                        color: '#ffffff'
+                      }}
+                    >
+                      {isSaving ? 'Updating...' : 'Update Resume'}
+                    </Button>
+                    <Button variant="secondary" onClick={() => setShowSaveModal(false)}>
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button 
+                      onClick={saveResume} 
+                      disabled={isSaving || !hasResumeContent()} 
+                      className="flex-1"
+                      style={{
+                        opacity: isSaving || !hasResumeContent() ? 0.5 : 1,
+                        cursor: isSaving || !hasResumeContent() ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {isSaving ? 'Saving...' : 'Save Resume'}
+                    </Button>
+                    <Button variant="secondary" onClick={() => setShowSaveModal(false)}>
+                      Cancel
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

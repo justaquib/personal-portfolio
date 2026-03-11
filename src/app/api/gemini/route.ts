@@ -131,6 +131,79 @@ ${content}`;
       return NextResponse.json({ answer: text, usedModel });
     }
 
+    if (action === "parse_resume") {
+      const prompt = `You are a professional resume parser. Parse the following resume text and extract the information into a structured JSON format.
+
+IMPORTANT: Return ONLY valid JSON, no markdown, no explanation, no code blocks. The JSON must have this exact structure:
+
+{
+  "personalInfo": {
+    "name": "Full Name",
+    "email": "email@example.com",
+    "phone": "phone number",
+    "location": "city, state",
+    "linkedin": "linkedin url",
+    "portfolio": "portfolio url"
+  },
+  "summary": "professional summary text",
+  "experience": [
+    {
+      "company": "Company Name",
+      "role": "Job Title",
+      "startDate": "Jan 2020",
+      "endDate": "Dec 2023",
+      "current": false,
+      "description": "job responsibilities and achievements"
+    }
+  ],
+  "education": [
+    {
+      "institution": "University Name",
+      "degree": "Bachelor of Science",
+      "field": "Computer Science",
+      "graduationDate": "May 2020"
+    }
+  ],
+  "skills": "comma, separated, skills",
+  "projects": [
+    {
+      "name": "Project Name",
+      "description": "project description",
+      "technologies": "technologies used"
+    }
+  ]
+}
+
+Resume text to parse:
+${content}
+
+Return ONLY the JSON object. No markdown formatting. No explanations.`;
+
+      const { text, usedModel } = await tryWithFallbacks(
+        (modelName) => generateWithFallback(prompt, modelName),
+        "parse_resume"
+      );
+
+      // Parse the JSON response
+      try {
+        // Try to extract JSON from the response (in case there's any extra text)
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsedData = JSON.parse(jsonMatch[0]);
+          return NextResponse.json({ parsedData, usedModel });
+        }
+        // If no JSON found, try parsing the whole text
+        const parsedData = JSON.parse(text);
+        return NextResponse.json({ parsedData, usedModel });
+      } catch (parseError) {
+        console.error("Failed to parse JSON from AI response:", text);
+        return NextResponse.json({ 
+          error: "Failed to parse resume data", 
+          rawResponse: text 
+        }, { status: 500 });
+      }
+    }
+
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
     console.error("Gemini API error:", error);
