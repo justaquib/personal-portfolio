@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const { signInWithEmail, signUpWithEmail, signInWithGoogle, user, loading } = useAuth()
   const router = useRouter()
 
@@ -66,17 +68,9 @@ export default function LoginPage() {
   }
 
   const handleGoogleSignIn = async () => {
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      await signInWithGoogle()
-      // The redirect will happen automatically due to the redirectTo option
-    } catch (err) {
-      console.error('Sign in error:', err)
-      setError('Failed to sign in with Google. Please try again.')
-      setIsLoading(false)
-    }
+    // Show message that Google login is not available for team members
+    setError('Google login is not available for team member accounts. Please use email and password to sign in.')
+    return
   }
 
   // Show loading while checking auth
@@ -88,7 +82,7 @@ export default function LoginPage() {
       >
         <div 
           className="w-12 h-12 border-4 animate-spin"
-          style={{ borderColor: '#6c757d', borderTopColor: 'transparent', borderRadius: '50%' }}
+          style={{ borderColor: '#212529', borderTopColor: 'transparent', borderRadius: '50%' }}
         />
       </div>
     )
@@ -116,7 +110,7 @@ export default function LoginPage() {
             >
               {isSignUp ? 'Create Account' : 'Welcome Back'}
             </h1>
-            <p style={{ color: '#6c757d' }}>
+            <p style={{ color: '#212529' }}>
               {isSignUp ? 'Sign up to access your payment dashboard' : 'Sign in to access your payment dashboard'}
             </p>
           </div>
@@ -174,28 +168,38 @@ export default function LoginPage() {
               >
                 Password
               </label>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl transition-all"
-                style={{ 
-                  backgroundColor: '#f8f9fa', 
-                  border: '1px solid #ced4da', 
-                  color: '#212529',
-                  outline: 'none'
-                }}
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 rounded-xl transition-all pr-12"
+                  style={{ 
+                    backgroundColor: '#f8f9fa', 
+                    border: '1px solid #ced4da', 
+                    color: '#212529',
+                    outline: 'none'
+                  }}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
+                  style={{ color: '#212529' }}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
               className="w-full flex items-center justify-center gap-2 font-semibold py-3 px-6 rounded-xl transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#6c757d', color: '#ffffff' }}
+              style={{ backgroundColor: '#212529', color: '#ffffff' }}
             >
               {isLoading ? (
                 <div 
@@ -217,7 +221,7 @@ export default function LoginPage() {
               <div className="w-full" style={{ borderTop: '1px solid #ced4da' }}></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4" style={{ backgroundColor: '#e9ecef', color: '#6c757d' }}>or continue with</span>
+              <span className="px-4" style={{ backgroundColor: '#e9ecef', color: '#212529' }}>or continue with</span>
             </div>
           </div>
 
@@ -236,7 +240,7 @@ export default function LoginPage() {
             ) : (
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
-                  fill="#6c757d"
+                  fill="#212529"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 />
                 <path
@@ -244,7 +248,7 @@ export default function LoginPage() {
                   d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
                 />
                 <path
-                  fill="#6c757d"
+                  fill="#212529"
                   d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
                 />
                 <path

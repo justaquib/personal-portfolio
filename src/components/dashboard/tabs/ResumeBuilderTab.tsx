@@ -9,54 +9,11 @@ import {
   Plus, Trash2, Download, FileText, Briefcase, 
   GraduationCap, Code, Folder, ChevronDown, ChevronUp,
   Save, Edit3, Eye, Sparkles, Layout, Trash, RefreshCw,
-  Check, Copy, X, Upload
+  Check, Copy, X, Upload, Award
 } from 'lucide-react'
-
-// Types
-interface Experience {
-  id: string
-  company: string
-  role: string
-  startDate: string
-  endDate: string
-  current: boolean
-  description: string
-}
-
-interface Education {
-  id: string
-  institution: string
-  degree: string
-  field: string
-  graduationDate: string
-}
-
-interface Project {
-  id: string
-  name: string
-  description: string
-  technologies: string
-}
-
-interface ResumeData {
-  id?: number
-  name: string
-  template: string
-  personalInfo: {
-    name: string
-    email: string
-    phone: string
-    location: string
-    linkedin: string
-    portfolio: string
-  }
-  summary: string
-  experience: Experience[]
-  education: Education[]
-  skills: string
-  projects: Project[]
-  isDefault?: boolean
-}
+import { ResumePreview } from './resume/ResumePreview'
+import { downloadResumePDF } from './resume/pdfGenerator'
+import { ResumeData, Experience, Education, Project, Certification, Website, Language } from './resume/types'
 
 // Template definitions
 const TEMPLATES = [
@@ -86,6 +43,22 @@ const TEMPLATES = [
   }
 ]
 
+// Skill suggestions for resume
+const SKILL_SUGGESTIONS = [
+  // Programming Languages
+  'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'C#', 'Go', 'Rust', 'Ruby', 'PHP', 'Swift', 'Kotlin',
+  // Frontend
+  'React', 'Vue.js', 'Angular', 'Next.js', 'Nuxt.js', 'Svelte', 'HTML', 'CSS', 'Tailwind CSS', 'Sass',
+  // Backend
+  'Node.js', 'Express.js', 'Django', 'Flask', 'Spring Boot', 'Ruby on Rails', 'Laravel', 'ASP.NET',
+  // Databases
+  'SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Elasticsearch', 'SQLite',
+  // Cloud & DevOps
+  'AWS', 'Azure', 'Google Cloud', 'Docker', 'Kubernetes', 'Terraform', 'Jenkins', 'CI/CD',
+  // Tools & Others
+  'Git', 'GitHub', 'GitLab', 'Linux', 'REST API', 'GraphQL', 'Agile', 'Scrum', 'TDD'
+]
+
 // Default resume data
 const defaultResumeData: ResumeData = {
   name: 'My Resume',
@@ -102,7 +75,10 @@ const defaultResumeData: ResumeData = {
   experience: [],
   education: [],
   skills: '',
-  projects: []
+  projects: [],
+  certifications: [],
+  websites: [],
+  languages: []
 }
 
 // Dynamic import for PDF.js to avoid SSR issues
@@ -173,6 +149,9 @@ export function ResumeBuilderTab() {
           experience: typeof r.experience === 'string' ? JSON.parse(r.experience) : r.experience,
           education: typeof r.education === 'string' ? JSON.parse(r.education) : r.education,
           projects: typeof r.projects === 'string' ? JSON.parse(r.projects) : r.projects,
+          certifications: typeof r.certifications === 'string' ? JSON.parse(r.certifications) : (r.certifications || []),
+          websites: typeof r.websites === 'string' ? JSON.parse(r.websites) : (r.websites || []),
+          languages: typeof r.languages === 'string' ? JSON.parse(r.languages) : (r.languages || []),
           isDefault: r.is_default === 1
         }))
         setSavedResumes(parsed)
@@ -278,6 +257,23 @@ export function ResumeBuilderTab() {
           name: proj.name || '',
           description: proj.description || '',
           technologies: proj.technologies || ''
+        })),
+        certifications: (parsedData.certifications || []).map((cert: any) => ({
+          id: generateId(),
+          name: cert.name || '',
+          issuer: cert.issuer || '',
+          date: cert.date || '',
+          url: cert.url || ''
+        })),
+        websites: (parsedData.websites || []).map((ws: any) => ({
+          id: generateId(),
+          name: ws.name || '',
+          url: ws.url || ''
+        })),
+        languages: (parsedData.languages || []).map((lang: any) => ({
+          id: generateId(),
+          name: lang.name || '',
+          proficiency: lang.proficiency || ''
         }))
       }
 
@@ -386,6 +382,87 @@ export function ResumeBuilderTab() {
     }))
   }
 
+  // Certification handlers
+  const addCertification = () => {
+    setResumeData(prev => ({
+      ...prev,
+      certifications: [
+        ...prev.certifications,
+        { id: Date.now().toString(), name: '', issuer: '', date: '', url: '' }
+      ]
+    }))
+  }
+
+  const updateCertification = (id: string, field: string, value: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      certifications: prev.certifications.map(cert => 
+        cert.id === id ? { ...cert, [field]: value } : cert
+      )
+    }))
+  }
+
+  const removeCertification = (id: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      certifications: prev.certifications.filter(cert => cert.id !== id)
+    }))
+  }
+
+  // Website handlers
+  const addWebsite = () => {
+    setResumeData(prev => ({
+      ...prev,
+      websites: [
+        ...prev.websites,
+        { id: Date.now().toString(), name: '', url: '' }
+      ]
+    }))
+  }
+
+  const updateWebsite = (id: string, field: string, value: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      websites: prev.websites.map(ws => 
+        ws.id === id ? { ...ws, [field]: value } : ws
+      )
+    }))
+  }
+
+  const removeWebsite = (id: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      websites: prev.websites.filter(ws => ws.id !== id)
+    }))
+  }
+
+  // Language handlers
+  const addLanguage = () => {
+    setResumeData(prev => ({
+      ...prev,
+      languages: [
+        ...prev.languages,
+        { id: Date.now().toString(), name: '', proficiency: '' }
+      ]
+    }))
+  }
+
+  const updateLanguage = (id: string, field: string, value: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      languages: prev.languages.map(lang => 
+        lang.id === id ? { ...lang, [field]: value } : lang
+      )
+    }))
+  }
+
+  const removeLanguage = (id: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      languages: prev.languages.filter(lang => lang.id !== id)
+    }))
+  }
+
   const selectTemplate = (templateId: string) => {
     setResumeData(prev => ({ ...prev, template: templateId }))
     // Keep template selector open for user to close manually
@@ -478,6 +555,9 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
         education: resumeData.education,
         skills: resumeData.skills,
         projects: resumeData.projects,
+        certifications: resumeData.certifications,
+        websites: resumeData.websites,
+        languages: resumeData.languages,
         isDefault: savedResumes.length === 0 && !isUpdating
       }
 
@@ -522,6 +602,9 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
         education: resumeData.education,
         skills: resumeData.skills,
         projects: resumeData.projects,
+        certifications: resumeData.certifications,
+        websites: resumeData.websites,
+        languages: resumeData.languages,
         isDefault: false
       }
 
@@ -565,267 +648,6 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
       }
     } catch (error) {
       console.error('Error deleting resume:', error)
-    }
-  }
-
-  // Generate PDF with template
-  const generatePDF = () => {
-    setIsGenerating(true)
-    try {
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      })
-
-      const pageWidth = doc.internal.pageSize.getWidth()
-      const pageHeight = doc.internal.pageSize.getHeight()
-      const margin = 15
-      const maxWidth = pageWidth - margin * 2
-      let y = margin
-
-      // Template-specific colors
-      const colors: Record<string, [number, number, number]> = {
-        modern: [80, 80, 80],
-        classic: [40, 40, 40],
-        minimal: [60, 60, 60],
-        creative: [220, 80, 80]
-      }
-      
-      const accentColors: Record<string, [number, number, number]> = {
-        modern: [147, 51, 234], // Purple
-        classic: [80, 80, 80], // Gray
-        minimal: [59, 130, 246], // Blue
-        creative: [234, 88, 12] // Orange
-      }
-
-      const primaryColor = colors[resumeData.template] || colors.modern
-      const accentColor = accentColors[resumeData.template] || accentColors.modern
-
-      // Template-specific header
-      if (resumeData.template === 'modern') {
-        // Modern: Gradient-like header
-        doc.setFillColor(...accentColor)
-        doc.rect(0, 0, pageWidth, 35, 'F')
-        doc.setTextColor(255, 255, 255)
-        doc.setFontSize(24)
-        doc.setFont('helvetica', 'bold')
-        doc.text(resumeData.personalInfo.name || 'Your Name', margin, 22)
-        y = 45
-      } else if (resumeData.template === 'classic') {
-        // Classic: Centered header with underline
-        doc.setFontSize(22)
-        doc.setFont('times', 'bold')
-        doc.setTextColor(...primaryColor)
-        doc.text(resumeData.personalInfo.name || 'Your Name', pageWidth / 2, y, { align: 'center' })
-        y += 2
-        doc.setDrawColor(...primaryColor)
-        doc.setLineWidth(0.5)
-        doc.line(margin, y, pageWidth - margin, y)
-        y += 10
-      } else if (resumeData.template === 'minimal') {
-        // Minimal: Large name, minimal decoration
-        doc.setFontSize(28)
-        doc.setFont('helvetica', 'light')
-        doc.setTextColor(...primaryColor)
-        doc.text(resumeData.personalInfo.name || 'Your Name', margin, y + 5)
-        y += 18
-      } else if (resumeData.template === 'creative') {
-        // Creative: Bold colored name
-        doc.setFontSize(26)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...accentColor)
-        doc.text(resumeData.personalInfo.name || 'Your Name', margin, y + 5)
-        y += 15
-      }
-
-      // Contact info
-      doc.setFontSize(9)
-      doc.setFont('helvetica', 'normal')
-      
-      if (resumeData.template === 'modern') {
-        doc.setTextColor(255, 255, 255)
-      } else {
-        doc.setTextColor(100, 100, 100)
-      }
-      
-      const contactParts = []
-      if (resumeData.personalInfo.email) contactParts.push(resumeData.personalInfo.email)
-      if (resumeData.personalInfo.phone) contactParts.push(resumeData.personalInfo.phone)
-      if (resumeData.personalInfo.location) contactParts.push(resumeData.personalInfo.location)
-      
-      if (contactParts.length > 0) {
-        doc.text(contactParts.join(' | '), margin, y)
-        y += 4
-      }
-
-      if (resumeData.personalInfo.linkedin || resumeData.personalInfo.portfolio) {
-        const links = []
-        if (resumeData.personalInfo.linkedin) links.push(`LinkedIn: ${resumeData.personalInfo.linkedin}`)
-        if (resumeData.personalInfo.portfolio) links.push(`Portfolio: ${resumeData.personalInfo.portfolio}`)
-        doc.text(links.join(' | '), margin, y)
-        y += 8
-      }
-
-      // Divider
-      if (resumeData.template !== 'modern') {
-        doc.setDrawColor(200, 200, 200)
-        doc.line(margin, y, pageWidth - margin, y)
-        y += 8
-      } else {
-        y += 5
-      }
-
-      // Summary
-      if (resumeData.summary) {
-        doc.setFontSize(11)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...primaryColor)
-        doc.text('PROFESSIONAL SUMMARY', margin, y)
-        y += 5
-        
-        doc.setFontSize(10)
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(80, 80, 80)
-        const summaryLines = doc.splitTextToSize(resumeData.summary, maxWidth)
-        doc.text(summaryLines, margin, y)
-        y += summaryLines.length * 5 + 8
-      }
-
-      // Experience
-      if (resumeData.experience.length > 0) {
-        doc.setFontSize(11)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...primaryColor)
-        doc.text('WORK EXPERIENCE', margin, y)
-        y += 5
-
-        resumeData.experience.forEach(exp => {
-          if (y > pageHeight - 40) {
-            doc.addPage()
-            y = margin
-          }
-
-          doc.setFontSize(10)
-          doc.setFont('helvetica', 'bold')
-          doc.setTextColor(...primaryColor)
-          doc.text(exp.role || 'Job Title', margin, y)
-          
-          const dateText = exp.current ? `${exp.startDate} - Present` : `${exp.startDate} - ${exp.endDate}`
-          const dateWidth = doc.getTextWidth(dateText)
-          doc.text(dateText, pageWidth - margin - dateWidth, y)
-          y += 4
-
-          doc.setFontSize(9)
-          doc.setFont('helvetica', 'italic')
-          doc.setTextColor(100, 100, 100)
-          doc.text(exp.company || 'Company Name', margin, y)
-          y += 4
-
-          doc.setFont('helvetica', 'normal')
-          const descLines = doc.splitTextToSize(exp.description, maxWidth)
-          doc.text(descLines, margin, y)
-          y += descLines.length * 4 + 6
-        })
-      }
-
-      // Education
-      if (resumeData.education.length > 0) {
-        if (y > pageHeight - 40) {
-          doc.addPage()
-          y = margin
-        }
-
-        doc.setFontSize(11)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...primaryColor)
-        doc.text('EDUCATION', margin, y)
-        y += 5
-
-        resumeData.education.forEach(edu => {
-          doc.setFontSize(10)
-          doc.setFont('helvetica', 'bold')
-          doc.setTextColor(...primaryColor)
-          doc.text(`${edu.degree} in ${edu.field}`, margin, y)
-          
-          const dateWidth = doc.getTextWidth(edu.graduationDate)
-          doc.text(edu.graduationDate, pageWidth - margin - dateWidth, y)
-          y += 4
-
-          doc.setFontSize(9)
-          doc.setFont('helvetica', 'italic')
-          doc.setTextColor(100, 100, 100)
-          doc.text(edu.institution, margin, y)
-          y += 6
-        })
-      }
-
-      // Skills
-      if (resumeData.skills) {
-        if (y > pageHeight - 40) {
-          doc.addPage()
-          y = margin
-        }
-
-        doc.setFontSize(11)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...primaryColor)
-        doc.text('SKILLS', margin, y)
-        y += 5
-
-        doc.setFontSize(9)
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(80, 80, 80)
-        const skillsLines = doc.splitTextToSize(resumeData.skills, maxWidth)
-        doc.text(skillsLines, margin, y)
-        y += skillsLines.length * 4 + 6
-      }
-
-      // Projects
-      if (resumeData.projects.length > 0) {
-        if (y > pageHeight - 40) {
-          doc.addPage()
-          y = margin
-        }
-
-        doc.setFontSize(11)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...primaryColor)
-        doc.text('PROJECTS', margin, y)
-        y += 5
-
-        resumeData.projects.forEach(proj => {
-          doc.setFontSize(10)
-          doc.setFont('helvetica', 'bold')
-          doc.setTextColor(...primaryColor)
-          doc.text(proj.name, margin, y)
-          y += 4
-
-          doc.setFontSize(9)
-          doc.setFont('helvetica', 'normal')
-          doc.setTextColor(80, 80, 80)
-          const descLines = doc.splitTextToSize(proj.description, maxWidth)
-          doc.text(descLines, margin, y)
-          y += descLines.length * 4 + 2
-
-          if (proj.technologies) {
-            doc.setFont('helvetica', 'italic')
-            doc.text(`Technologies: ${proj.technologies}`, margin, y)
-            y += 6
-          }
-        })
-      }
-
-      // Save
-      const fileName = resumeData.personalInfo.name 
-        ? `${resumeData.personalInfo.name.replace(/\s+/g, '_')}_Resume.pdf`
-        : 'Resume.pdf'
-      doc.save(fileName)
-    } catch (error) {
-      console.error('Error generating PDF:', error)
-      alert('Failed to generate PDF. Please try again.')
-    } finally {
-      setIsGenerating(false)
     }
   }
 
@@ -910,6 +732,39 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
         <p>${proj.description}</p>
       </div>
     `).join('')}
+  </div>
+  ` : ''}
+  
+  ${resumeData.certifications.length > 0 ? `
+  <div class="section">
+    <h2>CERTIFICATIONS</h2>
+    <div class="badges">
+    ${resumeData.certifications.map(cert => `
+      <span class="badge" style="display: inline-block; background: #9333ea; color: white; padding: 4px 12px; border-radius: 20px; margin: 2px; font-size: 12px;">${cert.issuer ? cert.name + ' (' + cert.issuer + ')' : cert.name}</span>
+    `).join('')}
+    </div>
+  </div>
+  ` : ''}
+  
+  ${resumeData.languages.length > 0 ? `
+  <div class="section">
+    <h2>LANGUAGES</h2>
+    <div class="badges">
+    ${resumeData.languages.map(lang => `
+      <span class="badge" style="display: inline-block; background: #4f46e5; color: white; padding: 4px 12px; border-radius: 20px; margin: 2px; font-size: 12px;">${lang.name} - ${lang.proficiency}</span>
+    `).join('')}
+    </div>
+  </div>
+  ` : ''}
+  
+  ${resumeData.websites.length > 0 ? `
+  <div class="section">
+    <h2>WEBSITES & PORTFOLIO</h2>
+    <div class="badges">
+    ${resumeData.websites.map(ws => `
+      <span class="badge" style="display: inline-block; background: #0891b2; color: white; padding: 4px 12px; border-radius: 20px; margin: 2px; font-size: 12px;">${ws.name}: ${ws.url}</span>
+    `).join('')}
+    </div>
   </div>
   ` : ''}
 </body>
@@ -1513,6 +1368,36 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
                     placeholder="List your skills (e.g., JavaScript, Python, React, Node.js, AWS, Docker...)"
                   />
                   <p className="text-sm text-gray-500 mt-2">Separate skills with commas</p>
+                  
+                  {/* Skill Suggestions */}
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Suggested Skills (click to add):</p>
+                    <div className="flex flex-wrap gap-2">
+                      {SKILL_SUGGESTIONS.map(skill => {
+                        const isAdded = resumeData.skills.toLowerCase().split(',').map(s => s.trim()).includes(skill.toLowerCase())
+                        return (
+                          <button
+                            key={skill}
+                            onClick={() => {
+                              const currentSkills = resumeData.skills ? resumeData.skills.split(',').map(s => s.trim()) : []
+                              if (!currentSkills.map(s => s.toLowerCase()).includes(skill.toLowerCase())) {
+                                const newSkills = [...currentSkills, skill].join(', ')
+                                setResumeData(prev => ({ ...prev, skills: newSkills }))
+                              }
+                            }}
+                            disabled={isAdded}
+                            className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                              isAdded 
+                                ? 'bg-green-100 text-green-700 cursor-default' 
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-900'
+                            }`}
+                          >
+                            {isAdded ? `✓ ${skill}` : skill}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -1578,10 +1463,199 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
               )}
             </div>
 
+            {/* Certifications Section */}
+            <div className="border rounded-xl overflow-hidden">
+              <button
+                onClick={() => toggleSection('certifications')}
+                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Award className="w-5 h-5" style={{ color: '#212529' }} />
+                  <span className="font-medium">Certifications</span>
+                  <span className="text-sm text-gray-500">({resumeData.certifications.length})</span>
+                </div>
+                {activeSection === 'certifications' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+              </button>
+              
+              {activeSection === 'certifications' && (
+                <div className="p-4 space-y-4">
+                  {resumeData.certifications.map((cert, index) => (
+                    <div key={cert.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-medium text-gray-500">Certification {index + 1}</span>
+                        <button
+                          onClick={() => removeCertification(cert.id)}
+                          className="p-1 text-red-500 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          value={cert.name}
+                          onChange={(e) => updateCertification(cert.id, 'name', e.target.value)}
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                          placeholder="Certification Name"
+                        />
+                        <input
+                          type="text"
+                          value={cert.issuer}
+                          onChange={(e) => updateCertification(cert.id, 'issuer', e.target.value)}
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                          placeholder="Issuing Organization"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          value={cert.date}
+                          onChange={(e) => updateCertification(cert.id, 'date', e.target.value)}
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                          placeholder="Date (e.g., Jan 2024)"
+                        />
+                        <input
+                          type="text"
+                          value={cert.url}
+                          onChange={(e) => updateCertification(cert.id, 'url', e.target.value)}
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                          placeholder="Certificate URL (optional)"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={addCertification}
+                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-600 transition-colors"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add Certification
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Websites Section */}
+            <div className="border rounded-xl overflow-hidden">
+              <button
+                onClick={() => toggleSection('websites')}
+                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Globe className="w-5 h-5" style={{ color: '#212529' }} />
+                  <span className="font-medium">Websites & Portfolio</span>
+                  <span className="text-sm text-gray-500">({resumeData.websites.length})</span>
+                </div>
+                {activeSection === 'websites' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+              </button>
+              
+              {activeSection === 'websites' && (
+                <div className="p-4 space-y-4">
+                  {resumeData.websites.map((ws, index) => (
+                    <div key={ws.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-medium text-gray-500">Website {index + 1}</span>
+                        <button
+                          onClick={() => removeWebsite(ws.id)}
+                          className="p-1 text-red-500 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          value={ws.name}
+                          onChange={(e) => updateWebsite(ws.id, 'name', e.target.value)}
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                          placeholder="Website Name (e.g., GitHub, Blog)"
+                        />
+                        <input
+                          type="text"
+                          value={ws.url}
+                          onChange={(e) => updateWebsite(ws.id, 'url', e.target.value)}
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                          placeholder="URL (e.g., github.com/johndoe)"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={addWebsite}
+                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-600 transition-colors"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add Website
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Languages Section */}
+            <div className="border rounded-xl overflow-hidden">
+              <button
+                onClick={() => toggleSection('languages')}
+                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Globe className="w-5 h-5" style={{ color: '#212529' }} />
+                  <span className="font-medium">Languages</span>
+                  <span className="text-sm text-gray-500">({resumeData.languages.length})</span>
+                </div>
+                {activeSection === 'languages' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+              </button>
+              
+              {activeSection === 'languages' && (
+                <div className="p-4 space-y-4">
+                  {resumeData.languages.map((lang, index) => (
+                    <div key={lang.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-medium text-gray-500">Language {index + 1}</span>
+                        <button
+                          onClick={() => removeLanguage(lang.id)}
+                          className="p-1 text-red-500 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          value={lang.name}
+                          onChange={(e) => updateLanguage(lang.id, 'name', e.target.value)}
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                          placeholder="Language (e.g., English)"
+                        />
+                        <select
+                          value={lang.proficiency}
+                          onChange={(e) => updateLanguage(lang.id, 'proficiency', e.target.value)}
+                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                        >
+                          <option value="">Select Proficiency</option>
+                          <option value="Native">Native</option>
+                          <option value="Fluent">Fluent</option>
+                          <option value="Advanced">Advanced</option>
+                          <option value="Intermediate">Intermediate</option>
+                          <option value="Basic">Basic</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={addLanguage}
+                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-600 transition-colors"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add Language
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Export Buttons */}
             <div className="flex flex-wrap gap-3 pt-4 border-t">
               <Button
-                onClick={generatePDF}
+                onClick={() => downloadResumePDF(resumeData)}
                 disabled={isGenerating || !isResumeComplete()}
                 className="flex items-center gap-2"
               >
@@ -1607,115 +1681,7 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
           </div>
         ) : (
           /* Preview Mode with Template Styling */
-          <div className="bg-white border rounded-xl p-8 max-w-2xl mx-auto shadow-lg">
-            {/* Template-specific header styling */}
-            <div className={`text-center border-b pb-6 mb-6 ${
-              resumeData.template === 'modern' ? 'bg-gradient-to-r from-gray-600 to-gray-800 -mx-8 -mt-8 p-8 rounded-t-xl' : ''
-            }`}>
-              <h2 className={`text-2xl font-bold ${
-                resumeData.template === 'modern' ? 'text-white' : 
-                resumeData.template === 'classic' ? 'text-gray-900 font-serif' :
-                resumeData.template === 'minimal' ? 'text-gray-700 font-light' :
-                'text-orange-600'
-              }`}>
-                {resumeData.personalInfo.name || 'Your Name'}
-              </h2>
-              <div className={`text-sm mt-2 space-y-1 ${
-                resumeData.template === 'modern' ? 'text-white/80' : 'text-gray-600'
-              }`}>
-                {resumeData.personalInfo.email && <div>{resumeData.personalInfo.email}</div>}
-                {resumeData.personalInfo.phone && <div>{resumeData.personalInfo.phone}</div>}
-                {resumeData.personalInfo.location && <div>{resumeData.personalInfo.location}</div>}
-                {resumeData.personalInfo.linkedin && <div>LinkedIn: {resumeData.personalInfo.linkedin}</div>}
-                {resumeData.personalInfo.portfolio && <div>Portfolio: {resumeData.personalInfo.portfolio}</div>}
-              </div>
-            </div>
-
-            {resumeData.summary && (
-              <div className="mb-6">
-                <h3 className={`text-lg font-bold border-b pb-2 mb-3 ${
-                  resumeData.template === 'modern' ? 'text-gray-600' :
-                  resumeData.template === 'classic' ? 'text-gray-900 font-serif' :
-                  resumeData.template === 'minimal' ? 'text-gray-700' :
-                  'text-orange-600'
-                }`}>Professional Summary</h3>
-                <p className="text-gray-700">{resumeData.summary}</p>
-              </div>
-            )}
-
-            {resumeData.experience.length > 0 && (
-              <div className="mb-6">
-                <h3 className={`text-lg font-bold border-b pb-2 mb-3 ${
-                  resumeData.template === 'modern' ? 'text-gray-600' :
-                  resumeData.template === 'classic' ? 'text-gray-900 font-serif' :
-                  resumeData.template === 'minimal' ? 'text-gray-700' :
-                  'text-orange-600'
-                }`}>Work Experience</h3>
-                {resumeData.experience.map(exp => (
-                  <div key={exp.id} className="mb-4">
-                    <div className="flex justify-between items-baseline">
-                      <span className="font-semibold text-gray-900">{exp.role}</span>
-                      <span className="text-sm text-gray-600">
-                        {exp.current ? `${exp.startDate} - Present` : `${exp.startDate} - ${exp.endDate}`}
-                      </span>
-                    </div>
-                    <div className="text-gray-600 italic">{exp.company}</div>
-                    <p className="text-gray-700 mt-1">{exp.description}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {resumeData.education.length > 0 && (
-              <div className="mb-6">
-                <h3 className={`text-lg font-bold border-b pb-2 mb-3 ${
-                  resumeData.template === 'modern' ? 'text-gray-600' :
-                  resumeData.template === 'classic' ? 'text-gray-900 font-serif' :
-                  resumeData.template === 'minimal' ? 'text-gray-700' :
-                  'text-orange-600'
-                }`}>Education</h3>
-                {resumeData.education.map(edu => (
-                  <div key={edu.id} className="mb-3">
-                    <div className="flex justify-between items-baseline">
-                      <span className="font-semibold text-gray-900">{edu.degree} in {edu.field}</span>
-                      <span className="text-sm text-gray-600">{edu.graduationDate}</span>
-                    </div>
-                    <div className="text-gray-600 italic">{edu.institution}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {resumeData.skills && (
-              <div className="mb-6">
-                <h3 className={`text-lg font-bold border-b pb-2 mb-3 ${
-                  resumeData.template === 'modern' ? 'text-gray-600' :
-                  resumeData.template === 'classic' ? 'text-gray-900 font-serif' :
-                  resumeData.template === 'minimal' ? 'text-gray-700' :
-                  'text-orange-600'
-                }`}>Skills</h3>
-                <p className="text-gray-700">{resumeData.skills}</p>
-              </div>
-            )}
-
-            {resumeData.projects.length > 0 && (
-              <div>
-                <h3 className={`text-lg font-bold border-b pb-2 mb-3 ${
-                  resumeData.template === 'modern' ? 'text-gray-600' :
-                  resumeData.template === 'classic' ? 'text-gray-900 font-serif' :
-                  resumeData.template === 'minimal' ? 'text-gray-700' :
-                  'text-orange-600'
-                }`}>Projects</h3>
-                {resumeData.projects.map(proj => (
-                  <div key={proj.id} className="mb-3">
-                    <div className="font-semibold text-gray-900">{proj.name}</div>
-                    {proj.technologies && <div className="text-sm text-gray-600">Technologies: {proj.technologies}</div>}
-                    <p className="text-gray-700 mt-1">{proj.description}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <ResumePreview resumeData={resumeData} />
         )}
       </Card>
 

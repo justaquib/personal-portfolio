@@ -126,9 +126,28 @@ export interface Notification {
   status: 'pending' | 'sent' | 'failed'
 }
 
-export type TabType = 'send' | 'contacts' | 'services' | 'payments' | 'templates' | 'history' | 'earnings' | 'resume-builder'
+export type TabType = 'send' | 'contacts' | 'services' | 'payments' | 'templates' | 'history' | 'earnings' | 'resume-builder' | 'team' | 'profile'
 
 export interface TemplateFormData {
   name: string
   content: string
+}
+
+// Role-based access control types
+export type UserRole = 'super_admin' | 'admin' | 'editor' | 'viewer'
+
+export interface UserRoleRecord {
+  id: string
+  user_id: string
+  email: string
+  name: string | null
+  role: UserRole
+  created_by: string | null
+  created_at: string
+}
+
+export interface CreateUserRoleInput {
+  email: string
+  name: string
+  role: UserRole
 }

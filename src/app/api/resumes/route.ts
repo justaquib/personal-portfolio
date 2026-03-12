@@ -6,6 +6,31 @@ import path from 'path'
 const dbPath = path.join(process.cwd(), 'resumes.db')
 const db = new Database(dbPath)
 
+// Migration: Add new columns if they don't exist
+const migrateDatabase = () => {
+  try {
+    // Check if certifications column exists
+    const tableInfo = db.prepare('PRAGMA table_info(resumes)').all()
+    const columnNames = tableInfo.map((col: any) => col.name)
+    
+    if (!columnNames.includes('certifications')) {
+      db.exec('ALTER TABLE resumes ADD COLUMN certifications TEXT NOT NULL DEFAULT \'[]\'')
+    }
+    if (!columnNames.includes('websites')) {
+      db.exec('ALTER TABLE resumes ADD COLUMN websites TEXT NOT NULL DEFAULT \'[]\'')
+    }
+    if (!columnNames.includes('languages')) {
+      db.exec('ALTER TABLE resumes ADD COLUMN languages TEXT NOT NULL DEFAULT \'[]\'')
+    }
+    console.log('Migration completed successfully')
+  } catch (error) {
+    console.error('Migration error:', error)
+  }
+}
+
+// Run migration
+migrateDatabase()
+
 // Create resumes table if it doesn't exist
 db.exec(`
   CREATE TABLE IF NOT EXISTS resumes (
@@ -19,6 +44,9 @@ db.exec(`
     education TEXT NOT NULL DEFAULT '[]',
     skills TEXT,
     projects TEXT NOT NULL DEFAULT '[]',
+    certifications TEXT NOT NULL DEFAULT '[]',
+    websites TEXT NOT NULL DEFAULT '[]',
+    languages TEXT NOT NULL DEFAULT '[]',
     is_default INTEGER NOT NULL DEFAULT 0,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -63,7 +91,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, userId, name, template, personalInfo, summary, experience, education, skills, projects, isDefault } = body
+    const { id, userId, name, template, personalInfo, summary, experience, education, skills, projects, certifications, websites, languages, isDefault } = body
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
@@ -79,6 +107,9 @@ export async function POST(request: NextRequest) {
     const experienceJson = JSON.stringify(experience || [])
     const educationJson = JSON.stringify(education || [])
     const projectsJson = JSON.stringify(projects || [])
+    const certificationsJson = JSON.stringify(certifications || [])
+    const websitesJson = JSON.stringify(websites || [])
+    const languagesJson = JSON.stringify(languages || [])
 
     if (id) {
       // Update existing resume
@@ -86,6 +117,7 @@ export async function POST(request: NextRequest) {
         UPDATE resumes SET 
           name = ?, template = ?, personal_info = ?, summary = ?,
           experience = ?, education = ?, skills = ?, projects = ?, 
+          certifications = ?, websites = ?, languages = ?,
           is_default = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ? AND user_id = ?
       `)
@@ -93,6 +125,7 @@ export async function POST(request: NextRequest) {
       const result = stmt.run(
         name, template || 'modern', personalInfoJson, summary || '',
         experienceJson, educationJson, skills || '', projectsJson,
+        certificationsJson, websitesJson, languagesJson,
         isDefault ? 1 : 0, id, userId
       )
 
@@ -106,13 +139,14 @@ export async function POST(request: NextRequest) {
 
     // Create new resume
     const stmt = db.prepare(`
-      INSERT INTO resumes (user_id, name, template, personal_info, summary, experience, education, skills, projects, is_default)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO resumes (user_id, name, template, personal_info, summary, experience, education, skills, projects, certifications, websites, languages, is_default)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
     const result = stmt.run(
       userId, name, template || 'modern', personalInfoJson, summary || '',
       experienceJson, educationJson, skills || '', projectsJson,
+      certificationsJson, websitesJson, languagesJson,
       isDefault ? 1 : 0
     )
 

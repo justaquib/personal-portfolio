@@ -12,6 +12,8 @@ import { TemplatesTab } from '@/components/dashboard/tabs/TemplatesTab'
 import { HistoryTab } from '@/components/dashboard/tabs/HistoryTab'
 import { EarningsTab } from '@/components/dashboard/tabs/EarningsTab'
 import { ResumeBuilderTab } from '@/components/dashboard/tabs/ResumeBuilderTab'
+import { TeamMembersTab } from '@/components/dashboard/tabs/TeamMembersTab'
+import ProfileTab from '@/components/dashboard/tabs/ProfileTab'
 import type { TabType } from '@/types/database'
 
 const tabTitles: Record<TabType, { title: string; description: string }> = {
@@ -46,6 +48,14 @@ const tabTitles: Record<TabType, { title: string; description: string }> = {
   'resume-builder': { 
     title: 'ATS Resume Builder', 
     description: 'Build ATS-compatible resumes' 
+  },
+  team: {
+    title: 'Team Members',
+    description: 'Manage your team and their access roles'
+  },
+  profile: {
+    title: 'Profile',
+    description: 'Manage your account settings and preferences'
   },
 }
 
@@ -102,6 +112,10 @@ export default function DashboardPage() {
         return <EarningsTab userId={user.id} />
       case 'resume-builder':
         return <ResumeBuilderTab />
+      case 'team':
+        return <TeamMembersTab />
+      case 'profile':
+        return <ProfileTab user={user} />
       default:
         return <SendTab userId={user.id} />
     }
