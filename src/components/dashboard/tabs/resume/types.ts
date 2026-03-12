@@ -43,6 +43,20 @@ export interface Language {
   proficiency: string
 }
 
+export interface TemplateData {
+  id?: number
+  name: string
+  description: string
+  headerBg: string
+  headerText: string
+  accentColor: string
+  primaryColor: string
+  fontFamily: string
+  layout: string
+  sectionOrder?: string[]
+  badgeStyle?: 'rounded' | 'square' | 'pill'
+}
+
 export interface ResumeData {
   id?: number
   name: string
@@ -64,4 +78,5 @@ export interface ResumeData {
   websites: Website[]
   languages: Language[]
   isDefault?: boolean
+  sectionOrder?: string[]
 }

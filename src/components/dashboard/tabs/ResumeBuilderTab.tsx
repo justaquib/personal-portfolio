@@ -4,16 +4,97 @@ import { Card, Button } from '../ui'
 import { useState, useRef, useEffect } from 'react'
 import { jsPDF } from 'jspdf'
 import { useAuth } from '@/context/AuthContext'
+import { useToast } from '@/components/Toast'
 import { 
   User, Mail, Phone, MapPin, Linkedin, Globe, 
   Plus, Trash2, Download, FileText, Briefcase, 
   GraduationCap, Code, Folder, ChevronDown, ChevronUp,
   Save, Edit3, Eye, Sparkles, Layout, Trash, RefreshCw,
-  Check, Copy, X, Upload, Award
+  Check, Copy, X, Upload, Award, Settings, Maximize2, Minimize2
 } from 'lucide-react'
 import { ResumePreview } from './resume/ResumePreview'
 import { downloadResumePDF } from './resume/pdfGenerator'
 import { ResumeData, Experience, Education, Project, Certification, Website, Language } from './resume/types'
+import { TemplateBuilder } from './resume/TemplateBuilder'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+
+// Sortable Section Component
+function SortableSection({ id, label, icon, isExpanded, onToggle, children }: {
+  id: string
+  label: string
+  icon: React.ReactNode
+  isExpanded: boolean
+  onToggle: () => void
+  children: React.ReactNode
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`border rounded-xl overflow-hidden bg-white ${isDragging ? 'shadow-lg ring-2 ring-blue-500' : ''}`}
+    >
+      <div
+        className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors cursor-grab active:cursor-grabbing border-b"
+        {...attributes}
+        {...listeners}
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-0.5 text-gray-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+            </svg>
+          </div>
+          <span className="text-gray-700">{icon}</span>
+          <span className="font-medium text-gray-900">{label}</span>
+        </div>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onToggle(); }}
+          className="p-1 hover:bg-gray-200 rounded"
+        >
+          {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
+        </button>
+      </div>
+      {isExpanded && (
+        <div className="border-t border-gray-100">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // Template definitions
 const TEMPLATES = [
@@ -78,8 +159,22 @@ const defaultResumeData: ResumeData = {
   projects: [],
   certifications: [],
   websites: [],
-  languages: []
+  languages: [],
+  sectionOrder: ['personal', 'summary', 'experience', 'education', 'skills', 'projects', 'certifications', 'websites', 'languages']
 }
+
+// Section definitions for drag and drop
+const SECTION_ORDER = [
+  { id: 'personal', label: 'Personal Information', icon: User },
+  { id: 'summary', label: 'Professional Summary', icon: FileText },
+  { id: 'experience', label: 'Work Experience', icon: Briefcase },
+  { id: 'education', label: 'Education', icon: GraduationCap },
+  { id: 'skills', label: 'Skills', icon: Code },
+  { id: 'projects', label: 'Projects', icon: Folder },
+  { id: 'certifications', label: 'Certifications', icon: Award },
+  { id: 'websites', label: 'Websites & Portfolio', icon: Globe },
+  { id: 'languages', label: 'Languages', icon: Globe },
+]
 
 // Dynamic import for PDF.js to avoid SSR issues
 let pdfjsLib: typeof import("pdfjs-dist") | null = null;
@@ -112,12 +207,14 @@ const extractTextFromPDF = async (file: File): Promise<string> => {
 };
 
 export function ResumeBuilderTab() {
-  const { user } = useAuth()
+  const { user, isSuperAdmin, isAdmin } = useAuth()
   const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData)
   const [savedResumes, setSavedResumes] = useState<ResumeData[]>([])
   const [activeSection, setActiveSection] = useState<string | null>('personal')
   const [isGenerating, setIsGenerating] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [showFullView, setShowFullView] = useState(false)
+  const [expandAllInFullView, setExpandAllInFullView] = useState(true)
   const [showTemplates, setShowTemplates] = useState(false)
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [showResumesDropdown, setShowResumesDropdown] = useState(false)
@@ -125,11 +222,34 @@ export function ResumeBuilderTab() {
   const [isSaving, setIsSaving] = useState(false)
   const [isLoadingAI, setIsLoadingAI] = useState(false)
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
+  const [showTemplateBuilder, setShowTemplateBuilder] = useState(false)
+  // Section order state for drag and drop
+  const [sectionOrder, setSectionOrder] = useState<string[]>(
+    defaultResumeData.sectionOrder || ['personal', 'summary', 'experience', 'education', 'skills', 'projects', 'certifications', 'websites', 'languages']
+  )
   // PDF Import states
   const [isImportingPDF, setIsImportingPDF] = useState(false)
   const [importProgress, setImportProgress] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const resumeRef = useRef<HTMLDivElement>(null)
+
+  // Toast hook
+  const { showToast } = useToast()
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // Expand all sections when entering full view mode
+  useEffect(() => {
+    if (showFullView) {
+      setExpandAllInFullView(true)
+    }
+  }, [showFullView])
 
   // Load saved resumes on mount
   useEffect(() => {
@@ -174,7 +294,7 @@ export function ResumeBuilderTab() {
     if (!file) return
 
     if (!file.name.toLowerCase().endsWith('.pdf')) {
-      alert('Please select a PDF file')
+      showToast('Please select a PDF file', 'error')
       return
     }
 
@@ -187,7 +307,7 @@ export function ResumeBuilderTab() {
       const extractedText = await extractTextFromPDF(file)
 
       if (!extractedText || extractedText.trim().length < 50) {
-        alert('Could not extract enough text from the PDF. Please try a different file.')
+        showToast('Could not extract enough text from the PDF. Please try a different file.', 'error')
         setIsImportingPDF(false)
         setImportProgress('')
         return
@@ -212,7 +332,7 @@ export function ResumeBuilderTab() {
       const parsedData = data.parsedData
 
       if (!parsedData) {
-        alert('Could not parse resume data. Please try again or enter manually.')
+        showToast('Could not parse resume data. Please try again or enter manually.', 'error')
         setIsImportingPDF(false)
         setImportProgress('')
         return
@@ -283,10 +403,10 @@ export function ResumeBuilderTab() {
       // Open all sections to show imported data
       setActiveSection(null)
       
-      alert('Resume imported successfully! Please review and edit the information below.')
+      showToast('Resume imported successfully! Please review and edit the information below.', 'success')
     } catch (error) {
       console.error('Error importing PDF:', error)
-      alert('Failed to import PDF. Please try again or enter your resume information manually.')
+      showToast('Failed to import PDF. Please try again or enter your resume information manually.', 'error')
     } finally {
       setIsImportingPDF(false)
       setImportProgress('')
@@ -463,6 +583,23 @@ export function ResumeBuilderTab() {
     }))
   }
 
+  // Handle drag end for section reordering
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      setSectionOrder((items) => {
+        const oldIndex = items.indexOf(active.id as string)
+        const newIndex = items.indexOf(over.id as string)
+        return arrayMove(items, oldIndex, newIndex)
+      })
+    }
+  }
+
+  // Reset section order to default
+  const resetSectionOrder = () => {
+    setSectionOrder(defaultResumeData.sectionOrder || ['personal', 'summary', 'experience', 'education', 'skills', 'projects', 'certifications', 'websites', 'languages'])
+  }
+
   const selectTemplate = (templateId: string) => {
     setResumeData(prev => ({ ...prev, template: templateId }))
     // Keep template selector open for user to close manually
@@ -499,7 +636,7 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
       } else {
         // No content to work with - ask user to add content
         setIsLoadingAI(false)
-        alert('Please add some content to your resume first (experience, education, skills, or projects) before enhancing the summary.')
+        showToast('Please add some content to your resume first (experience, education, skills, or projects) before enhancing the summary.', 'info')
         return
       }
 
@@ -518,15 +655,15 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
           setResumeData(prev => ({ ...prev, summary: data.answer }))
           setAiSuggestions([data.answer])
         } else if (data.error) {
-          alert('Error: ' + data.error)
+          showToast('Error: ' + data.error, 'error')
         }
       } else {
         const errorData = await response.json()
-        alert('Failed to enhance summary: ' + (errorData.error || 'Unknown error'))
+        showToast('Failed to enhance summary: ' + (errorData.error || 'Unknown error'), 'error')
       }
     } catch (error) {
       console.error('Error enhancing AI summary:', error)
-      alert('Failed to enhance summary. Please try again.')
+      showToast('Failed to enhance summary. Please try again.', 'error')
     } finally {
       setIsLoadingAI(false)
     }
@@ -535,7 +672,7 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
   // Save resume to database
   const saveResume = async () => {
     if (!user?.id) {
-      alert('Please sign in to save your resume')
+      showToast('Please sign in to save your resume', 'info')
       return
     }
 
@@ -572,11 +709,11 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
         setResumeData({ ...resumeData, id: saved.id, name: resumeName })
         await loadResumes()
         setShowSaveModal(false)
-        alert(isUpdating ? 'Resume updated successfully!' : 'Resume saved successfully!')
+        showToast(isUpdating ? 'Resume updated successfully!' : 'Resume saved successfully!', 'success')
       }
     } catch (error) {
       console.error('Error saving resume:', error)
-      alert('Failed to save resume')
+      showToast('Failed to save resume', 'error')
     } finally {
       setIsSaving(false)
     }
@@ -585,7 +722,7 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
   // Update saved resume
   const updateSavedResume = async () => {
     if (!user?.id || !resumeData.id) {
-      alert('No resume selected to update')
+      showToast('No resume selected to update', 'info')
       return
     }
 
@@ -616,11 +753,11 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
 
       if (response.ok) {
         await loadResumes()
-        alert('Resume updated successfully!')
+        showToast('Resume updated successfully!', 'success')
       }
     } catch (error) {
       console.error('Error updating resume:', error)
-      alert('Failed to update resume')
+      showToast('Failed to update resume', 'error')
     } finally {
       setIsSaving(false)
     }
@@ -783,10 +920,10 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      alert('DOCX file downloaded! Note: The file is saved as .doc which can be opened in Microsoft Word.')
+      showToast('DOCX file downloaded! Note: The file is saved as .doc which can be opened in Microsoft Word.', 'success')
     } catch (error) {
       console.error('Error generating DOCX:', error)
-      alert('Failed to generate DOCX. Please try again.')
+      showToast('Failed to generate DOCX. Please try again.', 'error')
     } finally {
       setIsGenerating(false)
     }
@@ -818,58 +955,63 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
 
   return (
     <div className="space-y-6">
-      <Card title="Resume Builder">
-        {/* Header with template selector and saved resumes */}
-        <div className="flex flex-wrap gap-3 mb-6">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            onChange={handlePDFImport}
-            className="hidden"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isImportingPDF}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
-            style={{ backgroundColor: '#e9ecef', color: '#212529' }}
-          >
-            {isImportingPDF ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4" />
-            )}
-            {isImportingPDF ? 'Importing...' : 'Import from PDF'}
-          </button>
-          <button
-            onClick={() => setShowTemplates(!showTemplates)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
-            style={{ backgroundColor: '#e9ecef', color: '#212529' }}
-          >
-            <Layout className="w-4 h-4" />
-            {selectedTemplate.name} Template
-          </button>
+      <Card>
+        {/* Header with title and toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
+          {/* Title */}
+          <h2 className="text-xl font-semibold text-gray-900">Resume Builder</h2>
           
-          <button
-            onClick={() => setShowSaveModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
-            style={{ backgroundColor: '#e9ecef', color: '#212529' }}
-          >
-            <Save className="w-4 h-4" />
-            {resumeData.id ? 'Update' : 'Save'}
-          </button>
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Import, Template, Save, My Resumes buttons */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              onChange={handlePDFImport}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isImportingPDF}
+              className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+              style={{ backgroundColor: '#e9ecef', color: '#212529' }}
+              title={isImportingPDF ? 'Importing...' : 'Import from PDF'}
+            >
+              {isImportingPDF ? (
+                <RefreshCw className="w-5 h-5 animate-spin" />
+              ) : (
+                <Upload className="w-5 h-5" />
+              )}
+            </button>
+            <button
+              onClick={() => setShowTemplates(!showTemplates)}
+              className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+              style={{ backgroundColor: '#e9ecef', color: '#212529' }}
+              title={`Template: ${selectedTemplate.name}`}
+            >
+              <Layout className="w-5 h-5" />
+            </button>
+            
+            <button
+              onClick={() => setShowSaveModal(true)}
+              className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+              style={{ backgroundColor: '#e9ecef', color: '#212529' }}
+              title={resumeData.id ? 'Update Resume' : 'Save Resume'}
+            >
+              <Save className="w-5 h-5" />
+            </button>
 
-          {savedResumes.length > 0 && (
-            <div className="relative">
-              <button 
-                onClick={() => setShowResumesDropdown(!showResumesDropdown)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
-                style={{ backgroundColor: '#e9ecef', color: '#212529' }}
-              >
-                <FileText className="w-4 h-4" />
-                My Resumes ({savedResumes.length})
-                <ChevronDown className={`w-4 h-4 transition-transform ${showResumesDropdown ? 'rotate-180' : ''}`} />
-              </button>
+            {savedResumes.length > 0 && (
+              <div className="relative">
+                <button 
+                  onClick={() => setShowResumesDropdown(!showResumesDropdown)}
+                  className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+                  style={{ backgroundColor: '#e9ecef', color: '#212529' }}
+                  title={`My Resumes (${savedResumes.length})`}
+                >
+                  <FileText className="w-5 h-5" />
+                </button>
               
               {/* Saved Resumes Dropdown */}
               {showResumesDropdown && (
@@ -916,33 +1058,54 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
             </div>
           )}
 
-          <div className="flex gap-2 ml-auto">
+          {/* Admin Template Builder Button */}
+          {(isSuperAdmin || isAdmin) && (
             <button
-              onClick={() => setShowPreview(false)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                !showPreview ? '' : ''
-              }`}
-              style={{
-                backgroundColor: !showPreview ? '#212529' : '#e9ecef',
-                color: !showPreview ? '#ffffff' : '#212529',
-              }}
+              onClick={() => setShowTemplateBuilder(true)}
+              className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+              style={{ backgroundColor: '#212529', color: '#ffffff' }}
+              title="Template Builder"
             >
-              <Edit3 className="w-4 h-4" />
-              Edit
+              <Settings className="w-5 h-5" />
             </button>
-            <button
-              onClick={() => setShowPreview(true)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                showPreview ? '' : ''
-              }`}
-              style={{
-                backgroundColor: showPreview ? '#212529' : '#e9ecef',
-                color: showPreview ? '#ffffff' : '#212529',
-              }}
-            >
-              <Eye className="w-4 h-4" />
-              Preview
-            </button>
+          )}
+
+          {/* Edit/Preview Toggle */}
+          <button
+            onClick={() => setShowPreview(false)}
+            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+            style={{
+              backgroundColor: !showPreview ? '#212529' : '#e9ecef',
+              color: !showPreview ? '#ffffff' : '#212529',
+            }}
+            title="Edit Mode"
+          >
+            <Edit3 className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setShowPreview(true)}
+            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+            style={{
+              backgroundColor: showPreview ? '#212529' : '#e9ecef',
+              color: showPreview ? '#ffffff' : '#212529',
+            }}
+            title="Preview Mode"
+          >
+            <Eye className="w-5 h-5" />
+          </button>
+          
+          {/* Full View Mode Toggle */}
+          <button
+            onClick={() => setShowFullView(!showFullView)}
+            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+            style={{
+              backgroundColor: showFullView ? '#212529' : '#e9ecef',
+              color: showFullView ? '#ffffff' : '#212529',
+            }}
+            title="Full View Mode (Drag & Drop)"
+          >
+            {showFullView ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+          </button>
           </div>
         </div>
 
@@ -1679,6 +1842,358 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
               </p>
             )}
           </div>
+        ) : showFullView ? (
+          /* Full View Mode with Drag and Drop */
+          <div className="space-y-4">
+            {/* Section Reordering Header */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div>
+                <h3 className="font-semibold text-gray-900">Full View Mode</h3>
+                <p className="text-sm text-gray-500">Drag and drop sections to reorder them</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setExpandAllInFullView(!expandAllInFullView)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors"
+                  style={{ backgroundColor: '#e9ecef', color: '#212529' }}
+                >
+                  {expandAllInFullView ? (
+                    <><ChevronUp className="w-4 h-4" /> Collapse All</>
+                  ) : (
+                    <><ChevronDown className="w-4 h-4" /> Expand All</>
+                  )}
+                </button>
+                <button
+                  onClick={resetSectionOrder}
+                  className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors"
+                  style={{ backgroundColor: '#e9ecef', color: '#212529' }}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Reset Order
+                </button>
+                <button
+                  onClick={() => setShowFullView(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors"
+                  style={{ backgroundColor: '#212529', color: '#ffffff' }}
+                >
+                  <Minimize2 className="w-4 h-4" />
+                  Exit
+                </button>
+              </div>
+            </div>
+
+            {/* Draggable Sections */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={sectionOrder}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2">
+                  {sectionOrder.map((sectionId) => {
+                    const section = SECTION_ORDER.find(s => s.id === sectionId)
+                    if (!section) return null
+                    const Icon = section.icon
+                    
+                    return (
+                      <SortableSection
+                        key={sectionId}
+                        id={sectionId}
+                        label={section.label}
+                        icon={<Icon className="w-5 h-5" />}
+                        isExpanded={showFullView ? expandAllInFullView : activeSection === sectionId}
+                        onToggle={() => showFullView ? setExpandAllInFullView(!expandAllInFullView) : toggleSection(sectionId)}
+                      >
+                        {sectionId === 'personal' && (
+                          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                              <input
+                                type="text"
+                                value={resumeData.personalInfo.name}
+                                onChange={(e) => updatePersonalInfo('name', e.target.value)}
+                                className="w-full px-3 py-2 border rounded-lg"
+                                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
+                                placeholder="John Doe"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                              <input
+                                type="email"
+                                value={resumeData.personalInfo.email}
+                                onChange={(e) => updatePersonalInfo('email', e.target.value)}
+                                className="w-full px-3 py-2 border rounded-lg"
+                                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
+                                placeholder="john@example.com"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                              <input
+                                type="tel"
+                                value={resumeData.personalInfo.phone}
+                                onChange={(e) => updatePersonalInfo('phone', e.target.value)}
+                                className="w-full px-3 py-2 border rounded-lg"
+                                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
+                                placeholder="+1 (555) 123-4567"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                              <input
+                                type="text"
+                                value={resumeData.personalInfo.location}
+                                onChange={(e) => updatePersonalInfo('location', e.target.value)}
+                                className="w-full px-3 py-2 border rounded-lg"
+                                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
+                                placeholder="New York, NY"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn</label>
+                              <input
+                                type="text"
+                                value={resumeData.personalInfo.linkedin}
+                                onChange={(e) => updatePersonalInfo('linkedin', e.target.value)}
+                                className="w-full px-3 py-2 border rounded-lg"
+                                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
+                                placeholder="linkedin.com/in/johndoe"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Portfolio</label>
+                              <input
+                                type="text"
+                                value={resumeData.personalInfo.portfolio}
+                                onChange={(e) => updatePersonalInfo('portfolio', e.target.value)}
+                                className="w-full px-3 py-2 border rounded-lg"
+                                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
+                                placeholder="johndoe.com"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {sectionId === 'summary' && (
+                          <div className="p-4">
+                            <textarea
+                              value={resumeData.summary}
+                              onChange={(e) => setResumeData(prev => ({ ...prev, summary: e.target.value }))}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529', minHeight: '120px' }}
+                              placeholder="Write a brief summary of your professional background and career goals..."
+                            />
+                            <button
+                              onClick={generateAISummary}
+                              disabled={isLoadingAI}
+                              className="mt-3 flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors"
+                              style={{ backgroundColor: isLoadingAI ? '#6c757d' : '#212529', color: '#ffffff' }}
+                            >
+                              {isLoadingAI ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                              Enhance with AI
+                            </button>
+                          </div>
+                        )}
+
+                        {sectionId === 'experience' && (
+                          <div className="p-4 space-y-4">
+                            {resumeData.experience.map((exp, index) => (
+                              <div key={exp.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                                <div className="flex justify-between items-start">
+                                  <span className="text-sm font-medium text-gray-500">Experience {index + 1}</span>
+                                  <button onClick={() => removeExperience(exp.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <input type="text" value={exp.company} onChange={(e) => updateExperience(exp.id, 'company', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Company Name" />
+                                  <input type="text" value={exp.role} onChange={(e) => updateExperience(exp.id, 'role', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Job Title" />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  <input type="text" value={exp.startDate} onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Start Date" />
+                                  <input type="text" value={exp.endDate} onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="End Date" disabled={exp.current} />
+                                  <label className="flex items-center gap-2">
+                                    <input type="checkbox" checked={exp.current} onChange={(e) => updateExperience(exp.id, 'current', e.target.checked)} className="w-4 h-4 rounded" />
+                                    <span className="text-sm text-gray-700">Currently working</span>
+                                  </label>
+                                </div>
+                                <textarea value={exp.description} onChange={(e) => updateExperience(exp.id, 'description', e.target.value)} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder="Describe your responsibilities..." />
+                              </div>
+                            ))}
+                            <button onClick={addExperience} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                              <Plus className="w-5 h-5" /> Add Experience
+                            </button>
+                          </div>
+                        )}
+
+                        {sectionId === 'education' && (
+                          <div className="p-4 space-y-4">
+                            {resumeData.education.map((edu, index) => (
+                              <div key={edu.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                                <div className="flex justify-between items-start">
+                                  <span className="text-sm font-medium text-gray-500">Education {index + 1}</span>
+                                  <button onClick={() => removeEducation(edu.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <input type="text" value={edu.institution} onChange={(e) => updateEducation(edu.id, 'institution', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="University/College" />
+                                  <input type="text" value={edu.graduationDate} onChange={(e) => updateEducation(edu.id, 'graduationDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Graduation Date" />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <input type="text" value={edu.degree} onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Degree" />
+                                  <input type="text" value={edu.field} onChange={(e) => updateEducation(edu.id, 'field', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Field of Study" />
+                                </div>
+                              </div>
+                            ))}
+                            <button onClick={addEducation} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                              <Plus className="w-5 h-5" /> Add Education
+                            </button>
+                          </div>
+                        )}
+
+                        {sectionId === 'skills' && (
+                          <div className="p-4">
+                            <textarea
+                              value={resumeData.skills}
+                              onChange={(e) => setResumeData(prev => ({ ...prev, skills: e.target.value }))}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529', minHeight: '100px' }}
+                              placeholder="List your skills (e.g., JavaScript, Python, React...)"
+                            />
+                            <p className="text-sm text-gray-500 mt-2">Separate skills with commas</p>
+                          </div>
+                        )}
+
+                        {sectionId === 'projects' && (
+                          <div className="p-4 space-y-4">
+                            {resumeData.projects.map((proj, index) => (
+                              <div key={proj.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                                <div className="flex justify-between items-start">
+                                  <span className="text-sm font-medium text-gray-500">Project {index + 1}</span>
+                                  <button onClick={() => removeProject(proj.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <input type="text" value={proj.name} onChange={(e) => updateProject(proj.id, 'name', e.target.value)} className="w-full px-3 py-2 border rounded-lg" placeholder="Project Name" />
+                                <textarea value={proj.description} onChange={(e) => updateProject(proj.id, 'description', e.target.value)} className="w-full px-3 py-2 border rounded-lg" rows={2} placeholder="Project description..." />
+                                <input type="text" value={proj.technologies} onChange={(e) => updateProject(proj.id, 'technologies', e.target.value)} className="w-full px-3 py-2 border rounded-lg" placeholder="Technologies used" />
+                              </div>
+                            ))}
+                            <button onClick={addProject} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                              <Plus className="w-5 h-5" /> Add Project
+                            </button>
+                          </div>
+                        )}
+
+                        {sectionId === 'certifications' && (
+                          <div className="p-4 space-y-4">
+                            {resumeData.certifications.map((cert, index) => (
+                              <div key={cert.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                                <div className="flex justify-between items-start">
+                                  <span className="text-sm font-medium text-gray-500">Certification {index + 1}</span>
+                                  <button onClick={() => removeCertification(cert.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <input type="text" value={cert.name} onChange={(e) => updateCertification(cert.id, 'name', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Certification Name" />
+                                  <input type="text" value={cert.issuer} onChange={(e) => updateCertification(cert.id, 'issuer', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Issuing Organization" />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <input type="text" value={cert.date} onChange={(e) => updateCertification(cert.id, 'date', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Date" />
+                                  <input type="text" value={cert.url} onChange={(e) => updateCertification(cert.id, 'url', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Certificate URL" />
+                                </div>
+                              </div>
+                            ))}
+                            <button onClick={addCertification} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                              <Plus className="w-5 h-5" /> Add Certification
+                            </button>
+                          </div>
+                        )}
+
+                        {sectionId === 'websites' && (
+                          <div className="p-4 space-y-4">
+                            {resumeData.websites.map((ws, index) => (
+                              <div key={ws.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                                <div className="flex justify-between items-start">
+                                  <span className="text-sm font-medium text-gray-500">Website {index + 1}</span>
+                                  <button onClick={() => removeWebsite(ws.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <input type="text" value={ws.name} onChange={(e) => updateWebsite(ws.id, 'name', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Website Name (e.g., GitHub)" />
+                                  <input type="text" value={ws.url} onChange={(e) => updateWebsite(ws.id, 'url', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="URL" />
+                                </div>
+                              </div>
+                            ))}
+                            <button onClick={addWebsite} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                              <Plus className="w-5 h-5" /> Add Website
+                            </button>
+                          </div>
+                        )}
+
+                        {sectionId === 'languages' && (
+                          <div className="p-4 space-y-4">
+                            {resumeData.languages.map((lang, index) => (
+                              <div key={lang.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                                <div className="flex justify-between items-start">
+                                  <span className="text-sm font-medium text-gray-500">Language {index + 1}</span>
+                                  <button onClick={() => removeLanguage(lang.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <input type="text" value={lang.name} onChange={(e) => updateLanguage(lang.id, 'name', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Language (e.g., English)" />
+                                  <select value={lang.proficiency} onChange={(e) => updateLanguage(lang.id, 'proficiency', e.target.value)} className="px-3 py-2 border rounded-lg">
+                                    <option value="">Select Proficiency</option>
+                                    <option value="Native">Native</option>
+                                    <option value="Fluent">Fluent</option>
+                                    <option value="Advanced">Advanced</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Basic">Basic</option>
+                                  </select>
+                                </div>
+                              </div>
+                            ))}
+                            <button onClick={addLanguage} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                              <Plus className="w-5 h-5" /> Add Language
+                            </button>
+                          </div>
+                        )}
+                      </SortableSection>
+                    )
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
+
+            {/* Export Buttons */}
+            <div className="flex flex-wrap gap-3 pt-4 border-t">
+              <Button
+                onClick={() => downloadResumePDF(resumeData)}
+                disabled={isGenerating || !isResumeComplete()}
+                className="flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                {isGenerating ? 'Generating...' : 'Download as PDF'}
+              </Button>
+              <Button
+                onClick={generateDOCX}
+                disabled={isGenerating || !isResumeComplete()}
+                variant="secondary"
+                className="flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                {isGenerating ? 'Generating...' : 'Download as DOCX'}
+              </Button>
+            </div>
+          </div>
         ) : (
           /* Preview Mode with Template Styling */
           <ResumePreview resumeData={resumeData} />
@@ -1717,6 +2232,26 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
             ))}
           </div>
         </Card>
+      )}
+
+      {/* Template Builder Modal */}
+      {showTemplateBuilder && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="text-xl font-semibold">Template Builder</h2>
+              <button 
+                onClick={() => setShowTemplateBuilder(false)} 
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+              <TemplateBuilder onClose={() => setShowTemplateBuilder(false)} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
