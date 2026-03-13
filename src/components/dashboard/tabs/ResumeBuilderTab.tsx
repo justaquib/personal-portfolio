@@ -10,7 +10,7 @@ import {
   Plus, Trash2, Download, FileText, Briefcase, 
   GraduationCap, Code, Folder, ChevronDown, ChevronUp,
   Save, Edit3, Eye, Sparkles, Layout, Trash, RefreshCw,
-  Check, Copy, X, Upload, Award, Settings, Maximize2, Minimize2
+  Check, Copy, X, Upload, Award, Settings,
 } from 'lucide-react'
 import { ResumePreview } from './resume/ResumePreview'
 import { downloadResumePDF } from './resume/pdfGenerator'
@@ -213,9 +213,8 @@ export function ResumeBuilderTab() {
   const [activeSection, setActiveSection] = useState<string | null>('personal')
   const [isGenerating, setIsGenerating] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
-  const [showFullView, setShowFullView] = useState(false)
-  const [expandAllInFullView, setExpandAllInFullView] = useState(true)
   const [showTemplates, setShowTemplates] = useState(false)
+  const [activeTool, setActiveTool] = useState<string | null>(null)
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [showResumesDropdown, setShowResumesDropdown] = useState(false)
   const [resumeName, setResumeName] = useState('My Resume')
@@ -238,18 +237,15 @@ export function ResumeBuilderTab() {
 
   // DnD sensors
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
-
-  // Expand all sections when entering full view mode
-  useEffect(() => {
-    if (showFullView) {
-      setExpandAllInFullView(true)
-    }
-  }, [showFullView])
 
   // Load saved resumes on mount
   useEffect(() => {
@@ -768,6 +764,7 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
     setResumeData(resume)
     setResumeName(resume.name)
     setShowTemplates(false)
+    setActiveTool(null)
   }
 
   // Delete resume
@@ -985,9 +982,15 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
               )}
             </button>
             <button
-              onClick={() => setShowTemplates(!showTemplates)}
+              onClick={() => {
+                setActiveTool(activeTool === 'templates' ? null : 'templates')
+                setShowTemplates(!showTemplates)
+              }}
               className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-              style={{ backgroundColor: '#e9ecef', color: '#212529' }}
+              style={{ 
+                backgroundColor: activeTool === 'templates' ? '#212529' : '#e9ecef', 
+                color: activeTool === 'templates' ? '#ffffff' : '#212529' 
+              }}
               title={`Template: ${selectedTemplate.name}`}
             >
               <Layout className="w-5 h-5" />
@@ -1061,9 +1064,15 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
           {/* Admin Template Builder Button */}
           {(isSuperAdmin || isAdmin) && (
             <button
-              onClick={() => setShowTemplateBuilder(true)}
+              onClick={() => {
+                setActiveTool(activeTool === 'templateBuilder' ? null : 'templateBuilder')
+                setShowTemplateBuilder(!showTemplateBuilder)
+              }}
               className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-              style={{ backgroundColor: '#212529', color: '#ffffff' }}
+              style={{ 
+                backgroundColor: activeTool === 'templateBuilder' ? '#212529' : '#e9ecef', 
+                color: activeTool === 'templateBuilder' ? '#ffffff' : '#212529' 
+              }}
               title="Template Builder"
             >
               <Settings className="w-5 h-5" />
@@ -1072,39 +1081,46 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
 
           {/* Edit/Preview Toggle */}
           <button
-            onClick={() => setShowPreview(false)}
+            onClick={() => {
+              setActiveTool(activeTool === 'edit' ? null : 'edit')
+              setShowPreview(false)
+              setShowTemplates(false)
+              setShowTemplateBuilder(false)
+            }}
             className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
             style={{
-              backgroundColor: !showPreview ? '#212529' : '#e9ecef',
-              color: !showPreview ? '#ffffff' : '#212529',
+              backgroundColor: (activeTool === 'edit' || (activeTool === null && !showPreview)) ? '#212529' : '#e9ecef',
+              color: (activeTool === 'edit' || (activeTool === null && !showPreview)) ? '#ffffff' : '#212529',
             }}
             title="Edit Mode"
           >
             <Edit3 className="w-5 h-5" />
           </button>
           <button
-            onClick={() => setShowPreview(true)}
+            onClick={() => {
+              setActiveTool(activeTool === 'preview' ? null : 'preview')
+              setShowPreview(true)
+              setShowTemplates(false)
+              setShowTemplateBuilder(false)
+            }}
             className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
             style={{
-              backgroundColor: showPreview ? '#212529' : '#e9ecef',
-              color: showPreview ? '#ffffff' : '#212529',
+              backgroundColor: (activeTool === 'preview' || showPreview) ? '#212529' : '#e9ecef',
+              color: (activeTool === 'preview' || showPreview) ? '#ffffff' : '#212529',
             }}
             title="Preview Mode"
           >
             <Eye className="w-5 h-5" />
           </button>
-          
-          {/* Full View Mode Toggle */}
+
+          {/* Reset Section Order */}
           <button
-            onClick={() => setShowFullView(!showFullView)}
+            onClick={resetSectionOrder}
             className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-            style={{
-              backgroundColor: showFullView ? '#212529' : '#e9ecef',
-              color: showFullView ? '#ffffff' : '#212529',
-            }}
-            title="Full View Mode (Drag & Drop)"
+            style={{ backgroundColor: '#e9ecef', color: '#212529' }}
+            title="Reset Section Order"
           >
-            {showFullView ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+            <RefreshCw className="w-5 h-5" />
           </button>
           </div>
         </div>
@@ -1115,7 +1131,10 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-medium">Choose a Template</h3>
               <button 
-                onClick={() => setShowTemplates(false)}
+                onClick={() => {
+                  setShowTemplates(false)
+                  setActiveTool(null)
+                }}
                 className="p-1 hover:bg-gray-200 rounded"
               >
                 <X className="w-5 h-5" />
@@ -1209,1030 +1228,339 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
         )}
 
         {!showPreview ? (
-          <div className="space-y-4">
-            {/* Personal Information Section */}
-            <div className="border rounded-xl overflow-hidden">
-              <button
-                onClick={() => toggleSection('personal')}
-                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <User className="w-5 h-5" style={{ color: '#212529' }} />
-                  <span className="font-medium">Personal Information</span>
-                </div>
-                {activeSection === 'personal' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-              </button>
-              
-              {activeSection === 'personal' && (
-                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                    <input
-                      type="text"
-                      value={resumeData.personalInfo.name}
-                      onChange={(e) => updatePersonalInfo('name', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2"
-                      style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
-                      placeholder="John Doe"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                    <input
-                      type="email"
-                      value={resumeData.personalInfo.email}
-                      onChange={(e) => updatePersonalInfo('email', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2"
-                      style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
-                      placeholder="john@example.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                    <input
-                      type="tel"
-                      value={resumeData.personalInfo.phone}
-                      onChange={(e) => updatePersonalInfo('phone', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2"
-                      style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
-                      placeholder="+1 (555) 123-4567"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                    <input
-                      type="text"
-                      value={resumeData.personalInfo.location}
-                      onChange={(e) => updatePersonalInfo('location', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                      placeholder="New York, NY"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn</label>
-                    <input
-                      type="text"
-                      value={resumeData.personalInfo.linkedin}
-                      onChange={(e) => updatePersonalInfo('linkedin', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                      placeholder="linkedin.com/in/johndoe"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Portfolio</label>
-                    <input
-                      type="text"
-                      value={resumeData.personalInfo.portfolio}
-                      onChange={(e) => updatePersonalInfo('portfolio', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                      placeholder="johndoe.com"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Summary Section with AI */}
-            <div className="border rounded-xl overflow-hidden">
-              <div
-                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5" style={{ color: '#212529' }} />
-                  <span className="font-medium">Professional Summary</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); generateAISummary(); }}
-                    disabled={isLoadingAI}
-                    className="flex items-center gap-1 px-2 py-1 text-xs rounded-lg transition-colors"
-                    style={{ 
-                      backgroundColor: isLoadingAI ? '#6c757d' : '#212529',
-                      color: '#ffffff'
-                    }}
-                    title="Enhance with AI"
-                  >
-                    {isLoadingAI ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                    Enhance
-                  </button>
-                </div>
-                <button onClick={() => toggleSection('summary')} className="p-1">
-                  {activeSection === 'summary' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </button>
-              </div>
-              
-              {activeSection === 'summary' && (
-                <div className="p-4">
-                  <textarea
-                    value={resumeData.summary}
-                    onChange={(e) => setResumeData(prev => ({ ...prev, summary: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                    style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529', minHeight: '120px' }}
-                    placeholder="Write a brief summary of your professional background and career goals..."
-                  />
-                  {aiSuggestions.length > 0 && (
-                    <div className="mt-3 p-3 bg-gray-100 rounded-lg">
-                      <p className="text-sm text-gray-700 mb-2">AI Suggestion:</p>
-                      <p className="text-sm text-gray-700">{aiSuggestions[0]}</p>
-                      <button
-                        onClick={() => {
-                          setResumeData(prev => ({ ...prev, summary: aiSuggestions[0] }))
-                          setAiSuggestions([])
-                        }}
-                        className="mt-2 text-sm text-gray-600 hover:text-gray-700 flex items-center gap-1"
-                      >
-                        <Copy className="w-4 h-4" /> Use this
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Experience Section */}
-            <div className="border rounded-xl overflow-hidden">
-              <button
-                onClick={() => toggleSection('experience')}
-                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Briefcase className="w-5 h-5" style={{ color: '#212529' }} />
-                  <span className="font-medium">Work Experience</span>
-                  <span className="text-sm text-gray-500">({resumeData.experience.length})</span>
-                </div>
-                {activeSection === 'experience' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-              </button>
-              
-              {activeSection === 'experience' && (
-                <div className="p-4 space-y-4">
-                  {resumeData.experience.map((exp, index) => (
-                    <div key={exp.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                      <div className="flex justify-between items-start">
-                        <span className="text-sm font-medium text-gray-500">Experience {index + 1}</span>
-                        <button
-                          onClick={() => removeExperience(exp.id)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          value={exp.company}
-                          onChange={(e) => updateExperience(exp.id, 'company', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="Company Name"
-                        />
-                        <input
-                          type="text"
-                          value={exp.role}
-                          onChange={(e) => updateExperience(exp.id, 'role', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="Job Title"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <input
-                          type="text"
-                          value={exp.startDate}
-                          onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="Start Date (e.g., Jan 2020)"
-                        />
-                        <input
-                          type="text"
-                          value={exp.endDate}
-                          onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="End Date (e.g., Dec 2023)"
-                          disabled={exp.current}
-                        />
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={exp.current}
-                            onChange={(e) => updateExperience(exp.id, 'current', e.target.checked)}
-                            className="w-4 h-4 text-gray-600 rounded"
-                          />
-                          <span className="text-sm text-gray-700">Currently working</span>
-                        </label>
-                      </div>
-                      <textarea
-                        value={exp.description}
-                        onChange={(e) => updateExperience(exp.id, 'description', e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                        rows={3}
-                        placeholder="Describe your responsibilities and achievements..."
-                      />
-                    </div>
-                  ))}
-                  <button
-                    onClick={addExperience}
-                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-600 transition-colors"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add Experience
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Education Section */}
-            <div className="border rounded-xl overflow-hidden">
-              <button
-                onClick={() => toggleSection('education')}
-                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <GraduationCap className="w-5 h-5" style={{ color: '#212529' }} />
-                  <span className="font-medium">Education</span>
-                  <span className="text-sm text-gray-500">({resumeData.education.length})</span>
-                </div>
-                {activeSection === 'education' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-              </button>
-              
-              {activeSection === 'education' && (
-                <div className="p-4 space-y-4">
-                  {resumeData.education.map((edu, index) => (
-                    <div key={edu.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                      <div className="flex justify-between items-start">
-                        <span className="text-sm font-medium text-gray-500">Education {index + 1}</span>
-                        <button
-                          onClick={() => removeEducation(edu.id)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          value={edu.institution}
-                          onChange={(e) => updateEducation(edu.id, 'institution', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="University/College"
-                        />
-                        <input
-                          type="text"
-                          value={edu.graduationDate}
-                          onChange={(e) => updateEducation(edu.id, 'graduationDate', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="Graduation Date (e.g., May 2020)"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          value={edu.degree}
-                          onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="Degree (e.g., Bachelor of Science)"
-                        />
-                        <input
-                          type="text"
-                          value={edu.field}
-                          onChange={(e) => updateEducation(edu.id, 'field', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="Field of Study (e.g., Computer Science)"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    onClick={addEducation}
-                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-600 transition-colors"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add Education
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Skills Section */}
-            <div className="border rounded-xl overflow-hidden">
-              <button
-                onClick={() => toggleSection('skills')}
-                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Code className="w-5 h-5" style={{ color: '#212529' }} />
-                  <span className="font-medium">Skills</span>
-                </div>
-                {activeSection === 'skills' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-              </button>
-              
-              {activeSection === 'skills' && (
-                <div className="p-4">
-                  <textarea
-                    value={resumeData.skills}
-                    onChange={(e) => setResumeData(prev => ({ ...prev, skills: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                    rows={4}
-                    placeholder="List your skills (e.g., JavaScript, Python, React, Node.js, AWS, Docker...)"
-                  />
-                  <p className="text-sm text-gray-500 mt-2">Separate skills with commas</p>
-                  
-                  {/* Skill Suggestions */}
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Suggested Skills (click to add):</p>
-                    <div className="flex flex-wrap gap-2">
-                      {SKILL_SUGGESTIONS.map(skill => {
-                        const isAdded = resumeData.skills.toLowerCase().split(',').map(s => s.trim()).includes(skill.toLowerCase())
-                        return (
-                          <button
-                            key={skill}
-                            onClick={() => {
-                              const currentSkills = resumeData.skills ? resumeData.skills.split(',').map(s => s.trim()) : []
-                              if (!currentSkills.map(s => s.toLowerCase()).includes(skill.toLowerCase())) {
-                                const newSkills = [...currentSkills, skill].join(', ')
-                                setResumeData(prev => ({ ...prev, skills: newSkills }))
-                              }
-                            }}
-                            disabled={isAdded}
-                            className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                              isAdded 
-                                ? 'bg-green-100 text-green-700 cursor-default' 
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-900'
-                            }`}
-                          >
-                            {isAdded ? `✓ ${skill}` : skill}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Projects Section */}
-            <div className="border rounded-xl overflow-hidden">
-              <button
-                onClick={() => toggleSection('projects')}
-                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Folder className="w-5 h-5" style={{ color: '#212529' }} />
-                  <span className="font-medium">Projects</span>
-                  <span className="text-sm text-gray-500">({resumeData.projects.length})</span>
-                </div>
-                {activeSection === 'projects' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-              </button>
-              
-              {activeSection === 'projects' && (
-                <div className="p-4 space-y-4">
-                  {resumeData.projects.map((proj, index) => (
-                    <div key={proj.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                      <div className="flex justify-between items-start">
-                        <span className="text-sm font-medium text-gray-500">Project {index + 1}</span>
-                        <button
-                          onClick={() => removeProject(proj.id)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <input
-                        type="text"
-                        value={proj.name}
-                        onChange={(e) => updateProject(proj.id, 'name', e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                        placeholder="Project Name"
-                      />
-                      <textarea
-                        value={proj.description}
-                        onChange={(e) => updateProject(proj.id, 'description', e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                        rows={2}
-                        placeholder="Project description..."
-                      />
-                      <input
-                        type="text"
-                        value={proj.technologies}
-                        onChange={(e) => updateProject(proj.id, 'technologies', e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                        placeholder="Technologies used (e.g., React, Node.js, MongoDB)"
-                      />
-                    </div>
-                  ))}
-                  <button
-                    onClick={addProject}
-                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-600 transition-colors"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add Project
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Certifications Section */}
-            <div className="border rounded-xl overflow-hidden">
-              <button
-                onClick={() => toggleSection('certifications')}
-                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Award className="w-5 h-5" style={{ color: '#212529' }} />
-                  <span className="font-medium">Certifications</span>
-                  <span className="text-sm text-gray-500">({resumeData.certifications.length})</span>
-                </div>
-                {activeSection === 'certifications' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-              </button>
-              
-              {activeSection === 'certifications' && (
-                <div className="p-4 space-y-4">
-                  {resumeData.certifications.map((cert, index) => (
-                    <div key={cert.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                      <div className="flex justify-between items-start">
-                        <span className="text-sm font-medium text-gray-500">Certification {index + 1}</span>
-                        <button
-                          onClick={() => removeCertification(cert.id)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          value={cert.name}
-                          onChange={(e) => updateCertification(cert.id, 'name', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="Certification Name"
-                        />
-                        <input
-                          type="text"
-                          value={cert.issuer}
-                          onChange={(e) => updateCertification(cert.id, 'issuer', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="Issuing Organization"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          value={cert.date}
-                          onChange={(e) => updateCertification(cert.id, 'date', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="Date (e.g., Jan 2024)"
-                        />
-                        <input
-                          type="text"
-                          value={cert.url}
-                          onChange={(e) => updateCertification(cert.id, 'url', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="Certificate URL (optional)"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    onClick={addCertification}
-                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-600 transition-colors"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add Certification
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Websites Section */}
-            <div className="border rounded-xl overflow-hidden">
-              <button
-                onClick={() => toggleSection('websites')}
-                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Globe className="w-5 h-5" style={{ color: '#212529' }} />
-                  <span className="font-medium">Websites & Portfolio</span>
-                  <span className="text-sm text-gray-500">({resumeData.websites.length})</span>
-                </div>
-                {activeSection === 'websites' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-              </button>
-              
-              {activeSection === 'websites' && (
-                <div className="p-4 space-y-4">
-                  {resumeData.websites.map((ws, index) => (
-                    <div key={ws.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                      <div className="flex justify-between items-start">
-                        <span className="text-sm font-medium text-gray-500">Website {index + 1}</span>
-                        <button
-                          onClick={() => removeWebsite(ws.id)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          value={ws.name}
-                          onChange={(e) => updateWebsite(ws.id, 'name', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="Website Name (e.g., GitHub, Blog)"
-                        />
-                        <input
-                          type="text"
-                          value={ws.url}
-                          onChange={(e) => updateWebsite(ws.id, 'url', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="URL (e.g., github.com/johndoe)"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    onClick={addWebsite}
-                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-600 transition-colors"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add Website
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Languages Section */}
-            <div className="border rounded-xl overflow-hidden">
-              <button
-                onClick={() => toggleSection('languages')}
-                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Globe className="w-5 h-5" style={{ color: '#212529' }} />
-                  <span className="font-medium">Languages</span>
-                  <span className="text-sm text-gray-500">({resumeData.languages.length})</span>
-                </div>
-                {activeSection === 'languages' ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-              </button>
-              
-              {activeSection === 'languages' && (
-                <div className="p-4 space-y-4">
-                  {resumeData.languages.map((lang, index) => (
-                    <div key={lang.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                      <div className="flex justify-between items-start">
-                        <span className="text-sm font-medium text-gray-500">Language {index + 1}</span>
-                        <button
-                          onClick={() => removeLanguage(lang.id)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          value={lang.name}
-                          onChange={(e) => updateLanguage(lang.id, 'name', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                          placeholder="Language (e.g., English)"
-                        />
-                        <select
-                          value={lang.proficiency}
-                          onChange={(e) => updateLanguage(lang.id, 'proficiency', e.target.value)}
-                          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                        >
-                          <option value="">Select Proficiency</option>
-                          <option value="Native">Native</option>
-                          <option value="Fluent">Fluent</option>
-                          <option value="Advanced">Advanced</option>
-                          <option value="Intermediate">Intermediate</option>
-                          <option value="Basic">Basic</option>
-                        </select>
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    onClick={addLanguage}
-                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-600 transition-colors"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add Language
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Export Buttons */}
-            <div className="flex flex-wrap gap-3 pt-4 border-t">
-              <Button
-                onClick={() => downloadResumePDF(resumeData)}
-                disabled={isGenerating || !isResumeComplete()}
-                className="flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                {isGenerating ? 'Generating...' : 'Download as PDF'}
-              </Button>
-              <Button
-                onClick={generateDOCX}
-                disabled={isGenerating || !isResumeComplete()}
-                variant="secondary"
-                className="flex items-center gap-2"
-              >
-                <FileText className="w-4 h-4" />
-                {isGenerating ? 'Generating...' : 'Download as DOCX'}
-              </Button>
-            </div>
-
-            {!isResumeComplete() && (
-              <p className="text-sm text-gray-500 mt-2">
-                * Please fill in your name and at least one of: experience, education, or skills
-              </p>
-            )}
-          </div>
-        ) : showFullView ? (
-          /* Full View Mode with Drag and Drop */
-          <div className="space-y-4">
-            {/* Section Reordering Header */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-              <div>
-                <h3 className="font-semibold text-gray-900">Full View Mode</h3>
-                <p className="text-sm text-gray-500">Drag and drop sections to reorder them</p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setExpandAllInFullView(!expandAllInFullView)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors"
-                  style={{ backgroundColor: '#e9ecef', color: '#212529' }}
-                >
-                  {expandAllInFullView ? (
-                    <><ChevronUp className="w-4 h-4" /> Collapse All</>
-                  ) : (
-                    <><ChevronDown className="w-4 h-4" /> Expand All</>
-                  )}
-                </button>
-                <button
-                  onClick={resetSectionOrder}
-                  className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors"
-                  style={{ backgroundColor: '#e9ecef', color: '#212529' }}
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Reset Order
-                </button>
-                <button
-                  onClick={() => setShowFullView(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors"
-                  style={{ backgroundColor: '#212529', color: '#ffffff' }}
-                >
-                  <Minimize2 className="w-4 h-4" />
-                  Exit
-                </button>
-              </div>
-            </div>
-
-            {/* Draggable Sections */}
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={sectionOrder}
+              strategy={verticalListSortingStrategy}
             >
-              <SortableContext
-                items={sectionOrder}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="space-y-2">
-                  {sectionOrder.map((sectionId) => {
-                    const section = SECTION_ORDER.find(s => s.id === sectionId)
-                    if (!section) return null
-                    const Icon = section.icon
-                    
-                    return (
-                      <SortableSection
-                        key={sectionId}
-                        id={sectionId}
-                        label={section.label}
-                        icon={<Icon className="w-5 h-5" />}
-                        isExpanded={showFullView ? expandAllInFullView : activeSection === sectionId}
-                        onToggle={() => showFullView ? setExpandAllInFullView(!expandAllInFullView) : toggleSection(sectionId)}
-                      >
-                        {sectionId === 'personal' && (
-                          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                              <input
-                                type="text"
-                                value={resumeData.personalInfo.name}
-                                onChange={(e) => updatePersonalInfo('name', e.target.value)}
-                                className="w-full px-3 py-2 border rounded-lg"
-                                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
-                                placeholder="John Doe"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                              <input
-                                type="email"
-                                value={resumeData.personalInfo.email}
-                                onChange={(e) => updatePersonalInfo('email', e.target.value)}
-                                className="w-full px-3 py-2 border rounded-lg"
-                                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
-                                placeholder="john@example.com"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                              <input
-                                type="tel"
-                                value={resumeData.personalInfo.phone}
-                                onChange={(e) => updatePersonalInfo('phone', e.target.value)}
-                                className="w-full px-3 py-2 border rounded-lg"
-                                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
-                                placeholder="+1 (555) 123-4567"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                              <input
-                                type="text"
-                                value={resumeData.personalInfo.location}
-                                onChange={(e) => updatePersonalInfo('location', e.target.value)}
-                                className="w-full px-3 py-2 border rounded-lg"
-                                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
-                                placeholder="New York, NY"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn</label>
-                              <input
-                                type="text"
-                                value={resumeData.personalInfo.linkedin}
-                                onChange={(e) => updatePersonalInfo('linkedin', e.target.value)}
-                                className="w-full px-3 py-2 border rounded-lg"
-                                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
-                                placeholder="linkedin.com/in/johndoe"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Portfolio</label>
-                              <input
-                                type="text"
-                                value={resumeData.personalInfo.portfolio}
-                                onChange={(e) => updatePersonalInfo('portfolio', e.target.value)}
-                                className="w-full px-3 py-2 border rounded-lg"
-                                style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
-                                placeholder="johndoe.com"
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {sectionId === 'summary' && (
-                          <div className="p-4">
-                            <textarea
-                              value={resumeData.summary}
-                              onChange={(e) => setResumeData(prev => ({ ...prev, summary: e.target.value }))}
-                              className="w-full px-3 py-2 border rounded-lg"
-                              style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529', minHeight: '120px' }}
-                              placeholder="Write a brief summary of your professional background and career goals..."
+              <div className="space-y-4">
+                {sectionOrder.map((sectionId) => {
+                  const section = SECTION_ORDER.find(s => s.id === sectionId)
+                  if (!section) return null
+                  const Icon = section.icon
+                  
+                  return (
+                    <SortableSection
+                      key={sectionId}
+                      id={sectionId}
+                      label={section.label}
+                      icon={<Icon className="w-5 h-5" style={{ color: '#212529' }} />}
+                      isExpanded={activeSection === sectionId}
+                      onToggle={() => toggleSection(sectionId)}
+                    >
+                      {sectionId === 'personal' && (
+                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                            <input
+                              type="text"
+                              value={resumeData.personalInfo.name}
+                              onChange={(e) => updatePersonalInfo('name', e.target.value)}
+                              className="w-full px-3 py-2 border rounded-lg focus:ring-2"
+                              style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
+                              placeholder="John Doe"
                             />
-                            <button
-                              onClick={generateAISummary}
-                              disabled={isLoadingAI}
-                              className="mt-3 flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors"
-                              style={{ backgroundColor: isLoadingAI ? '#6c757d' : '#212529', color: '#ffffff' }}
-                            >
-                              {isLoadingAI ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                              Enhance with AI
-                            </button>
                           </div>
-                        )}
-
-                        {sectionId === 'experience' && (
-                          <div className="p-4 space-y-4">
-                            {resumeData.experience.map((exp, index) => (
-                              <div key={exp.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                                <div className="flex justify-between items-start">
-                                  <span className="text-sm font-medium text-gray-500">Experience {index + 1}</span>
-                                  <button onClick={() => removeExperience(exp.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  <input type="text" value={exp.company} onChange={(e) => updateExperience(exp.id, 'company', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Company Name" />
-                                  <input type="text" value={exp.role} onChange={(e) => updateExperience(exp.id, 'role', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Job Title" />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                  <input type="text" value={exp.startDate} onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Start Date" />
-                                  <input type="text" value={exp.endDate} onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="End Date" disabled={exp.current} />
-                                  <label className="flex items-center gap-2">
-                                    <input type="checkbox" checked={exp.current} onChange={(e) => updateExperience(exp.id, 'current', e.target.checked)} className="w-4 h-4 rounded" />
-                                    <span className="text-sm text-gray-700">Currently working</span>
-                                  </label>
-                                </div>
-                                <textarea value={exp.description} onChange={(e) => updateExperience(exp.id, 'description', e.target.value)} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder="Describe your responsibilities..." />
-                              </div>
-                            ))}
-                            <button onClick={addExperience} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
-                              <Plus className="w-5 h-5" /> Add Experience
-                            </button>
-                          </div>
-                        )}
-
-                        {sectionId === 'education' && (
-                          <div className="p-4 space-y-4">
-                            {resumeData.education.map((edu, index) => (
-                              <div key={edu.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                                <div className="flex justify-between items-start">
-                                  <span className="text-sm font-medium text-gray-500">Education {index + 1}</span>
-                                  <button onClick={() => removeEducation(edu.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  <input type="text" value={edu.institution} onChange={(e) => updateEducation(edu.id, 'institution', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="University/College" />
-                                  <input type="text" value={edu.graduationDate} onChange={(e) => updateEducation(edu.id, 'graduationDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Graduation Date" />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  <input type="text" value={edu.degree} onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Degree" />
-                                  <input type="text" value={edu.field} onChange={(e) => updateEducation(edu.id, 'field', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Field of Study" />
-                                </div>
-                              </div>
-                            ))}
-                            <button onClick={addEducation} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
-                              <Plus className="w-5 h-5" /> Add Education
-                            </button>
-                          </div>
-                        )}
-
-                        {sectionId === 'skills' && (
-                          <div className="p-4">
-                            <textarea
-                              value={resumeData.skills}
-                              onChange={(e) => setResumeData(prev => ({ ...prev, skills: e.target.value }))}
-                              className="w-full px-3 py-2 border rounded-lg"
-                              style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529', minHeight: '100px' }}
-                              placeholder="List your skills (e.g., JavaScript, Python, React...)"
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                            <input
+                              type="email"
+                              value={resumeData.personalInfo.email}
+                              onChange={(e) => updatePersonalInfo('email', e.target.value)}
+                              className="w-full px-3 py-2 border rounded-lg focus:ring-2"
+                              style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
+                              placeholder="john@example.com"
                             />
-                            <p className="text-sm text-gray-500 mt-2">Separate skills with commas</p>
                           </div>
-                        )}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                            <input
+                              type="tel"
+                              value={resumeData.personalInfo.phone}
+                              onChange={(e) => updatePersonalInfo('phone', e.target.value)}
+                              className="w-full px-3 py-2 border rounded-lg focus:ring-2"
+                              style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529' }}
+                              placeholder="+1 (555) 123-4567"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                            <input
+                              type="text"
+                              value={resumeData.personalInfo.location}
+                              onChange={(e) => updatePersonalInfo('location', e.target.value)}
+                              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                              placeholder="New York, NY"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn</label>
+                            <input
+                              type="text"
+                              value={resumeData.personalInfo.linkedin}
+                              onChange={(e) => updatePersonalInfo('linkedin', e.target.value)}
+                              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                              placeholder="linkedin.com/in/johndoe"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Portfolio</label>
+                            <input
+                              type="text"
+                              value={resumeData.personalInfo.portfolio}
+                              onChange={(e) => updatePersonalInfo('portfolio', e.target.value)}
+                              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                              placeholder="johndoe.com"
+                            />
+                          </div>
+                        </div>
+                      )}
 
-                        {sectionId === 'projects' && (
-                          <div className="p-4 space-y-4">
-                            {resumeData.projects.map((proj, index) => (
-                              <div key={proj.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                                <div className="flex justify-between items-start">
-                                  <span className="text-sm font-medium text-gray-500">Project {index + 1}</span>
-                                  <button onClick={() => removeProject(proj.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                                <input type="text" value={proj.name} onChange={(e) => updateProject(proj.id, 'name', e.target.value)} className="w-full px-3 py-2 border rounded-lg" placeholder="Project Name" />
-                                <textarea value={proj.description} onChange={(e) => updateProject(proj.id, 'description', e.target.value)} className="w-full px-3 py-2 border rounded-lg" rows={2} placeholder="Project description..." />
-                                <input type="text" value={proj.technologies} onChange={(e) => updateProject(proj.id, 'technologies', e.target.value)} className="w-full px-3 py-2 border rounded-lg" placeholder="Technologies used" />
-                              </div>
-                            ))}
-                            <button onClick={addProject} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
-                              <Plus className="w-5 h-5" /> Add Project
-                            </button>
-                          </div>
-                        )}
+                      {sectionId === 'summary' && activeSection === 'summary' && (
+                        <div className="p-4">
+                          <textarea
+                            value={resumeData.summary}
+                            onChange={(e) => setResumeData(prev => ({ ...prev, summary: e.target.value }))}
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                            style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529', minHeight: '120px' }}
+                            placeholder="Write a brief summary of your professional background and career goals..."
+                          />
+                          <button
+                            onClick={generateAISummary}
+                            disabled={isLoadingAI}
+                            className="mt-3 flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors"
+                            style={{ backgroundColor: isLoadingAI ? '#6c757d' : '#212529', color: '#ffffff' }}
+                          >
+                            {isLoadingAI ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                            Enhance with AI
+                          </button>
+                          {aiSuggestions.length > 0 && (
+                            <div className="mt-3 p-3 bg-gray-100 rounded-lg">
+                              <p className="text-sm text-gray-700 mb-2">AI Suggestion:</p>
+                              <p className="text-sm text-gray-700">{aiSuggestions[0]}</p>
+                              <button
+                                onClick={() => {
+                                  setResumeData(prev => ({ ...prev, summary: aiSuggestions[0] }))
+                                  setAiSuggestions([])
+                                }}
+                                className="mt-2 text-sm text-gray-600 hover:text-gray-700 flex items-center gap-1"
+                              >
+                                <Copy className="w-4 h-4" /> Use this
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
-                        {sectionId === 'certifications' && (
-                          <div className="p-4 space-y-4">
-                            {resumeData.certifications.map((cert, index) => (
-                              <div key={cert.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                                <div className="flex justify-between items-start">
-                                  <span className="text-sm font-medium text-gray-500">Certification {index + 1}</span>
-                                  <button onClick={() => removeCertification(cert.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  <input type="text" value={cert.name} onChange={(e) => updateCertification(cert.id, 'name', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Certification Name" />
-                                  <input type="text" value={cert.issuer} onChange={(e) => updateCertification(cert.id, 'issuer', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Issuing Organization" />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  <input type="text" value={cert.date} onChange={(e) => updateCertification(cert.id, 'date', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Date" />
-                                  <input type="text" value={cert.url} onChange={(e) => updateCertification(cert.id, 'url', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Certificate URL" />
-                                </div>
+                      {sectionId === 'experience' && (
+                        <div className="p-4 space-y-4">
+                          {resumeData.experience.map((exp, index) => (
+                            <div key={exp.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                              <div className="flex justify-between items-start">
+                                <span className="text-sm font-medium text-gray-500">Experience {index + 1}</span>
+                                <button onClick={() => removeExperience(exp.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               </div>
-                            ))}
-                            <button onClick={addCertification} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
-                              <Plus className="w-5 h-5" /> Add Certification
-                            </button>
-                          </div>
-                        )}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input type="text" value={exp.company} onChange={(e) => updateExperience(exp.id, 'company', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Company Name" />
+                                <input type="text" value={exp.role} onChange={(e) => updateExperience(exp.id, 'role', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Job Title" />
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <input type="text" value={exp.startDate} onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Start Date" />
+                                <input type="text" value={exp.endDate} onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="End Date" disabled={exp.current} />
+                                <label className="flex items-center gap-2">
+                                  <input type="checkbox" checked={exp.current} onChange={(e) => updateExperience(exp.id, 'current', e.target.checked)} className="w-4 h-4 rounded" />
+                                  <span className="text-sm text-gray-700">Currently working</span>
+                                </label>
+                              </div>
+                              <textarea value={exp.description} onChange={(e) => updateExperience(exp.id, 'description', e.target.value)} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder="Describe your responsibilities..." />
+                            </div>
+                          ))}
+                          <button onClick={addExperience} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                            <Plus className="w-5 h-5" /> Add Experience
+                          </button>
+                        </div>
+                      )}
 
-                        {sectionId === 'websites' && (
-                          <div className="p-4 space-y-4">
-                            {resumeData.websites.map((ws, index) => (
-                              <div key={ws.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                                <div className="flex justify-between items-start">
-                                  <span className="text-sm font-medium text-gray-500">Website {index + 1}</span>
-                                  <button onClick={() => removeWebsite(ws.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  <input type="text" value={ws.name} onChange={(e) => updateWebsite(ws.id, 'name', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Website Name (e.g., GitHub)" />
-                                  <input type="text" value={ws.url} onChange={(e) => updateWebsite(ws.id, 'url', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="URL" />
-                                </div>
+                      {sectionId === 'education' && (
+                        <div className="p-4 space-y-4">
+                          {resumeData.education.map((edu, index) => (
+                            <div key={edu.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                              <div className="flex justify-between items-start">
+                                <span className="text-sm font-medium text-gray-500">Education {index + 1}</span>
+                                <button onClick={() => removeEducation(edu.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               </div>
-                            ))}
-                            <button onClick={addWebsite} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
-                              <Plus className="w-5 h-5" /> Add Website
-                            </button>
-                          </div>
-                        )}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input type="text" value={edu.institution} onChange={(e) => updateEducation(edu.id, 'institution', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="University/College" />
+                                <input type="text" value={edu.graduationDate} onChange={(e) => updateEducation(edu.id, 'graduationDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Graduation Date" />
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input type="text" value={edu.degree} onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Degree" />
+                                <input type="text" value={edu.field} onChange={(e) => updateEducation(edu.id, 'field', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Field of Study" />
+                              </div>
+                            </div>
+                          ))}
+                          <button onClick={addEducation} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                            <Plus className="w-5 h-5" /> Add Education
+                          </button>
+                        </div>
+                      )}
 
-                        {sectionId === 'languages' && (
-                          <div className="p-4 space-y-4">
-                            {resumeData.languages.map((lang, index) => (
-                              <div key={lang.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                                <div className="flex justify-between items-start">
-                                  <span className="text-sm font-medium text-gray-500">Language {index + 1}</span>
-                                  <button onClick={() => removeLanguage(lang.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  <input type="text" value={lang.name} onChange={(e) => updateLanguage(lang.id, 'name', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Language (e.g., English)" />
-                                  <select value={lang.proficiency} onChange={(e) => updateLanguage(lang.id, 'proficiency', e.target.value)} className="px-3 py-2 border rounded-lg">
-                                    <option value="">Select Proficiency</option>
-                                    <option value="Native">Native</option>
-                                    <option value="Fluent">Fluent</option>
-                                    <option value="Advanced">Advanced</option>
-                                    <option value="Intermediate">Intermediate</option>
-                                    <option value="Basic">Basic</option>
-                                  </select>
-                                </div>
+                      {sectionId === 'skills' && (
+                        <div className="p-4">
+                          <textarea
+                            value={resumeData.skills}
+                            onChange={(e) => setResumeData(prev => ({ ...prev, skills: e.target.value }))}
+                            className="w-full px-3 py-2 border rounded-lg"
+                            style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529', minHeight: '100px' }}
+                            placeholder="List your skills (e.g., JavaScript, Python, React...)"
+                          />
+                          <p className="text-sm text-gray-500 mt-2">Separate skills with commas</p>
+                        </div>
+                      )}
+
+                      {sectionId === 'projects' && (
+                        <div className="p-4 space-y-4">
+                          {resumeData.projects.map((proj, index) => (
+                            <div key={proj.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                              <div className="flex justify-between items-start">
+                                <span className="text-sm font-medium text-gray-500">Project {index + 1}</span>
+                                <button onClick={() => removeProject(proj.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               </div>
-                            ))}
-                            <button onClick={addLanguage} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
-                              <Plus className="w-5 h-5" /> Add Language
-                            </button>
-                          </div>
-                        )}
-                      </SortableSection>
-                    )
-                  })}
+                              <input type="text" value={proj.name} onChange={(e) => updateProject(proj.id, 'name', e.target.value)} className="w-full px-3 py-2 border rounded-lg" placeholder="Project Name" />
+                              <textarea value={proj.description} onChange={(e) => updateProject(proj.id, 'description', e.target.value)} className="w-full px-3 py-2 border rounded-lg" rows={2} placeholder="Project description..." />
+                              <input type="text" value={proj.technologies} onChange={(e) => updateProject(proj.id, 'technologies', e.target.value)} className="w-full px-3 py-2 border rounded-lg" placeholder="Technologies used" />
+                            </div>
+                          ))}
+                          <button onClick={addProject} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                            <Plus className="w-5 h-5" /> Add Project
+                          </button>
+                        </div>
+                      )}
+
+                      {sectionId === 'certifications' && (
+                        <div className="p-4 space-y-4">
+                          {resumeData.certifications.map((cert, index) => (
+                            <div key={cert.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                              <div className="flex justify-between items-start">
+                                <span className="text-sm font-medium text-gray-500">Certification {index + 1}</span>
+                                <button onClick={() => removeCertification(cert.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input type="text" value={cert.name} onChange={(e) => updateCertification(cert.id, 'name', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Certification Name" />
+                                <input type="text" value={cert.issuer} onChange={(e) => updateCertification(cert.id, 'issuer', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Issuing Organization" />
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input type="text" value={cert.date} onChange={(e) => updateCertification(cert.id, 'date', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Date" />
+                                <input type="text" value={cert.url} onChange={(e) => updateCertification(cert.id, 'url', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Certificate URL" />
+                              </div>
+                            </div>
+                          ))}
+                          <button onClick={addCertification} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                            <Plus className="w-5 h-5" /> Add Certification
+                          </button>
+                        </div>
+                      )}
+
+                      {sectionId === 'websites' && (
+                        <div className="p-4 space-y-4">
+                          {resumeData.websites.map((ws, index) => (
+                            <div key={ws.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                              <div className="flex justify-between items-start">
+                                <span className="text-sm font-medium text-gray-500">Website {index + 1}</span>
+                                <button onClick={() => removeWebsite(ws.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input type="text" value={ws.name} onChange={(e) => updateWebsite(ws.id, 'name', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Website Name (e.g., GitHub)" />
+                                <input type="text" value={ws.url} onChange={(e) => updateWebsite(ws.id, 'url', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="URL" />
+                              </div>
+                            </div>
+                          ))}
+                          <button onClick={addWebsite} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                            <Plus className="w-5 h-5" /> Add Website
+                          </button>
+                        </div>
+                      )}
+
+                      {sectionId === 'languages' && (
+                        <div className="p-4 space-y-4">
+                          {resumeData.languages.map((lang, index) => (
+                            <div key={lang.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                              <div className="flex justify-between items-start">
+                                <span className="text-sm font-medium text-gray-500">Language {index + 1}</span>
+                                <button onClick={() => removeLanguage(lang.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input type="text" value={lang.name} onChange={(e) => updateLanguage(lang.id, 'name', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Language (e.g., English)" />
+                                <select value={lang.proficiency} onChange={(e) => updateLanguage(lang.id, 'proficiency', e.target.value)} className="px-3 py-2 border rounded-lg">
+                                  <option value="">Select Proficiency</option>
+                                  <option value="Native">Native</option>
+                                  <option value="Fluent">Fluent</option>
+                                  <option value="Advanced">Advanced</option>
+                                  <option value="Intermediate">Intermediate</option>
+                                  <option value="Basic">Basic</option>
+                                </select>
+                              </div>
+                            </div>
+                          ))}
+                          <button onClick={addLanguage} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                            <Plus className="w-5 h-5" /> Add Language
+                          </button>
+                        </div>
+                      )}
+                    </SortableSection>
+                  )
+                })}
+
+                {/* Export Buttons */}
+                <div className="flex flex-wrap gap-3 pt-4 border-t">
+                  <Button
+                    onClick={() => downloadResumePDF(resumeData)}
+                    disabled={isGenerating || !isResumeComplete()}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    {isGenerating ? 'Generating...' : 'Download as PDF'}
+                  </Button>
+                  <Button
+                    onClick={generateDOCX}
+                    disabled={isGenerating || !isResumeComplete()}
+                    variant="secondary"
+                    className="flex items-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    {isGenerating ? 'Generating...' : 'Download as DOCX'}
+                  </Button>
                 </div>
-              </SortableContext>
-            </DndContext>
 
-            {/* Export Buttons */}
-            <div className="flex flex-wrap gap-3 pt-4 border-t">
-              <Button
-                onClick={() => downloadResumePDF(resumeData)}
-                disabled={isGenerating || !isResumeComplete()}
-                className="flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                {isGenerating ? 'Generating...' : 'Download as PDF'}
-              </Button>
-              <Button
-                onClick={generateDOCX}
-                disabled={isGenerating || !isResumeComplete()}
-                variant="secondary"
-                className="flex items-center gap-2"
-              >
-                <FileText className="w-4 h-4" />
-                {isGenerating ? 'Generating...' : 'Download as DOCX'}
-              </Button>
-            </div>
-          </div>
+                {!isResumeComplete() && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    * Please fill in your name and at least one of: experience, education, or skills
+                  </p>
+                )}
+              </div>
+            </SortableContext>
+          </DndContext>
         ) : (
-          /* Preview Mode with Template Styling */
+          /* Preview Mode */
           <ResumePreview resumeData={resumeData} />
         )}
       </Card>
-
-      {/* Saved Resumes Sidebar */}
-      {savedResumes.length > 0 && (
-        <Card title="My Saved Resumes">
-          <div className="space-y-3">
-            {savedResumes.map(resume => (
-              <div key={resume.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900">{resume.name}</h4>
-                  <p className="text-sm text-gray-500">
-                    {resume.template} template • Updated recently
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => loadResume(resume)}
-                    className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg"
-                    title="Load"
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => deleteResume(resume.id!)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                    title="Delete"
-                  >
-                    <Trash className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
 
       {/* Template Builder Modal */}
       {showTemplateBuilder && (
@@ -2241,14 +1569,20 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
             <div className="flex justify-between items-center p-4 border-b">
               <h2 className="text-xl font-semibold">Template Builder</h2>
               <button 
-                onClick={() => setShowTemplateBuilder(false)} 
+                onClick={() => {
+                  setShowTemplateBuilder(false)
+                  setActiveTool(null)
+                }} 
                 className="p-1 hover:bg-gray-100 rounded"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
             <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
-              <TemplateBuilder onClose={() => setShowTemplateBuilder(false)} />
+              <TemplateBuilder onClose={() => {
+                setShowTemplateBuilder(false)
+                setActiveTool(null)
+              }} />
             </div>
           </div>
         </div>

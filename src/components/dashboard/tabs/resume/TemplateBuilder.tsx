@@ -462,15 +462,6 @@ export function TemplateBuilder({ onClose }: { onClose?: () => void }) {
                       className="w-4 h-4"
                     />
                     <span className="capitalize">{style}</span>
-                    <span 
-                      className="ml-2 px-3 py-1 text-sm text-white"
-                      style={{ 
-                        backgroundColor: selectedTemplate.accentColor,
-                        borderRadius: style === 'rounded' ? '0.5rem' : style === 'pill' ? '9999px' : '0.25rem'
-                      }}
-                    >
-                      Preview
-                    </span>
                   </label>
                 ))}
               </div>
