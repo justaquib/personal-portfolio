@@ -136,3 +136,64 @@ body {
 .animate-slide-in {
   animation: slide-in 0.3s ease-out;
 }
+
+/* Tooltip Animations */
+@keyframes tooltip-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes tooltip-fade-in-down {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes tooltip-fade-in-left {
+  from {
+    opacity: 0;
+    transform: translate(8px, -50%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
+}
+
+@keyframes tooltip-fade-in-right {
+  from {
+    opacity: 0;
+    transform: translate(-8px, -50%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
+}
+
+.animate-tooltip-fade-in-up {
+  animation: tooltip-fade-in-up 0.2s ease-out forwards;
+}
+
+.animate-tooltip-fade-in-down {
+  animation: tooltip-fade-in-down 0.2s ease-out forwards;
+}
+
+.animate-tooltip-fade-in-left {
+  animation: tooltip-fade-in-left 0.2s ease-out forwards;
+}
+
+.animate-tooltip-fade-in-right {
+  animation: tooltip-fade-in-right 0.2s ease-out forwards;
+}

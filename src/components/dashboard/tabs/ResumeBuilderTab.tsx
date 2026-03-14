@@ -16,6 +16,7 @@ import { ResumePreview } from './resume/ResumePreview'
 import { downloadResumePDF } from './resume/pdfGenerator'
 import { ResumeData, Experience, Education, Project, Certification, Website, Language } from './resume/types'
 import { TemplateBuilder } from './resume/TemplateBuilder'
+import { ResumeToolbar } from './resume/ResumeToolbar'
 import {
   DndContext,
   closestCenter,
@@ -931,15 +932,15 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
   }
 
   // Check if resume has any content to save
-  const hasResumeContent = () => {
-    return resumeData.personalInfo.name || 
+  const hasResumeContent = (): boolean => {
+    return !!(resumeData.personalInfo.name || 
            resumeData.personalInfo.email || 
            resumeData.personalInfo.phone || 
            resumeData.summary || 
            resumeData.experience.length > 0 || 
            resumeData.education.length > 0 || 
            resumeData.skills || 
-           resumeData.projects.length > 0
+           resumeData.projects.length > 0)
   }
 
   // Check if resume is complete enough for export
@@ -958,171 +959,54 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
           {/* Title */}
           <h2 className="text-xl font-semibold text-gray-900">Resume Builder</h2>
           
-          {/* Toolbar */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Import, Template, Save, My Resumes buttons */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf"
-              onChange={handlePDFImport}
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isImportingPDF}
-              className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-              style={{ backgroundColor: '#e9ecef', color: '#212529' }}
-              title={isImportingPDF ? 'Importing...' : 'Import from PDF'}
-            >
-              {isImportingPDF ? (
-                <RefreshCw className="w-5 h-5 animate-spin" />
-              ) : (
-                <Upload className="w-5 h-5" />
-              )}
-            </button>
-            <button
-              onClick={() => {
-                setActiveTool(activeTool === 'templates' ? null : 'templates')
-                setShowTemplates(!showTemplates)
-              }}
-              className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-              style={{ 
-                backgroundColor: activeTool === 'templates' ? '#212529' : '#e9ecef', 
-                color: activeTool === 'templates' ? '#ffffff' : '#212529' 
-              }}
-              title={`Template: ${selectedTemplate.name}`}
-            >
-              <Layout className="w-5 h-5" />
-            </button>
-            
-            <button
-              onClick={() => setShowSaveModal(true)}
-              className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-              style={{ backgroundColor: '#e9ecef', color: '#212529' }}
-              title={resumeData.id ? 'Update Resume' : 'Save Resume'}
-            >
-              <Save className="w-5 h-5" />
-            </button>
-
-            {savedResumes.length > 0 && (
-              <div className="relative">
-                <button 
-                  onClick={() => setShowResumesDropdown(!showResumesDropdown)}
-                  className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-                  style={{ backgroundColor: '#e9ecef', color: '#212529' }}
-                  title={`My Resumes (${savedResumes.length})`}
-                >
-                  <FileText className="w-5 h-5" />
-                </button>
-              
-              {/* Saved Resumes Dropdown */}
-              {showResumesDropdown && (
-                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
-                  <div className="p-2">
-                    <div className="text-xs font-semibold text-gray-500 px-3 py-2">
-                      Your Saved Resumes
-                    </div>
-                    {savedResumes.map(resume => (
-                      <div 
-                        key={resume.id} 
-                        className={`flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 cursor-pointer ${
-                          resumeData.id === resume.id ? 'bg-blue-50 border border-blue-200' : ''
-                        }`}
-                        onClick={() => {
-                          loadResume(resume)
-                          setShowResumesDropdown(false)
-                        }}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">{resume.name}</p>
-                          <p className="text-xs text-gray-500">{resume.template} template</p>
-                        </div>
-                        <div className="flex items-center gap-1 ml-2">
-                          {resumeData.id === resume.id && (
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                              Active
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Import Progress Indicator */}
-          {isImportingPDF && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg text-blue-700">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span className="text-sm">{importProgress}</span>
-            </div>
-          )}
-
-          {/* Admin Template Builder Button */}
-          {(isSuperAdmin || isAdmin) && (
-            <button
-              onClick={() => {
-                setActiveTool(activeTool === 'templateBuilder' ? null : 'templateBuilder')
-                setShowTemplateBuilder(!showTemplateBuilder)
-              }}
-              className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-              style={{ 
-                backgroundColor: activeTool === 'templateBuilder' ? '#212529' : '#e9ecef', 
-                color: activeTool === 'templateBuilder' ? '#ffffff' : '#212529' 
-              }}
-              title="Template Builder"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-          )}
-
-          {/* Edit/Preview Toggle */}
-          <button
-            onClick={() => {
-              setActiveTool(activeTool === 'edit' ? null : 'edit')
-              setShowPreview(false)
+          {/* Toolbar - consolidated in ResumeToolbar component */}
+          <ResumeToolbar
+            resumeData={resumeData}
+            savedResumes={savedResumes}
+            showPreview={showPreview}
+            showTemplates={showTemplates}
+            showTemplateBuilder={showTemplateBuilder}
+            activeTool={activeTool}
+            isSuperAdmin={isSuperAdmin || false}
+            isAdmin={isAdmin || false}
+            isImportingPDF={isImportingPDF}
+            importProgress={importProgress}
+            selectedTemplate={selectedTemplate}
+            resumeName={resumeName}
+            isSaving={isSaving}
+            hasResumeContent={hasResumeContent}
+            fileInputRef={fileInputRef}
+            showResumesDropdown={showResumesDropdown}
+            onImportPDF={handlePDFImport}
+            onToggleTemplates={() => {
+              setActiveTool(activeTool === 'templates' ? null : 'templates')
+              setShowTemplates(!showTemplates)
+            }}
+            onTogglePreview={(preview) => {
+              setActiveTool(preview ? 'preview' : 'edit')
+              setShowPreview(preview)
               setShowTemplates(false)
               setShowTemplateBuilder(false)
             }}
-            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-            style={{
-              backgroundColor: (activeTool === 'edit' || (activeTool === null && !showPreview)) ? '#212529' : '#e9ecef',
-              color: (activeTool === 'edit' || (activeTool === null && !showPreview)) ? '#ffffff' : '#212529',
+            onToggleTemplateBuilder={() => {
+              setActiveTool(activeTool === 'templateBuilder' ? null : 'templateBuilder')
+              setShowTemplateBuilder(!showTemplateBuilder)
             }}
-            title="Edit Mode"
-          >
-            <Edit3 className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => {
-              setActiveTool(activeTool === 'preview' ? null : 'preview')
-              setShowPreview(true)
+            onResetSectionOrder={resetSectionOrder}
+            onSave={() => setShowSaveModal(true)}
+            onUpdateResume={updateSavedResume}
+            onLoadResume={loadResume}
+            onSelectTemplate={selectTemplate}
+            onCloseTemplates={() => {
               setShowTemplates(false)
+              setActiveTool(null)
+            }}
+            onCloseTemplateBuilder={() => {
               setShowTemplateBuilder(false)
+              setActiveTool(null)
             }}
-            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-            style={{
-              backgroundColor: (activeTool === 'preview' || showPreview) ? '#212529' : '#e9ecef',
-              color: (activeTool === 'preview' || showPreview) ? '#ffffff' : '#212529',
-            }}
-            title="Preview Mode"
-          >
-            <Eye className="w-5 h-5" />
-          </button>
-
-          {/* Reset Section Order */}
-          <button
-            onClick={resetSectionOrder}
-            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-            style={{ backgroundColor: '#e9ecef', color: '#212529' }}
-            title="Reset Section Order"
-          >
-            <RefreshCw className="w-5 h-5" />
-          </button>
-          </div>
+            onToggleResumesDropdown={() => setShowResumesDropdown(!showResumesDropdown)}
+          />
         </div>
 
         {/* Template Selector Dropdown */}

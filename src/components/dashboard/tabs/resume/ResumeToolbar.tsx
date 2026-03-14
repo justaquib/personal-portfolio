@@ -1,11 +1,13 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, ChangeEvent } from 'react'
 import { 
   Upload, Layout, Save, FileText, Settings, Edit3, Eye, RefreshCw, X
 } from 'lucide-react'
 import { ResumeData } from './types'
 import { TemplateBuilder } from './TemplateBuilder'
+import { Tooltip } from '@/components/Tooltip'
+import { Badge } from '@/components/Badge'
 
 interface ResumeToolbarProps {
   resumeData: ResumeData
@@ -22,7 +24,9 @@ interface ResumeToolbarProps {
   resumeName: string
   isSaving: boolean
   hasResumeContent: () => boolean
-  onImportPDF: () => void
+  fileInputRef: React.RefObject<HTMLInputElement | null>
+  showResumesDropdown: boolean
+  onImportPDF: (e: React.ChangeEvent<HTMLInputElement>) => void
   onToggleTemplates: () => void
   onTogglePreview: (preview: boolean) => void
   onToggleTemplateBuilder: () => void
@@ -33,6 +37,7 @@ interface ResumeToolbarProps {
   onSelectTemplate: (templateId: string) => void
   onCloseTemplates: () => void
   onCloseTemplateBuilder: () => void
+  onToggleResumesDropdown: () => void
 }
 
 export function ResumeToolbar({
@@ -47,8 +52,11 @@ export function ResumeToolbar({
   isImportingPDF,
   importProgress,
   selectedTemplate,
+  resumeName,
   isSaving,
   hasResumeContent,
+  fileInputRef,
+  showResumesDropdown,
   onImportPDF,
   onToggleTemplates,
   onTogglePreview,
@@ -60,9 +68,8 @@ export function ResumeToolbar({
   onSelectTemplate,
   onCloseTemplates,
   onCloseTemplateBuilder,
+  onToggleResumesDropdown,
 }: ResumeToolbarProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
   const getButtonStyle = (isActive: boolean) => ({
     backgroundColor: isActive ? '#212529' : '#e9ecef',
     color: isActive ? '#ffffff' : '#212529',
@@ -77,97 +84,156 @@ export function ResumeToolbar({
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
+      {/* File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf"
+        onChange={onImportPDF}
+        className="hidden"
+      />
+      
+      <div className="flex flex-wrap items-center gap-2 overflow-visible">
         {/* Import PDF */}
-        <button
-          onClick={onImportPDF}
-          disabled={isImportingPDF}
-          className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-          style={getButtonStyle(false)}
-          title={isImportingPDF ? 'Importing...' : 'Import from PDF'}
-        >
-          {isImportingPDF ? (
-            <RefreshCw className="w-5 h-5 animate-spin" />
-          ) : (
-            <Upload className="w-5 h-5" />
-          )}
-        </button>
+        <Tooltip content={isImportingPDF ? 'Importing...' : 'Import from PDF'} position="bottom">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImportingPDF}
+            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+            style={getButtonStyle(false)}
+          >
+            {isImportingPDF ? (
+              <RefreshCw className="w-5 h-5 animate-spin" />
+            ) : (
+              <Upload className="w-5 h-5" />
+            )}
+          </button>
+        </Tooltip>
 
         {/* Template Selector */}
-        <button
-          onClick={onToggleTemplates}
-          className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-          style={getButtonStyle(showTemplates)}
-          title={`Template: ${selectedTemplate.name}`}
-        >
-          <Layout className="w-5 h-5" />
-        </button>
+        <Tooltip content={`Template: ${selectedTemplate.name}`} position="bottom">
+          <button
+            onClick={onToggleTemplates}
+            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+            style={getButtonStyle(showTemplates)}
+          >
+            <Layout className="w-5 h-5" />
+          </button>
+        </Tooltip>
 
         {/* Save */}
-        <button
-          onClick={resumeData.id ? onUpdateResume : onSave}
-          disabled={isSaving || !hasResumeContent()}
-          className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-          style={getButtonStyle(false)}
-          title={resumeData.id ? 'Update Resume' : 'Save Resume'}
-        >
-          <Save className="w-5 h-5" />
-        </button>
+        <Tooltip content={resumeData.id ? 'Update Resume' : 'Save Resume'} position="bottom">
+          <button
+            onClick={resumeData.id ? onUpdateResume : onSave}
+            disabled={isSaving || !hasResumeContent()}
+            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+            style={getButtonStyle(false)}
+          >
+            <Save className="w-5 h-5" />
+          </button>
+        </Tooltip>
 
         {/* My Resumes Dropdown */}
         {savedResumes.length > 0 && (
           <div className="relative">
-            <button
-              className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-              style={getButtonStyle(false)}
-              title={`My Resumes (${savedResumes.length})`}
-            >
-              <FileText className="w-5 h-5" />
-            </button>
+            <Tooltip content={`My Resumes (${savedResumes.length})`} position="bottom">
+              <button
+                onClick={onToggleResumesDropdown}
+                className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors relative"
+                style={getButtonStyle(false)}
+              >
+                <FileText className="w-5 h-5" />
+                <Badge 
+                  variant="primary" 
+                  size="sm" 
+                  className="absolute -top-1 -right-1"
+                >
+                  {savedResumes.length}
+                </Badge>
+              </button>
+            </Tooltip>
+            {/* Saved Resumes Dropdown */}
+            {showResumesDropdown && (
+              <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+                <div className="p-2">
+                  <div className="text-xs font-semibold text-gray-500 px-3 py-2">
+                    Your Saved Resumes
+                  </div>
+                  {savedResumes.map(resume => (
+                    <div 
+                      key={resume.id} 
+                      className={`flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 cursor-pointer ${
+                        resumeData.id === resume.id ? 'bg-blue-50 border border-blue-200' : ''
+                      }`}
+                      onClick={() => {
+                        onLoadResume(resume)
+                        onToggleResumesDropdown()
+                      }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{resume.name}</p>
+                        <p className="text-xs text-gray-500">{resume.template} template</p>
+                      </div>
+                      <div className="flex items-center gap-1 ml-2">
+                        {resumeData.id === resume.id && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                            Active
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Template Builder (Admin) */}
         {(isSuperAdmin || isAdmin) && (
-          <button
-            onClick={onToggleTemplateBuilder}
-            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-            style={getButtonStyle(showTemplateBuilder)}
-            title="Template Builder"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
+          <Tooltip content="Template Builder" position="bottom">
+            <button
+              onClick={onToggleTemplateBuilder}
+              className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+              style={getButtonStyle(showTemplateBuilder)}
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          </Tooltip>
         )}
 
         {/* Edit */}
-        <button
-          onClick={() => onTogglePreview(false)}
-          className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-          style={getButtonStyle(!showPreview && activeTool !== 'templates')}
-          title="Edit Mode"
-        >
-          <Edit3 className="w-5 h-5" />
-        </button>
+        <Tooltip content="Edit Mode" position="bottom">
+          <button
+            onClick={() => onTogglePreview(false)}
+            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+            style={getButtonStyle(!showPreview && activeTool !== 'templates')}
+          >
+            <Edit3 className="w-5 h-5" />
+          </button>
+        </Tooltip>
 
         {/* Preview */}
-        <button
-          onClick={() => onTogglePreview(true)}
-          className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-          style={getButtonStyle(showPreview)}
-          title="Preview Mode"
-        >
-          <Eye className="w-5 h-5" />
-        </button>
+        <Tooltip content="Preview Mode" position="bottom">
+          <button
+            onClick={() => onTogglePreview(true)}
+            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+            style={getButtonStyle(showPreview)}
+          >
+            <Eye className="w-5 h-5" />
+          </button>
+        </Tooltip>
 
         {/* Reset */}
-        <button
-          onClick={onResetSectionOrder}
-          className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-          style={getButtonStyle(false)}
-          title="Reset Section Order"
-        >
-          <RefreshCw className="w-5 h-5" />
-        </button>
+        <Tooltip content="Reset Section Order" position="bottom">
+          <button
+            onClick={onResetSectionOrder}
+            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+            style={getButtonStyle(false)}
+          >
+            <RefreshCw className="w-5 h-5" />
+          </button>
+        </Tooltip>
       </div>
 
       {/* Import Progress */}
