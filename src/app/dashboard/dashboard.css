@@ -469,3 +469,91 @@
     padding: 0.5rem;
   }
 }
+
+/* Quill Editor Custom Styles */
+.quill-resume {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.quill-resume .ql-toolbar {
+  background-color: var(--dash-bg-lighter);
+  border: 1px solid var(--dash-border-light);
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 0.5rem;
+}
+
+.quill-resume .ql-toolbar .ql-stroke {
+  stroke: var(--dash-text-secondary);
+}
+
+.quill-resume .ql-toolbar .ql-fill {
+  fill: var(--dash-text-secondary);
+}
+
+.quill-resume .ql-toolbar .ql-picker {
+  color: var(--dash-text-secondary);
+}
+
+.quill-resume .ql-toolbar button:hover .ql-stroke,
+.quill-resume .ql-toolbar button.ql-active .ql-stroke {
+  stroke: var(--dash-button);
+}
+
+.quill-resume .ql-toolbar button:hover .ql-fill,
+.quill-resume .ql-toolbar button.ql-active .ql-fill {
+  fill: var(--dash-button);
+}
+
+.quill-resume .ql-container {
+  border: 1px solid var(--dash-border-light);
+  border-top: none;
+  border-radius: 0 0 0.5rem 0.5rem;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+}
+
+.quill-resume .ql-editor {
+  min-height: 100px;
+  padding: 0.75rem;
+  background-color: var(--dash-bg-lightest);
+  color: var(--dash-text-primary);
+}
+
+.quill-resume .ql-editor.ql-blank::before {
+  color: var(--dash-text-muted);
+  font-style: normal;
+}
+
+.quill-resume .ql-editor h1,
+.quill-resume .ql-editor h2,
+.quill-resume .ql-editor h3 {
+  color: var(--dash-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.quill-resume .ql-editor p {
+  margin-bottom: 0.5rem;
+}
+
+.quill-resume .ql-editor ul,
+.quill-resume .ql-editor ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.quill-resume .ql-snow .ql-tooltip {
+  background-color: var(--dash-bg-lightest);
+  border: 1px solid var(--dash-border-light);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  color: var(--dash-text-primary);
+}
+
+.quill-resume .ql-snow .ql-tooltip input[type=text] {
+  border: 1px solid var(--dash-border-light);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--dash-bg-lightest);
+  color: var(--dash-text-primary);
+}

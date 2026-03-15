@@ -17,6 +17,8 @@ import { downloadResumePDF } from './resume/pdfGenerator'
 import { ResumeData, Experience, Education, Project, Certification, Website, Language } from './resume/types'
 import { TemplateBuilder } from './resume/TemplateBuilder'
 import { ResumeToolbar } from './resume/ResumeToolbar'
+import QuillEditor from '@/components/QuillEditor'
+import { TEMPLATES, SKILL_SUGGESTIONS } from './resume/constants'
 import {
   DndContext,
   closestCenter,
@@ -97,49 +99,45 @@ function SortableSection({ id, label, icon, isExpanded, onToggle, children }: {
   )
 }
 
-// Template definitions
-const TEMPLATES = [
-  {
-    id: 'modern',
-    name: 'Modern',
-    description: 'Clean and professional with a contemporary look',
-    preview: 'bg-gradient-to-r from-gray-600 to-gray-800'
-  },
-  {
-    id: 'classic',
-    name: 'Classic',
-    description: 'Traditional resume format, perfect for corporate jobs',
-    preview: 'bg-gradient-to-r from-gray-600 to-gray-800'
-  },
-  {
-    id: 'minimal',
-    name: 'Minimal',
-    description: 'Simple and elegant with ample white space',
-    preview: 'bg-gradient-to-r from-blue-500 to-cyan-500'
-  },
-  {
-    id: 'creative',
-    name: 'Creative',
-    description: 'Stand out with a unique and memorable design',
-    preview: 'bg-gradient-to-r from-orange-500 to-red-500'
-  }
-]
+// Sortable Item Component for list items
+function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id })
 
-// Skill suggestions for resume
-const SKILL_SUGGESTIONS = [
-  // Programming Languages
-  'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'C#', 'Go', 'Rust', 'Ruby', 'PHP', 'Swift', 'Kotlin',
-  // Frontend
-  'React', 'Vue.js', 'Angular', 'Next.js', 'Nuxt.js', 'Svelte', 'HTML', 'CSS', 'Tailwind CSS', 'Sass',
-  // Backend
-  'Node.js', 'Express.js', 'Django', 'Flask', 'Spring Boot', 'Ruby on Rails', 'Laravel', 'ASP.NET',
-  // Databases
-  'SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Elasticsearch', 'SQLite',
-  // Cloud & DevOps
-  'AWS', 'Azure', 'Google Cloud', 'Docker', 'Kubernetes', 'Terraform', 'Jenkins', 'CI/CD',
-  // Tools & Others
-  'Git', 'GitHub', 'GitLab', 'Linux', 'REST API', 'GraphQL', 'Agile', 'Scrum', 'TDD'
-]
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative ${isDragging ? 'shadow-lg ring-2 ring-blue-500' : ''}`}
+    >
+      <div
+        className="absolute left-2 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600"
+        {...attributes}
+        {...listeners}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+        </svg>
+      </div>
+      <div className="pl-8">
+        {children}
+      </div>
+    </div>
+  )
+}
 
 // Default resume data
 const defaultResumeData: ResumeData = {
@@ -223,6 +221,11 @@ export function ResumeBuilderTab() {
   const [isLoadingAI, setIsLoadingAI] = useState(false)
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
   const [showTemplateBuilder, setShowTemplateBuilder] = useState(false)
+  // Track which field is being enhanced
+  const [enhancingField, setEnhancingField] = useState<{type: 'summary' | 'experience' | 'project', id?: string} | null>(null)
+  // Toggle states for suggestions
+  const [showAISuggestions, setShowAISuggestions] = useState(true)
+  const [showSkillSuggestions, setShowSkillSuggestions] = useState(false)
   // Section order state for drag and drop
   const [sectionOrder, setSectionOrder] = useState<string[]>(
     defaultResumeData.sectionOrder || ['personal', 'summary', 'experience', 'education', 'skills', 'projects', 'certifications', 'websites', 'languages']
@@ -426,7 +429,7 @@ export function ResumeBuilderTab() {
       ...prev,
       experience: [
         ...prev.experience,
-        { id: Date.now().toString(), company: '', role: '', startDate: '', endDate: '', current: false, description: '' }
+        { id: Date.now().toString(), company: '', role: '', location: '', startDate: '', endDate: '', current: false, description: '' }
       ]
     }))
   }
@@ -580,6 +583,77 @@ export function ResumeBuilderTab() {
     }))
   }
 
+  // Handle drag end for item reordering
+  const handleProjectsReorder = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      setResumeData(prev => {
+        const oldIndex = prev.projects.findIndex(p => p.id === active.id)
+        const newIndex = prev.projects.findIndex(p => p.id === over.id)
+        return {
+          ...prev,
+          projects: arrayMove(prev.projects, oldIndex, newIndex)
+        }
+      })
+    }
+  }
+
+  const handleCertificationsReorder = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      setResumeData(prev => {
+        const oldIndex = prev.certifications.findIndex(c => c.id === active.id)
+        const newIndex = prev.certifications.findIndex(c => c.id === over.id)
+        return {
+          ...prev,
+          certifications: arrayMove(prev.certifications, oldIndex, newIndex)
+        }
+      })
+    }
+  }
+
+  const handleWebsitesReorder = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      setResumeData(prev => {
+        const oldIndex = prev.websites.findIndex(w => w.id === active.id)
+        const newIndex = prev.websites.findIndex(w => w.id === over.id)
+        return {
+          ...prev,
+          websites: arrayMove(prev.websites, oldIndex, newIndex)
+        }
+      })
+    }
+  }
+
+  const handleExperienceReorder = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      setResumeData(prev => {
+        const oldIndex = prev.experience.findIndex(e => e.id === active.id)
+        const newIndex = prev.experience.findIndex(e => e.id === over.id)
+        return {
+          ...prev,
+          experience: arrayMove(prev.experience, oldIndex, newIndex)
+        }
+      })
+    }
+  }
+
+  const handleEducationReorder = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      setResumeData(prev => {
+        const oldIndex = prev.education.findIndex(e => e.id === active.id)
+        const newIndex = prev.education.findIndex(e => e.id === over.id)
+        return {
+          ...prev,
+          education: arrayMove(prev.education, oldIndex, newIndex)
+        }
+      })
+    }
+  }
+
   // Handle drag end for section reordering
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -606,6 +680,7 @@ export function ResumeBuilderTab() {
   const generateAISummary = async () => {
     // Expand summary section first if collapsed
     setActiveSection('summary')
+    setEnhancingField({ type: 'summary' })
     
     setIsLoadingAI(true)
     try {
@@ -651,6 +726,7 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
         if (data.answer) {
           setResumeData(prev => ({ ...prev, summary: data.answer }))
           setAiSuggestions([data.answer])
+          setShowAISuggestions(true) // Show suggestions when generated
         } else if (data.error) {
           showToast('Error: ' + data.error, 'error')
         }
@@ -663,6 +739,104 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
       showToast('Failed to enhance summary. Please try again.', 'error')
     } finally {
       setIsLoadingAI(false)
+    }
+  }
+
+  // Enhance experience description using Gemini AI
+  const generateAIExperienceDescription = async (expId: string) => {
+    const exp = resumeData.experience.find(e => e.id === expId)
+    if (!exp) return
+    
+    if (!exp.description) {
+      showToast('Please add some content to the description first', 'info')
+      return
+    }
+
+    setEnhancingField({ type: 'experience', id: expId })
+    setIsLoadingAI(true)
+    
+    try {
+      const prompt = `You are a professional resume writer. Please enhance and improve the following work experience description to make it more impactful, professional, and compelling. Use action verbs and quantify achievements where possible. Return only the enhanced description, nothing else.
+
+Current description:
+${exp.description}
+
+Job Title: ${exp.role}
+Company: ${exp.company}`
+
+      const response = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'enhance',
+          prompt: prompt
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.answer) {
+          updateExperience(expId, 'description', data.answer)
+          showToast('Experience description enhanced!', 'success')
+        } else if (data.error) {
+          showToast('Error: ' + data.error, 'error')
+        }
+      }
+    } catch (error) {
+      console.error('Error enhancing experience:', error)
+      showToast('Failed to enhance description. Please try again.', 'error')
+    } finally {
+      setIsLoadingAI(false)
+      setEnhancingField(null)
+    }
+  }
+
+  // Enhance project description using Gemini AI
+  const generateAIProjectDescription = async (projId: string) => {
+    const proj = resumeData.projects.find(p => p.id === projId)
+    if (!proj) return
+    
+    if (!proj.description) {
+      showToast('Please add some content to the description first', 'info')
+      return
+    }
+
+    setEnhancingField({ type: 'project', id: projId })
+    setIsLoadingAI(true)
+    
+    try {
+      const prompt = `You are a professional resume writer. Please enhance and improve the following project description to make it more impactful, professional, and compelling. Highlight your technical skills and achievements. Return only the enhanced description, nothing else.
+
+Current description:
+${proj.description}
+
+Project Name: ${proj.name}
+Technologies: ${proj.technologies}`
+
+      const response = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'enhance',
+          prompt: prompt
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.answer) {
+          updateProject(projId, 'description', data.answer)
+          showToast('Project description enhanced!', 'success')
+        } else if (data.error) {
+          showToast('Error: ' + data.error, 'error')
+        }
+      }
+    } catch (error) {
+      console.error('Error enhancing project:', error)
+      showToast('Failed to enhance description. Please try again.', 'error')
+    } finally {
+      setIsLoadingAI(false)
+      setEnhancingField(null)
     }
   }
 
@@ -1206,25 +1380,26 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
 
                       {sectionId === 'summary' && activeSection === 'summary' && (
                         <div className="p-4">
-                          <textarea
+                          <QuillEditor
                             value={resumeData.summary}
-                            onChange={(e) => setResumeData(prev => ({ ...prev, summary: e.target.value }))}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-                            style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529', minHeight: '120px' }}
+                            onChange={(value: string) => setResumeData(prev => ({ ...prev, summary: value }))}
                             placeholder="Write a brief summary of your professional background and career goals..."
+                            height="120px"
+                            onEnhance={generateAISummary}
+                            isEnhancing={isLoadingAI}
                           />
-                          <button
-                            onClick={generateAISummary}
-                            disabled={isLoadingAI}
-                            className="mt-3 flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors"
-                            style={{ backgroundColor: isLoadingAI ? '#6c757d' : '#212529', color: '#ffffff' }}
-                          >
-                            {isLoadingAI ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                            Enhance with AI
-                          </button>
-                          {aiSuggestions.length > 0 && (
+                          {aiSuggestions.length > 0 && showAISuggestions && (
                             <div className="mt-3 p-3 bg-gray-100 rounded-lg">
-                              <p className="text-sm text-gray-700 mb-2">AI Suggestion:</p>
+                              <div className="flex justify-between items-center mb-2">
+                                <p className="text-sm text-gray-700 mb-0">AI Suggestion:</p>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAISuggestions(false)}
+                                  className="text-gray-400 hover:text-gray-600"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
                               <p className="text-sm text-gray-700">{aiSuggestions[0]}</p>
                               <button
                                 onClick={() => {
@@ -1237,61 +1412,118 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
                               </button>
                             </div>
                           )}
+
+                          {(!showAISuggestions || aiSuggestions.length === 0) && (
+                            <button
+                              type="button"
+                              onClick={() => setShowAISuggestions(true)}
+                              className="mt-3 text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                            >
+                              <Sparkles className="w-4 h-4" /> Show AI Suggestions
+                            </button>
+                          )}
                         </div>
                       )}
 
                       {sectionId === 'experience' && (
-                        <div className="p-4 space-y-4">
-                          {resumeData.experience.map((exp, index) => (
-                            <div key={exp.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                              <div className="flex justify-between items-start">
-                                <span className="text-sm font-medium text-gray-500">Experience {index + 1}</span>
-                                <button onClick={() => removeExperience(exp.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                        <div className="p-4">
+                          <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleExperienceReorder}
+                          >
+                            <SortableContext
+                              items={resumeData.experience.map(e => e.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              <div className="space-y-4">
+                                {resumeData.experience.map((exp, index) => (
+                                  <SortableItem key={exp.id} id={exp.id}>
+                                    <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                                      <div className="flex justify-between items-start">
+                                        <span className="text-sm font-medium text-gray-500">Experience {index + 1}</span>
+                                        <button onClick={() => removeExperience(exp.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <input type="text" value={exp.company} onChange={(e) => updateExperience(exp.id, 'company', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Company Name" />
+                                        <input type="text" value={exp.role} onChange={(e) => updateExperience(exp.id, 'role', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Job Title" />
+                                      </div>
+                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <input type="text" value={exp.startDate} onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Start Date" />
+                                        <input type="text" value={exp.endDate} onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="End Date" disabled={exp.current} />
+                                        <label className="flex items-center gap-2">
+                                          <input type="checkbox" checked={exp.current} onChange={(e) => updateExperience(exp.id, 'current', e.target.checked)} className="w-4 h-4 rounded" />
+                                          <span className="text-sm text-gray-700">Currently working</span>
+                                        </label>
+                                      </div>
+                                      <input 
+                                        type="text" 
+                                        value={exp.location || ''} 
+                                        onChange={(e) => updateExperience(exp.id, 'location', e.target.value)} 
+                                        className="px-3 py-2 border rounded-lg w-full" 
+                                        placeholder="Location (e.g., New York, NY)" 
+                                      />
+                                      <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                        <QuillEditor
+                                          value={exp.description}
+                                          onChange={(value: string) => updateExperience(exp.id, 'description', value)}
+                                          placeholder="Describe your responsibilities and achievements..."
+                                          height="100px"
+                                          onEnhance={() => generateAIExperienceDescription(exp.id)}
+                                          isEnhancing={isLoadingAI && enhancingField?.type === 'experience' && enhancingField?.id === exp.id}
+                                        />
+                                      </div>
+                                    </div>
+                                  </SortableItem>
+                                ))}
                               </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <input type="text" value={exp.company} onChange={(e) => updateExperience(exp.id, 'company', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Company Name" />
-                                <input type="text" value={exp.role} onChange={(e) => updateExperience(exp.id, 'role', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Job Title" />
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <input type="text" value={exp.startDate} onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Start Date" />
-                                <input type="text" value={exp.endDate} onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="End Date" disabled={exp.current} />
-                                <label className="flex items-center gap-2">
-                                  <input type="checkbox" checked={exp.current} onChange={(e) => updateExperience(exp.id, 'current', e.target.checked)} className="w-4 h-4 rounded" />
-                                  <span className="text-sm text-gray-700">Currently working</span>
-                                </label>
-                              </div>
-                              <textarea value={exp.description} onChange={(e) => updateExperience(exp.id, 'description', e.target.value)} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder="Describe your responsibilities..." />
-                            </div>
-                          ))}
-                          <button onClick={addExperience} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                            </SortableContext>
+                          </DndContext>
+                          <button onClick={addExperience} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 mt-4">
                             <Plus className="w-5 h-5" /> Add Experience
                           </button>
                         </div>
                       )}
 
                       {sectionId === 'education' && (
-                        <div className="p-4 space-y-4">
-                          {resumeData.education.map((edu, index) => (
-                            <div key={edu.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                              <div className="flex justify-between items-start">
-                                <span className="text-sm font-medium text-gray-500">Education {index + 1}</span>
-                                <button onClick={() => removeEducation(edu.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                        <div className="p-4">
+                          <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleEducationReorder}
+                          >
+                            <SortableContext
+                              items={resumeData.education.map(e => e.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              <div className="space-y-4">
+                                {resumeData.education.map((edu, index) => (
+                                  <SortableItem key={edu.id} id={edu.id}>
+                                    <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                                      <div className="flex justify-between items-start">
+                                        <span className="text-sm font-medium text-gray-500">Education {index + 1}</span>
+                                        <button onClick={() => removeEducation(edu.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <input type="text" value={edu.institution} onChange={(e) => updateEducation(edu.id, 'institution', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="University/College" />
+                                        <input type="text" value={edu.graduationDate} onChange={(e) => updateEducation(edu.id, 'graduationDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Graduation Date" />
+                                      </div>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <input type="text" value={edu.degree} onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Degree" />
+                                        <input type="text" value={edu.field} onChange={(e) => updateEducation(edu.id, 'field', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Field of Study" />
+                                      </div>
+                                    </div>
+                                  </SortableItem>
+                                ))}
                               </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <input type="text" value={edu.institution} onChange={(e) => updateEducation(edu.id, 'institution', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="University/College" />
-                                <input type="text" value={edu.graduationDate} onChange={(e) => updateEducation(edu.id, 'graduationDate', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Graduation Date" />
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <input type="text" value={edu.degree} onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Degree" />
-                                <input type="text" value={edu.field} onChange={(e) => updateEducation(edu.id, 'field', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Field of Study" />
-                              </div>
-                            </div>
-                          ))}
-                          <button onClick={addEducation} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                            </SortableContext>
+                          </DndContext>
+                          <button onClick={addEducation} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 mt-4">
                             <Plus className="w-5 h-5" /> Add Education
                           </button>
                         </div>
@@ -1299,81 +1531,174 @@ Projects: ${resumeData.projects.map(proj => `${proj.name}: ${proj.description} (
 
                       {sectionId === 'skills' && (
                         <div className="p-4">
-                          <textarea
-                            value={resumeData.skills}
-                            onChange={(e) => setResumeData(prev => ({ ...prev, skills: e.target.value }))}
-                            className="w-full px-3 py-2 border rounded-lg"
-                            style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529', minHeight: '100px' }}
-                            placeholder="List your skills (e.g., JavaScript, Python, React...)"
-                          />
+                          <div className="relative">
+                            <textarea
+                              value={resumeData.skills}
+                              onChange={(e) => setResumeData(prev => ({ ...prev, skills: e.target.value }))}
+                              onFocus={() => setShowSkillSuggestions(true)}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              style={{ borderColor: '#ced4da', backgroundColor: '#f8f9fa', color: '#212529', minHeight: '100px' }}
+                              placeholder="List your skills (e.g., JavaScript, Python, React...)"
+                            />
+                            {/* Skill Suggestions Dropdown */}
+                            {showSkillSuggestions && (
+                              <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                                <div className="flex justify-between items-center mb-2">
+                                  <p className="text-sm text-gray-600 mb-0">Suggested skills (click to add):</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowSkillSuggestions(false)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {SKILL_SUGGESTIONS.filter(skill => {
+                                    const currentSkills = (resumeData.skills || '').toLowerCase()
+                                    return !currentSkills.includes(skill.toLowerCase())
+                                  }).slice(0, 20).map((skill, index) => (
+                                    <button
+                                      key={index}
+                                      type="button"
+                                      onClick={() => {
+                                        const currentSkills = resumeData.skills || ''
+                                        const newSkills = currentSkills ? currentSkills + ', ' + skill : skill
+                                        setResumeData(prev => ({ ...prev, skills: newSkills }))
+                                      }}
+                                      className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                                      style={{ color: '#212529' }}
+                                    >
+                                      + {skill}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-500 mt-2">Separate skills with commas</p>
                         </div>
                       )}
 
                       {sectionId === 'projects' && (
-                        <div className="p-4 space-y-4">
-                          {resumeData.projects.map((proj, index) => (
-                            <div key={proj.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                              <div className="flex justify-between items-start">
-                                <span className="text-sm font-medium text-gray-500">Project {index + 1}</span>
-                                <button onClick={() => removeProject(proj.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                        <div className="p-4">
+                          <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleProjectsReorder}
+                          >
+                            <SortableContext
+                              items={resumeData.projects.map(p => p.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              <div className="space-y-4">
+                                {resumeData.projects.map((proj, index) => (
+                                  <SortableItem key={proj.id} id={proj.id}>
+                                    <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                                      <div className="flex justify-between items-start">
+                                        <span className="text-sm font-medium text-gray-500">Project {index + 1}</span>
+                                        <button onClick={() => removeProject(proj.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                      <input type="text" value={proj.name} onChange={(e) => updateProject(proj.id, 'name', e.target.value)} className="w-full px-3 py-2 border rounded-lg" placeholder="Project Name" />
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                        <QuillEditor
+                                          value={proj.description}
+                                          onChange={(value: string) => updateProject(proj.id, 'description', value)}
+                                          placeholder="Describe the project, your role, and achievements..."
+                                          height="100px"
+                                          onEnhance={() => generateAIProjectDescription(proj.id)}
+                                          isEnhancing={isLoadingAI && enhancingField?.type === 'project' && enhancingField?.id === proj.id}
+                                        />
+                                      </div>
+                                      <input type="text" value={proj.technologies} onChange={(e) => updateProject(proj.id, 'technologies', e.target.value)} className="w-full px-3 py-2 border rounded-lg" placeholder="Technologies used" />
+                                    </div>
+                                  </SortableItem>
+                                ))}
                               </div>
-                              <input type="text" value={proj.name} onChange={(e) => updateProject(proj.id, 'name', e.target.value)} className="w-full px-3 py-2 border rounded-lg" placeholder="Project Name" />
-                              <textarea value={proj.description} onChange={(e) => updateProject(proj.id, 'description', e.target.value)} className="w-full px-3 py-2 border rounded-lg" rows={2} placeholder="Project description..." />
-                              <input type="text" value={proj.technologies} onChange={(e) => updateProject(proj.id, 'technologies', e.target.value)} className="w-full px-3 py-2 border rounded-lg" placeholder="Technologies used" />
-                            </div>
-                          ))}
-                          <button onClick={addProject} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                            </SortableContext>
+                          </DndContext>
+                          <button onClick={addProject} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 mt-4">
                             <Plus className="w-5 h-5" /> Add Project
                           </button>
                         </div>
                       )}
 
                       {sectionId === 'certifications' && (
-                        <div className="p-4 space-y-4">
-                          {resumeData.certifications.map((cert, index) => (
-                            <div key={cert.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                              <div className="flex justify-between items-start">
-                                <span className="text-sm font-medium text-gray-500">Certification {index + 1}</span>
-                                <button onClick={() => removeCertification(cert.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                        <div className="p-4">
+                          <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleCertificationsReorder}
+                          >
+                            <SortableContext
+                              items={resumeData.certifications.map(c => c.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              <div className="space-y-4">
+                                {resumeData.certifications.map((cert, index) => (
+                                  <SortableItem key={cert.id} id={cert.id}>
+                                    <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                                      <div className="flex justify-between items-start">
+                                        <span className="text-sm font-medium text-gray-500">Certification {index + 1}</span>
+                                        <button onClick={() => removeCertification(cert.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <input type="text" value={cert.name} onChange={(e) => updateCertification(cert.id, 'name', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Certification Name" />
+                                        <input type="text" value={cert.issuer} onChange={(e) => updateCertification(cert.id, 'issuer', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Issuing Organization" />
+                                      </div>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <input type="text" value={cert.date} onChange={(e) => updateCertification(cert.id, 'date', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Date" />
+                                        <input type="text" value={cert.url} onChange={(e) => updateCertification(cert.id, 'url', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Certificate URL" />
+                                      </div>
+                                    </div>
+                                  </SortableItem>
+                                ))}
                               </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <input type="text" value={cert.name} onChange={(e) => updateCertification(cert.id, 'name', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Certification Name" />
-                                <input type="text" value={cert.issuer} onChange={(e) => updateCertification(cert.id, 'issuer', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Issuing Organization" />
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <input type="text" value={cert.date} onChange={(e) => updateCertification(cert.id, 'date', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Date" />
-                                <input type="text" value={cert.url} onChange={(e) => updateCertification(cert.id, 'url', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Certificate URL" />
-                              </div>
-                            </div>
-                          ))}
-                          <button onClick={addCertification} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                            </SortableContext>
+                          </DndContext>
+                          <button onClick={addCertification} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 mt-4">
                             <Plus className="w-5 h-5" /> Add Certification
                           </button>
                         </div>
                       )}
 
                       {sectionId === 'websites' && (
-                        <div className="p-4 space-y-4">
-                          {resumeData.websites.map((ws, index) => (
-                            <div key={ws.id} className="p-4 bg-gray-50 rounded-lg space-y-3">
-                              <div className="flex justify-between items-start">
-                                <span className="text-sm font-medium text-gray-500">Website {index + 1}</span>
-                                <button onClick={() => removeWebsite(ws.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                        <div className="p-4">
+                          <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleWebsitesReorder}
+                          >
+                            <SortableContext
+                              items={resumeData.websites.map(w => w.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              <div className="space-y-4">
+                                {resumeData.websites.map((ws, index) => (
+                                  <SortableItem key={ws.id} id={ws.id}>
+                                    <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                                      <div className="flex justify-between items-start">
+                                        <span className="text-sm font-medium text-gray-500">Website {index + 1}</span>
+                                        <button onClick={() => removeWebsite(ws.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <input type="text" value={ws.name} onChange={(e) => updateWebsite(ws.id, 'name', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Website Name (e.g., GitHub)" />
+                                        <input type="text" value={ws.url} onChange={(e) => updateWebsite(ws.id, 'url', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="URL" />
+                                      </div>
+                                    </div>
+                                  </SortableItem>
+                                ))}
                               </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <input type="text" value={ws.name} onChange={(e) => updateWebsite(ws.id, 'name', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="Website Name (e.g., GitHub)" />
-                                <input type="text" value={ws.url} onChange={(e) => updateWebsite(ws.id, 'url', e.target.value)} className="px-3 py-2 border rounded-lg" placeholder="URL" />
-                              </div>
-                            </div>
-                          ))}
-                          <button onClick={addWebsite} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500">
+                            </SortableContext>
+                          </DndContext>
+                          <button onClick={addWebsite} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 mt-4">
                             <Plus className="w-5 h-5" /> Add Website
                           </button>
                         </div>

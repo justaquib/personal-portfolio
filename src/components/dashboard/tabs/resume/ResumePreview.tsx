@@ -30,11 +30,17 @@ export function ResumePreview({ resumeData }: ResumePreviewProps) {
         <div className={`text-sm mt-2 space-y-1 ${
           resumeData.template === 'modern' ? 'text-white/80' : 'text-gray-600'
         }`}>
-          {resumeData.personalInfo.email && <div>{resumeData.personalInfo.email}</div>}
-          {resumeData.personalInfo.phone && <div>{resumeData.personalInfo.phone}</div>}
+          <div className='flex flex-row items-center justify-center gap-2'>
+            {resumeData.personalInfo.email && <div>{resumeData.personalInfo.email}</div>}
+            <span className="text-gray-400">|</span>
+            {resumeData.personalInfo.phone && <div>{resumeData.personalInfo.phone}</div>}
+          </div>
           {resumeData.personalInfo.location && <div>{resumeData.personalInfo.location}</div>}
-          {resumeData.personalInfo.linkedin && <div>LinkedIn: {resumeData.personalInfo.linkedin}</div>}
-          {resumeData.personalInfo.portfolio && <div>Portfolio: {resumeData.personalInfo.portfolio}</div>}
+          <div className='flex flex-row items-center justify-center gap-2'>
+            {resumeData.personalInfo.linkedin && <div>LinkedIn: {resumeData.personalInfo.linkedin}</div>}
+            <span className="text-gray-400">|</span>
+            {resumeData.personalInfo.portfolio && <div>Portfolio: {resumeData.personalInfo.portfolio}</div>}
+          </div>
         </div>
       </div>
 
@@ -46,7 +52,7 @@ export function ResumePreview({ resumeData }: ResumePreviewProps) {
             resumeData.template === 'minimal' ? 'text-gray-700' :
             'text-orange-600'
           }`}>Professional Summary</h3>
-          <p className="text-gray-700">{resumeData.summary}</p>
+          <div className="text-gray-700" dangerouslySetInnerHTML={{ __html: resumeData.summary }} />
         </div>
       )}
 
@@ -67,7 +73,8 @@ export function ResumePreview({ resumeData }: ResumePreviewProps) {
                 </span>
               </div>
               <div className="text-gray-600 italic">{exp.company}</div>
-              <p className="text-gray-700 mt-1">{exp.description}</p>
+              {exp.location && <div className="text-gray-600">{exp.location}</div>}
+              <div className="text-gray-700 mt-1" dangerouslySetInnerHTML={{ __html: exp.description }} />
             </div>
           ))}
         </div>
@@ -117,7 +124,7 @@ export function ResumePreview({ resumeData }: ResumePreviewProps) {
             <div key={proj.id} className="mb-3">
               <div className="font-semibold text-gray-900">{proj.name}</div>
               {proj.technologies && <div className="text-sm text-gray-600">Technologies: {proj.technologies}</div>}
-              <p className="text-gray-700 mt-1">{proj.description}</p>
+              <div className="text-gray-700 mt-1" dangerouslySetInnerHTML={{ __html: proj.description }} />
             </div>
           ))}
         </div>
