@@ -2,7 +2,7 @@
 
 import { useRef, ChangeEvent } from 'react'
 import { 
-  Upload, Layout, Save, FileText, Settings, Edit3, Eye, RefreshCw, X
+  Upload, Layout, Save, FileText, Settings, Edit3, Eye, RefreshCw, X, FileDown
 } from 'lucide-react'
 import { ResumeData } from './types'
 import { TemplateBuilder } from './TemplateBuilder'
@@ -13,6 +13,7 @@ interface ResumeToolbarProps {
   resumeData: ResumeData
   savedResumes: ResumeData[]
   showPreview: boolean
+  showPDFPreview: boolean
   showTemplates: boolean
   showTemplateBuilder: boolean
   activeTool: string | null
@@ -29,6 +30,7 @@ interface ResumeToolbarProps {
   onImportPDF: (e: React.ChangeEvent<HTMLInputElement>) => void
   onToggleTemplates: () => void
   onTogglePreview: (preview: boolean) => void
+  onTogglePDFPreview: (preview: boolean) => void
   onToggleTemplateBuilder: () => void
   onResetSectionOrder: () => void
   onSave: () => void
@@ -44,6 +46,7 @@ export function ResumeToolbar({
   resumeData,
   savedResumes,
   showPreview,
+  showPDFPreview,
   showTemplates,
   showTemplateBuilder,
   activeTool,
@@ -60,6 +63,7 @@ export function ResumeToolbar({
   onImportPDF,
   onToggleTemplates,
   onTogglePreview,
+  onTogglePDFPreview,
   onToggleTemplateBuilder,
   onResetSectionOrder,
   onSave,
@@ -205,9 +209,12 @@ export function ResumeToolbar({
         {/* Edit */}
         <Tooltip content="Edit Mode" position="bottom">
           <button
-            onClick={() => onTogglePreview(false)}
+            onClick={() => {
+              onTogglePreview(false)
+              onTogglePDFPreview(false)
+            }}
             className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-            style={getButtonStyle(!showPreview && activeTool !== 'templates')}
+            style={getButtonStyle(!showPreview && !showPDFPreview && activeTool !== 'templates')}
           >
             <Edit3 className="w-5 h-5" />
           </button>
@@ -218,9 +225,20 @@ export function ResumeToolbar({
           <button
             onClick={() => onTogglePreview(true)}
             className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-            style={getButtonStyle(showPreview)}
+            style={getButtonStyle(showPreview && !showPDFPreview)}
           >
             <Eye className="w-5 h-5" />
+          </button>
+        </Tooltip>
+
+        {/* PDF Preview */}
+        <Tooltip content="PDF Preview" position="bottom">
+          <button
+            onClick={() => onTogglePDFPreview(true)}
+            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+            style={getButtonStyle(showPDFPreview)}
+          >
+            <FileDown className="w-5 h-5" />
           </button>
         </Tooltip>
 

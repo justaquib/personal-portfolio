@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { Card, Button } from '../ui'
 import { useState, useRef, useEffect } from 'react'
 import { jsPDF } from 'jspdf'
@@ -13,12 +14,13 @@ import {
   Check, Copy, X, Upload, Award, Settings,
 } from 'lucide-react'
 import { ResumePreview } from './resume/ResumePreview'
-import { downloadResumePDF } from './resume/pdfGenerator'
+import { PDFPreviewViewer } from './resume/PDFPreviewViewer'
+import { downloadResumePDF, generateResumePDF } from './resume/pdfGenerator'
 import { ResumeData, Experience, Education, Project, Certification, Website, Language } from './resume/types'
 import { TemplateBuilder } from './resume/TemplateBuilder'
 import { ResumeToolbar } from './resume/ResumeToolbar'
 import QuillEditor from '@/components/QuillEditor'
-import { TEMPLATES, SKILL_SUGGESTIONS } from './resume/constants'
+import { TEMPLATES, SKILL_SUGGESTIONS, SECTION_ORDER } from './resume/constants'
 import {
   DndContext,
   closestCenter,
@@ -38,10 +40,10 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 
 // Sortable Section Component
-function SortableSection({ id, label, icon, isExpanded, onToggle, children }: {
+function SortableSection({ id, label, icon: IconComponent, isExpanded, onToggle, children }: {
   id: string
   label: string
-  icon: React.ReactNode
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
   isExpanded: boolean
   onToggle: () => void
   children: React.ReactNode
@@ -79,7 +81,7 @@ function SortableSection({ id, label, icon, isExpanded, onToggle, children }: {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
             </svg>
           </div>
-          <span className="text-gray-700">{icon}</span>
+          <span className="text-gray-700">{IconComponent && <IconComponent className="w-5 h-5" style={{ color: '#212529' }} />}</span>
           <span className="font-medium text-gray-900">{label}</span>
         </div>
         <button
@@ -162,19 +164,6 @@ const defaultResumeData: ResumeData = {
   sectionOrder: ['personal', 'summary', 'experience', 'education', 'skills', 'projects', 'certifications', 'websites', 'languages']
 }
 
-// Section definitions for drag and drop
-const SECTION_ORDER = [
-  { id: 'personal', label: 'Personal Information', icon: User },
-  { id: 'summary', label: 'Professional Summary', icon: FileText },
-  { id: 'experience', label: 'Work Experience', icon: Briefcase },
-  { id: 'education', label: 'Education', icon: GraduationCap },
-  { id: 'skills', label: 'Skills', icon: Code },
-  { id: 'projects', label: 'Projects', icon: Folder },
-  { id: 'certifications', label: 'Certifications', icon: Award },
-  { id: 'websites', label: 'Websites & Portfolio', icon: Globe },
-  { id: 'languages', label: 'Languages', icon: Globe },
-]
-
 // Dynamic import for PDF.js to avoid SSR issues
 let pdfjsLib: typeof import("pdfjs-dist") | null = null;
 
@@ -212,6 +201,7 @@ export function ResumeBuilderTab() {
   const [activeSection, setActiveSection] = useState<string | null>('personal')
   const [isGenerating, setIsGenerating] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [showPDFPreview, setShowPDFPreview] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
   const [activeTool, setActiveTool] = useState<string | null>(null)
   const [showSaveModal, setShowSaveModal] = useState(false)
@@ -1138,6 +1128,7 @@ Technologies: ${proj.technologies}`
             resumeData={resumeData}
             savedResumes={savedResumes}
             showPreview={showPreview}
+            showPDFPreview={showPDFPreview}
             showTemplates={showTemplates}
             showTemplateBuilder={showTemplateBuilder}
             activeTool={activeTool}
@@ -1159,6 +1150,14 @@ Technologies: ${proj.technologies}`
             onTogglePreview={(preview) => {
               setActiveTool(preview ? 'preview' : 'edit')
               setShowPreview(preview)
+              setShowPDFPreview(false)
+              setShowTemplates(false)
+              setShowTemplateBuilder(false)
+            }}
+            onTogglePDFPreview={(preview) => {
+              setActiveTool(preview ? 'pdfPreview' : 'edit')
+              setShowPDFPreview(preview)
+              setShowPreview(false)
               setShowTemplates(false)
               setShowTemplateBuilder(false)
             }}
@@ -1285,7 +1284,7 @@ Technologies: ${proj.technologies}`
           </div>
         )}
 
-        {!showPreview ? (
+        {!showPreview && !showPDFPreview ? (
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -1299,14 +1298,26 @@ Technologies: ${proj.technologies}`
                 {sectionOrder.map((sectionId) => {
                   const section = SECTION_ORDER.find(s => s.id === sectionId)
                   if (!section) return null
-                  const Icon = section.icon
+                  
+                  // Map icon string names to actual icon components
+                  const iconMap: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+                    User,
+                    FileText,
+                    Briefcase,
+                    GraduationCap,
+                    Code,
+                    Folder,
+                    Award,
+                    Globe,
+                  }
+                  const IconComponent = iconMap[section.icon as string] || User
                   
                   return (
                     <SortableSection
                       key={sectionId}
                       id={sectionId}
                       label={section.label}
-                      icon={<Icon className="w-5 h-5" style={{ color: '#212529' }} />}
+                      icon={IconComponent}
                       isExpanded={activeSection === sectionId}
                       onToggle={() => toggleSection(sectionId)}
                     >
@@ -1765,8 +1776,11 @@ Technologies: ${proj.technologies}`
               </div>
             </SortableContext>
           </DndContext>
+        ) : showPDFPreview ? (
+          /* PDF Preview Mode */
+          <PDFPreviewViewer resumeData={resumeData} />
         ) : (
-          /* Preview Mode */
+          /* HTML Preview Mode */
           <ResumePreview resumeData={resumeData} />
         )}
       </Card>
