@@ -1,49 +1,21 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useState } from 'react'
 import { ResumeData } from './types'
-import { generateResumePDF } from './pdfGenerator'
-import { Download, FileDown, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react'
+import { PDFPreview, downloadResumePDF, templateColors } from './templates'
+import { Download, ZoomIn, ZoomOut } from 'lucide-react'
+
+type TemplateType = 'modern' | 'classic' | 'minimal' | 'creative'
 
 interface PDFPreviewViewerProps {
   resumeData: ResumeData
 }
 
 export function PDFPreviewViewer({ resumeData }: PDFPreviewViewerProps) {
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-  const [isGenerating, setIsGenerating] = useState(true)
   const [scale, setScale] = useState(1)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-
-  useEffect(() => {
-    const generatePDF = async () => {
-      setIsGenerating(true)
-      try {
-        // Generate the PDF using jsPDF
-        const doc = generateResumePDF(resumeData)
-        
-        // Get the PDF as a blob
-        const pdfBlob = doc.output('blob')
-        
-        // Create a URL for the blob
-        const url = URL.createObjectURL(pdfBlob)
-        setPdfUrl(url)
-      } catch (error) {
-        console.error('Error generating PDF:', error)
-      } finally {
-        setIsGenerating(false)
-      }
-    }
-
-    generatePDF()
-
-    // Cleanup the URL when component unmounts or resumeData changes
-    return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl)
-      }
-    }
-  }, [resumeData])
+  const [template, setTemplate] = useState<TemplateType>(
+    (resumeData.template as TemplateType) || 'modern'
+  )
 
   const handleZoomIn = () => {
     setScale(prev => Math.min(prev + 0.25, 2))
@@ -53,12 +25,12 @@ export function PDFPreviewViewer({ resumeData }: PDFPreviewViewerProps) {
     setScale(prev => Math.max(prev - 0.25, 0.5))
   }
 
-  const handleDownload = () => {
-    const doc = generateResumePDF(resumeData)
-    const fileName = resumeData.personalInfo.name 
-      ? `${resumeData.personalInfo.name.replace(/\s+/g, '_')}_Resume.pdf`
-      : 'Resume.pdf'
-    doc.save(fileName)
+  const handleDownload = async () => {
+    await downloadResumePDF(resumeData, template)
+  }
+
+  const handleTemplateChange = (newTemplate: TemplateType) => {
+    setTemplate(newTemplate)
   }
 
   return (
@@ -67,12 +39,29 @@ export function PDFPreviewViewer({ resumeData }: PDFPreviewViewerProps) {
       <div className="flex items-center justify-between p-3 bg-gray-100 border-b rounded-t-xl">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-700">PDF Preview</span>
-          {isGenerating && (
-            <span className="text-xs text-gray-500">Generating...</span>
-          )}
+          <span className="text-xs text-gray-500">|</span>
+          <span className="text-xs text-gray-500 capitalize">{template} template</span>
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Template Selector */}
+          <div className="flex items-center gap-1 mr-4">
+            {(['modern', 'classic', 'minimal', 'creative'] as TemplateType[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => handleTemplateChange(t)}
+                className={`px-2 py-1 text-xs rounded transition-colors ${
+                  template === t 
+                    ? 'bg-gray-800 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+                style={template === t ? { backgroundColor: templateColors[t]?.accent || '#333' } : {}}
+              >
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </button>
+            ))}
+          </div>
+
           {/* Zoom Controls */}
           <div className="flex items-center gap-1 mr-4">
             <button
@@ -109,32 +98,17 @@ export function PDFPreviewViewer({ resumeData }: PDFPreviewViewerProps) {
 
       {/* PDF Viewer */}
       <div className="flex-1 bg-gray-200 p-4 overflow-auto rounded-b-xl min-h-[600px]">
-        {isGenerating ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <div className="w-8 h-8 border-2 border-gray-400 border-t-gray-800 rounded-full animate-spin mx-auto mb-3"></div>
-              <p className="text-gray-600">Generating PDF preview...</p>
-            </div>
-          </div>
-        ) : pdfUrl ? (
-          <div className="flex justify-center">
-            <iframe
-              ref={iframeRef}
-              src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&zoom=${scale * 100}`}
-              className="w-full max-w-[210mm] bg-white shadow-lg"
-              style={{ 
-                height: '297mm',
-                transform: `scale(${scale})`,
-                transformOrigin: 'top center'
-              }}
-              title="PDF Preview"
+        <div 
+          className="flex justify-center"
+          style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
+        >
+          <div className="w-full bg-white shadow-lg" style={{ height: '297mm' }}>
+            <PDFPreview 
+              data={resumeData} 
+              template={template} 
             />
           </div>
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-gray-600">Failed to generate PDF preview</p>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   )

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { ResumePreview } from './resume/ResumePreview'
 import { PDFPreviewViewer } from './resume/PDFPreviewViewer'
-import { downloadResumePDF, generateResumePDF } from './resume/pdfGenerator'
+import { downloadResumePDF as generateAndDownloadPDF } from './resume/templates'
 import { ResumeData, Experience, Education, Project, Certification, Website, Language } from './resume/types'
 import { TemplateBuilder } from './resume/TemplateBuilder'
 import { ResumeToolbar } from './resume/ResumeToolbar'
@@ -1750,7 +1750,7 @@ Technologies: ${proj.technologies}`
                 {/* Export Buttons */}
                 <div className="flex flex-wrap gap-3 pt-4 border-t">
                   <Button
-                    onClick={() => downloadResumePDF(resumeData)}
+                    onClick={() => generateAndDownloadPDF(resumeData, resumeData.template as any)}
                     disabled={isGenerating || !isResumeComplete()}
                     className="flex items-center gap-2"
                   >
