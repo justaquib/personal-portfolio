@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text } from '@react-pdf/renderer'
 import { ResumeData } from '../../types'
+import RichText from '../RichText'
 
 interface ProjectsSectionProps {
   data: ResumeData
@@ -23,7 +24,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
       {data.projects.map((proj, index) => (
         <View key={proj.id || index} style={{ marginBottom: 10 }}>
           <Text style={styles.projectName}>{proj.name}</Text>
-          {proj.description && <Text style={styles.description}>{proj.description}</Text>}
+          {proj.description && <RichText html={proj.description} />}
           {proj.technologies && <Text style={styles.projectTech}>Technologies: {proj.technologies}</Text>}
         </View>
       ))}

@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text } from '@react-pdf/renderer'
 import { ResumeData } from '../../types'
+import RichText from '../RichText'
 
 interface SummarySectionProps {
   data: ResumeData
@@ -15,7 +16,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({ data, styles, ti
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {styles.sectionDivider && <View style={styles.sectionDivider} />}
-      <Text style={styles.description}>{data.summary}</Text>
+      <RichText html={data.summary} />
     </View>
   )
 }

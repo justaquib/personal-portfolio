@@ -4,6 +4,7 @@ import { ResumeData } from '../types'
 import { TemplateType, templateColors, createTemplateStyles } from './styles'
 import Header from './Header'
 import Footer from './Footer'
+import RichText from './RichText'
 
 // Import all sections
 import {
@@ -190,6 +191,7 @@ export { templateColors, createTemplateStyles }
 // Export individual components for customization
 export { default as Header } from './Header'
 export { default as Footer } from './Footer'
+export { default as RichText } from './RichText'
 
 // Export sections
 export {

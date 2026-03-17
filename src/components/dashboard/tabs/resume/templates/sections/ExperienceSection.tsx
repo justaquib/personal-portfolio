@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text } from '@react-pdf/renderer'
 import { ResumeData } from '../../types'
+import RichText from '../RichText'
 
 interface ExperienceSectionProps {
   data: ResumeData
@@ -32,7 +33,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
             {exp.company}
             {exp.location && ` | ${exp.location}`}
           </Text>
-          {exp.description && <Text style={styles.description}>{exp.description}</Text>}
+          {exp.description && <RichText html={exp.description} />}
         </View>
       ))}
     </View>
