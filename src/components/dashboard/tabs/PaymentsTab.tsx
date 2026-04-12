@@ -5,6 +5,7 @@ import { Card, EmptyState, LoadingState, Badge, Button, Modal } from '../ui'
 import { useSubscriptions, usePayments, useServices, useContacts } from '@/hooks/useDashboardData'
 import { PaymentForm } from '../PaymentForm'
 import { Subscription, Payment, Service } from '@/types/database'
+import { truncateText } from '@/utils/misc/stringUtils'
 import dayjs from 'dayjs'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -113,71 +114,65 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
   // Check if payment is due based on payment cycle
   const isPaymentDue = (subscription: Subscription): boolean => {
     const paymentCycle = getPaymentCycle(subscription)
-    const service = getService(subscription.service_id)
-    const serviceAmount = service?.amount || 0
-    
+
+    // For monthly and quarterly, check if current period is paid
+    if (paymentCycle === 'monthly' || paymentCycle === 'quarterly') {
+      const service = getService(subscription.service_id)
+      const serviceAmount = service?.amount || 0
+
+      const startDate = parseDate(subscription.started_at)
+      if (!startDate) return false
+
+      const now = dayjs()
+
+      // Calculate expected amount based on payment cycle
+      const expectedAmount = paymentCycle === 'monthly' ? serviceAmount :
+                            paymentCycle === 'quarterly' ? serviceAmount * 3 :
+                            serviceAmount * 12
+
+      // Check if payment was made for current period
+      const subPayments = payments.filter(p => p.subscription_id === subscription.id)
+
+      // Find current billing period
+      let periodStart = startDate
+      let periodEnd = startDate.add(paymentCycle === 'monthly' ? 1 : paymentCycle === 'quarterly' ? 3 : 1, paymentCycle === 'monthly' ? 'month' : paymentCycle === 'quarterly' ? 'month' : 'year')
+
+      while (periodEnd.isBefore(now)) {
+        periodStart = periodEnd
+        periodEnd = periodEnd.add(paymentCycle === 'monthly' ? 1 : paymentCycle === 'quarterly' ? 3 : 1, paymentCycle === 'monthly' ? 'month' : paymentCycle === 'quarterly' ? 'month' : 'year')
+      }
+
+      const periodPayment = subPayments.find(p => {
+        if (!p.payment_month) return false
+        const paymentDate = dayjs(p.payment_month)
+        return (paymentDate.isAfter(periodStart) || paymentDate.isSame(periodStart, 'day')) &&
+               paymentDate.isBefore(periodEnd)
+      })
+
+      if (!periodPayment) {
+        return true // No payment for current period
+      }
+
+      // Payment made for this period
+      return periodPayment.amount_paid < expectedAmount
+    }
+
+    // For yearly, due only when past the due date
     const startDate = parseDate(subscription.started_at)
     if (!startDate) return false
-    
+
     const now = dayjs()
-    
-    // Calculate expected amount based on payment cycle
-    const expectedAmount = paymentCycle === 'monthly' ? serviceAmount : 
-                          paymentCycle === 'quarterly' ? serviceAmount * 3 : 
-                          serviceAmount * 12
-    
-    // Calculate the next payment date (same logic as getNextPaymentDate)
+
+    // Calculate the next payment date
     let nextPayment = startDate
-    while (nextPayment.isBefore(now) || nextPayment.isSame(now)) {
-      if (paymentCycle === 'monthly') {
-        nextPayment = nextPayment.add(1, 'month')
-      } else if (paymentCycle === 'quarterly') {
-        nextPayment = nextPayment.add(3, 'month')
-      } else if (paymentCycle === 'yearly') {
-        nextPayment = nextPayment.add(1, 'year')
-      }
+    while (nextPayment.isBefore(now)) {
+      nextPayment = nextPayment.add(1, 'year')
     }
-    
-    // Payment is due if we're at or past the next payment date
-    // But give a grace period - only show as due if we're within 7 days of the due date
-    // OR if we're past the due date
+
     const daysUntilDue = nextPayment.diff(now, 'day')
-    
-    // If there's more than 7 days until due, don't show as due yet
-    if (daysUntilDue > 7) {
-      return false
-    }
-    
-    // Within 7 days of due date or past it - check if payment was made
-    const subPayments = payments.filter(p => p.subscription_id === subscription.id)
-    
-    if (subPayments.length === 0) {
-      return true // No payments at all - due
-    }
-    
-    // Check if there's a recent payment that covers the expected amount
-    // Look for payments in the current billing period
-    let periodStart = startDate
-    let periodEnd = startDate.add(paymentCycle === 'monthly' ? 1 : paymentCycle === 'quarterly' ? 3 : 1, paymentCycle === 'monthly' ? 'month' : paymentCycle === 'quarterly' ? 'month' : 'year')
-    
-    while (periodEnd.isBefore(now)) {
-      periodStart = periodEnd
-      periodEnd = periodEnd.add(paymentCycle === 'monthly' ? 1 : paymentCycle === 'quarterly' ? 3 : 1, paymentCycle === 'monthly' ? 'month' : paymentCycle === 'quarterly' ? 'month' : 'year')
-    }
-    
-    const periodPayment = subPayments.find(p => {
-      if (!p.payment_month) return false
-      const paymentDate = dayjs(p.payment_month)
-      return (paymentDate.isAfter(periodStart) || paymentDate.isSame(periodStart, 'day')) && 
-             paymentDate.isBefore(periodEnd)
-    })
-    
-    if (!periodPayment) {
-      return true // No payment for current period
-    }
-    
-    // Payment made for this period
-    return periodPayment.amount_paid < expectedAmount
+
+    // For yearly, due if past due date
+    return daysUntilDue <= 0
   }
 
   const calculateRemaining = (subscription: Subscription) => {
@@ -197,13 +192,14 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
     return expectedAmount - totalPaid
   }
 
-  const handleSavePayment = async (data: any) => {
-    await savePayment({ 
-      ...data, 
+  const handleSavePayment = async (data: any, id?: string) => {
+    await savePayment({
+      ...data,
       user_id: userId,
       // For new payments, generate invoice_id if not provided
-      invoice_id: data.invoice_id || `INV-${Date.now()}`
-    })
+      ...(id ? {} : { invoice_id: data.invoice_id || `INV-${Date.now()}` })
+    }, id)
+    await fetchSubscriptions() // Refresh subscriptions to update total_due
     setShowPaymentModal(false)
     setEditingPayment(null)
     setParentInvoice(null)
@@ -351,7 +347,20 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
               const service = getService(subscription.service_id)
               const totalPaid = calculateTotalPaid(subscription.id)
               const remaining = calculateRemaining(subscription)
-              const paymentPercentage = subscription.total_due ? Math.round((totalPaid / subscription.total_due) * 100) : 0
+               // Calculate expected total paid based on time since start
+               const startDate = parseDate(subscription.started_at)
+               const monthsSinceStart = startDate ? dayjs().diff(startDate, 'month') + 1 : 1 // +1 to include current month
+               const svc = getService(subscription.service_id)
+               const amount = svc?.amount || 0
+               const cycle = svc?.payment_cycle || 'monthly'
+               let periodsPassed = monthsSinceStart
+               if (cycle === 'quarterly') {
+                 periodsPassed = Math.floor(monthsSinceStart / 3)
+               } else if (cycle === 'yearly') {
+                 periodsPassed = Math.floor(monthsSinceStart / 12)
+               }
+               const expectedTotal = periodsPassed * amount
+               const paymentPercentage = expectedTotal > 0 ? Math.round((totalPaid / expectedTotal) * 100) : 0
               const paymentCycle = getPaymentCycle(subscription)
               const isDue = isPaymentDue(subscription)
               
@@ -359,7 +368,7 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
                 <div key={subscription.id} className="p-4 bg-gray-50 rounded-xl">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h4 className="font-medium text-gray-900">{getServiceName(subscription.service_id)}</h4>
+                      <h4 className="font-medium text-gray-900 truncate" title={getServiceName(subscription.service_id)}>{truncateText(getServiceName(subscription.service_id), 25)}</h4>
                       <p className="text-xs text-gray-500 mt-1">
                         {getContactName(subscription.contact_id)}
                       </p>
@@ -390,16 +399,18 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
                       <span className="text-gray-600">{paymentCycle.charAt(0).toUpperCase() + paymentCycle.slice(1)}</span>
                       <span className="text-gray-600">Paid: ₹{totalPaid}</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all ${isDue ? 'bg-red-500' : 'bg-green-500'}`}
-                        style={{ width: `${isDue ? 30 : 100}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-xs items-center">
-                      <span className={isDue ? 'text-red-600' : 'text-green-600'}>
-                        {isDue ? 'Payment Due' : 'Paid'}
-                      </span>
+                     <div className="w-full bg-gray-200 rounded-full h-2">
+                       <div
+                         className={`h-2 rounded-full transition-all ${
+                           isDue ? 'bg-orange-500' : 'bg-green-500'
+                         }`}
+                         style={{ width: isDue ? `${paymentPercentage}%` : '100%' }}
+                       />
+                     </div>
+                     <div className="flex justify-between text-xs items-center">
+                       <span className={isDue ? 'text-red-600' : 'text-green-600'}>
+                         {isDue ? 'Payment Due' : 'Paid'}
+                       </span>
                       <button
                         onClick={() => setInfoSubscriptionId(infoSubscriptionId === subscription.id ? null : subscription.id)}
                         className="p-1 text-gray-400 hover:text-gray-600"
@@ -611,10 +622,12 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
       </Card>
 
       {/* Payment Modal - for creating or editing payments */}
-      <Modal 
-        isOpen={showPaymentModal || !!editingPayment || !!parentInvoice} 
+      <Modal
+        isOpen={showPaymentModal || !!editingPayment || !!parentInvoice}
         onClose={() => { setShowPaymentModal(false); setEditingPayment(null); setParentInvoice(null); }}
         title={editingPayment ? 'Edit Payment' : parentInvoice ? 'Create Sub-Invoice' : 'Record Payment'}
+        size="lg"
+        variant="sidebar"
       >
         <PaymentForm
           subscriptions={subscriptions}
@@ -660,8 +673,8 @@ export function PaymentsTab({ userId }: PaymentsTabProps) {
                 <p className="font-medium">{getServiceName(viewingPayment.subscription_id ? subscriptions.find(s => s.id === viewingPayment.subscription_id)?.service_id || '-' : '-')}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Status</label>
-                <Badge 
+                <label className="text-sm text-gray-500 mr-2">Status</label>
+                <Badge
                   variant={
                     viewingPayment.payment_status === 'paid' ? 'success' : 
                     viewingPayment.payment_status === 'partial' ? 'warning' : 'error'

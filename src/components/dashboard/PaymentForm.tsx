@@ -104,7 +104,7 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
 
   return (
     <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-lg space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className={`grid gap-4 ${existingPayment ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         {/* Subscription Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Subscription</label>
@@ -150,28 +150,27 @@ export function PaymentForm({ subscriptions, contacts, existingPayment, parentIn
             required
             min="0"
             step="0.01"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+            disabled={!!existingPayment}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
           />
         </div>
 
         {/* Payment Status */}
-        {(!existingPayment || !!parentInvoice) && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
-            <select
-              value={paymentStatus}
-              onChange={(e) => setPaymentStatus(e.target.value as 'paid' | 'partial' | 'unpaid')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
-            >
-              <option value="unpaid">Unpaid</option>
-              <option value="partial">Partial</option>
-              <option value="paid">Paid</option>
-            </select>
-          </div>
-        )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+          <select
+            value={paymentStatus}
+            onChange={(e) => setPaymentStatus(e.target.value as 'paid' | 'partial' | 'unpaid')}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+          >
+            <option value="unpaid">Unpaid</option>
+            <option value="partial">Partial</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
 
         {/* Amount Paid (for partial payments or sub-invoices) */}
-        {(paymentStatus === 'partial' || parentInvoice || !existingPayment) && (
+        {(paymentStatus === 'partial' || parentInvoice || !existingPayment || !!existingPayment) && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Amount Paid ({CURRENCY_SYMBOL})</label>
             <input

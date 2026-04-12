@@ -182,7 +182,7 @@ export function usePayments() {
         const { error } = await supabase
           .from('subscription_payments')
           .update({
-            amount_due: serviceAmount,
+            amount_due: data.amount_due,
             amount_paid: data.amount_paid,
             remaining_due: Math.max(0, remainingDue),
             payment_date: data.payment_date,
