@@ -126,7 +126,7 @@ export interface Notification {
   status: 'pending' | 'sent' | 'failed'
 }
 
-export type TabType = 'send' | 'contacts' | 'services' | 'payments' | 'templates' | 'history' | 'earnings' | 'resume-builder' | 'team' | 'profile'
+export type TabType = 'send' | 'contacts' | 'services' | 'payments' | 'templates' | 'history' | 'earnings' | 'resume-builder' | 'team' | 'profile' | 'analytics'
 
 export interface TemplateFormData {
   name: string

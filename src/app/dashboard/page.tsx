@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
+import { useAnalytics } from '@/hooks/useDashboardData'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { SendTab } from '@/components/dashboard/tabs/SendTab'
 import { ContactsTab } from '@/components/dashboard/tabs/ContactsTab'
@@ -11,43 +12,48 @@ import { PaymentsTab } from '@/components/dashboard/tabs/PaymentsTab'
 import { TemplatesTab } from '@/components/dashboard/tabs/TemplatesTab'
 import { HistoryTab } from '@/components/dashboard/tabs/HistoryTab'
 import { EarningsTab } from '@/components/dashboard/tabs/EarningsTab'
+import { AnalyticsTab } from '@/components/dashboard/tabs/AnalyticsTab'
 import { ResumeBuilderTab } from '@/components/dashboard/tabs/ResumeBuilderTab'
 import { TeamMembersTab } from '@/components/dashboard/tabs/TeamMembersTab'
 import ProfileTab from '@/components/dashboard/tabs/ProfileTab'
 import type { TabType } from '@/types/database'
 
 const tabTitles: Record<TabType, { title: string; description: string }> = {
-  send: { 
-    title: 'Send Notification', 
-    description: 'Send payment notifications to your contacts via WhatsApp' 
+  send: {
+    title: 'Send Notification',
+    description: 'Send payment notifications to your contacts via WhatsApp'
   },
-  contacts: { 
-    title: 'Contacts', 
-    description: 'Manage your contacts and their information' 
+  contacts: {
+    title: 'Contacts',
+    description: 'Manage your contacts and their information'
   },
-  services: { 
-    title: 'Services', 
-    description: 'Manage your services and subscriptions' 
+  services: {
+    title: 'Services',
+    description: 'Manage your services and subscriptions'
   },
-  payments: { 
-    title: 'Payments', 
-    description: 'Track and manage payment records' 
+  payments: {
+    title: 'Payments',
+    description: 'Track and manage payment records'
   },
-  templates: { 
-    title: 'Templates', 
-    description: 'Create and manage message templates' 
+  templates: {
+    title: 'Templates',
+    description: 'Create and manage message templates'
   },
-  history: { 
-    title: 'History', 
-    description: 'View your notification history' 
+  history: {
+    title: 'History',
+    description: 'View your notification history'
   },
-  earnings: { 
-    title: 'Earnings', 
-    description: 'Track your earnings and revenue' 
+  earnings: {
+    title: 'Earnings',
+    description: 'Track your earnings and revenue'
   },
-  'resume-builder': { 
-    title: 'ATS Resume Builder', 
-    description: 'Build ATS-compatible resumes' 
+  analytics: {
+    title: 'Analytics',
+    description: 'Track user engagement and site analytics'
+  },
+  'resume-builder': {
+    title: 'ATS Resume Builder',
+    description: 'Build ATS-compatible resumes'
   },
   team: {
     title: 'Team Members',
@@ -62,6 +68,7 @@ const tabTitles: Record<TabType, { title: string; description: string }> = {
 export default function DashboardPage() {
   const router = useRouter()
   const { user, loading: authLoading, signOut } = useAuth()
+  const { trackVisit } = useAnalytics()
   const [activeTab, setActiveTab] = useState<TabType>('send')
 
   // Redirect to login if not authenticated
@@ -70,6 +77,13 @@ export default function DashboardPage() {
       router.push('/login')
     }
   }, [user, authLoading, router])
+
+  // Track page visit
+  useEffect(() => {
+    if (user && !authLoading) {
+      trackVisit('/dashboard', document.referrer)
+    }
+  }, [user, authLoading, trackVisit])
 
   const handleSignOut = async () => {
     await signOut()
@@ -110,6 +124,8 @@ export default function DashboardPage() {
         return <HistoryTab />
       case 'earnings':
         return <EarningsTab userId={user.id} />
+      case 'analytics':
+        return <AnalyticsTab />
       case 'resume-builder':
         return <ResumeBuilderTab />
       case 'team':

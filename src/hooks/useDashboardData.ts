@@ -2,6 +2,20 @@ import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Contact, MessageTemplate, Notification, ContactFormData, TemplateFormData, Service, ServiceFormData, Subscription, Payment, PaymentFormData } from '@/types/database'
 
+interface AnalyticsData {
+  data: Array<{
+    date?: string
+    period?: string
+    unique_users: number
+    page_views?: number
+  }>
+  totals: {
+    total_unique_users: number
+    total_page_views: number
+  }
+  period: string
+}
+
 const supabase = createClient()
 
 // Subscription hook - for linking services to contacts (replaces contact_services)
@@ -553,4 +567,44 @@ export function useNotifications() {
   }, [fetchNotifications])
 
   return { notifications, loading, error, fetchNotifications, sendNotification, deleteNotification }
+}
+
+// Analytics hook
+export function useAnalytics() {
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchAnalytics = useCallback(async (period: 'daily' | 'weekly' = 'daily') => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/analytics?period=${period}`)
+      if (!response.ok) throw new Error('Failed to fetch analytics')
+      const data = await response.json()
+      setAnalyticsData(data)
+    } catch (err: any) {
+      setError(err.message)
+      setAnalyticsData(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const trackVisit = useCallback(async (page: string = '/', referrer?: string) => {
+    try {
+      await fetch('/api/analytics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ page, referrer }),
+      })
+    } catch (err) {
+      // Silently fail - analytics shouldn't break the app
+      console.warn('Failed to track analytics:', err)
+    }
+  }, [])
+
+  return { analyticsData, loading, error, fetchAnalytics, trackVisit }
 }

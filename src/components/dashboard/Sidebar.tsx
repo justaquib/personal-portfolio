@@ -3,19 +3,20 @@
 import { useAuth } from '@/context/AuthContext'
 import { useRouter } from 'next/navigation'
 import { TabType } from '@/types/database'
-import { 
-  Send, 
-  Users, 
-  Package, 
-  CreditCard, 
-  FileText, 
-  History, 
+import {
+  Send,
+  Users,
+  Package,
+  CreditCard,
+  FileText,
+  History,
   DollarSign,
   FileUp,
   LogOut,
   LayoutDashboard,
   UserPlus,
-  User
+  User,
+  BarChart3
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -54,6 +55,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     { id: 'templates', label: 'Templates', icon: <FileText className="w-5 h-5" />, category: 'payment' },
     { id: 'history', label: 'History', icon: <History className="w-5 h-5" />, category: 'payment' },
     { id: 'earnings', label: 'Earnings', icon: <DollarSign className="w-5 h-5" />, category: 'payment' },
+    { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-5 h-5" />, category: 'payment' },
     { id: 'resume-builder', label: 'Resume Builder', icon: <FileUp className="w-5 h-5" />, category: 'resume' },
     { id: 'team', label: 'Team', icon: <UserPlus className="w-5 h-5" />, category: 'team' },
     { id: 'profile', label: 'Profile', icon: <User className="w-5 h-5" />, category: 'account' },
