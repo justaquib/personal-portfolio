@@ -10,6 +10,20 @@ import type { TabType } from '@/types/database'
 export default function TeamPage() {
   const router = useRouter()
   const { user, loading: authLoading, signOut, isAdmin, isSuperAdmin } = useAuth()
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  // Listen for sidebar collapse changes
+  useEffect(() => {
+    const checkCollapsed = () => {
+      const collapsed = localStorage.getItem('sidebar-collapsed')
+      setSidebarCollapsed(collapsed ? JSON.parse(collapsed) : false)
+    }
+
+    checkCollapsed()
+    window.addEventListener('storage', checkCollapsed)
+
+    return () => window.removeEventListener('storage', checkCollapsed)
+  }, [])
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -58,7 +72,7 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#f8f9fa' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa' }}>
       <Sidebar activeTab='team' onTabChange={(tab) => {
         // Handle navigation to other main sections
         if (['send', 'contacts', 'services', 'payments', 'templates', 'history', 'earnings'].includes(tab)) {
@@ -71,7 +85,9 @@ export default function TeamPage() {
           router.push('/dashboard/account')
         }
       }} />
-      <main className="flex-1 overflow-y-auto">
+      <main className={`transition-all duration-300 overflow-y-auto min-h-screen ${
+        sidebarCollapsed ? 'ml-16' : 'ml-64'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Page Header */}
           <div className="mb-8">

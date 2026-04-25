@@ -3,6 +3,7 @@
 import { useAuth } from '@/context/AuthContext'
 import { useRouter } from 'next/navigation'
 import { TabType } from '@/types/database'
+import { useState, useEffect } from 'react'
 import {
   Send,
   Users,
@@ -16,7 +17,9 @@ import {
   LayoutDashboard,
   UserPlus,
   User,
-  BarChart3
+  BarChart3,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -27,6 +30,22 @@ interface SidebarProps {
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { user, signOut, isAdmin, isSuperAdmin, role } = useAuth()
   const router = useRouter()
+  const [isCollapsed, setIsCollapsed] = useState(false)
+
+  // Load collapse state from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('sidebar-collapsed')
+    if (saved) {
+      setIsCollapsed(JSON.parse(saved))
+    }
+  }, [])
+
+  // Save collapse state to localStorage
+  const toggleCollapse = () => {
+    const newState = !isCollapsed
+    setIsCollapsed(newState)
+    localStorage.setItem('sidebar-collapsed', JSON.stringify(newState))
+  }
 
   const handleSignOut = async () => {
     await signOut()
@@ -113,30 +132,45 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const accountTabs = tabs.filter(t => t.category === 'account')
 
   return (
-    <aside 
-      className="w-64 min-h-screen flex flex-col"
+    <aside
+      className={`fixed left-0 top-0 h-full flex flex-col transition-all duration-300 ease-in-out z-40 ${
+        isCollapsed ? 'w-16' : 'w-64'
+      }`}
       style={{ backgroundColor: '#f8f9fa', borderRight: '1px solid #dee2e6' }}
     >
       {/* Logo/Brand */}
-      <div className="p-6" style={{ borderBottom: '1px solid #dee2e6' }}>
-        <div className="flex items-center gap-3">
-          <div 
-            className="w-10 h-10 rounded-xl flex items-center justify-center"
+      <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid #dee2e6' }}>
+        <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: '#212529' }}
           >
             <LayoutDashboard className="w-6 h-6 text-white" />
           </div>
-          <div>
-            <h1 className="text-lg font-bold" style={{ color: '#212529' }}>Dashboard</h1>
-            <p className="text-xs" style={{ color: '#6c757d' }}>Just Aquib</p>
-          </div>
+          {!isCollapsed && (
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg font-bold truncate" style={{ color: '#212529' }}>Dashboard</h1>
+              <p className="text-xs truncate" style={{ color: '#6c757d' }}>Just Aquib</p>
+            </div>
+          )}
         </div>
+        <button
+          onClick={toggleCollapse}
+          className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors flex-shrink-0"
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="w-4 h-4" style={{ color: '#6c757d' }} />
+          ) : (
+            <ChevronLeft className="w-4 h-4" style={{ color: '#6c757d' }} />
+          )}
+        </button>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4">
         {/* Main Sections */}
-        <div className="px-4">
+        <div className={isCollapsed ? 'px-2' : 'px-4'}>
           <ul className="space-y-2">
             {mainSectionsFiltered.map((section) => {
               const isActive = (() => {
@@ -175,7 +209,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                         window.location.href = '/dashboard/account'
                       }
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    className={`w-full flex items-center gap-3 ${isCollapsed ? 'px-2 py-3 justify-center' : 'px-3 py-3'} rounded-lg text-sm font-medium transition-all duration-200 ${
                       isActive
                         ? 'bg-blue-100 border-2 border-blue-300 shadow-sm'
                         : 'hover:bg-gray-50 hover:shadow-sm'
@@ -183,16 +217,19 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                     style={{
                       color: isActive ? '#1e40af' : '#6c757d'
                     }}
+                    title={isCollapsed ? section.label : undefined}
                   >
-                    <div className={`p-1 rounded transition-colors duration-200 ${
+                    <div className={`p-1 rounded transition-colors duration-200 flex-shrink-0 ${
                       isActive ? 'bg-blue-200 shadow-sm' : 'bg-gray-100'
                     }`}>
                       {section.icon}
                     </div>
-                    <div className="flex-1 text-left">
-                      <div className="font-medium">{section.label}</div>
-                      <div className="text-xs opacity-75">{section.description}</div>
-                    </div>
+                    {!isCollapsed && (
+                      <div className="flex-1 text-left min-w-0">
+                        <div className="font-medium truncate">{section.label}</div>
+                        <div className="text-xs opacity-75 truncate">{section.description}</div>
+                      </div>
+                    )}
                   </button>
                 </li>
               )
@@ -202,23 +239,24 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       </nav>
 
       {/* User Section */}
-      <div className="p-4" style={{ borderTop: '1px solid #dee2e6' }}>
+      <div className={`p-4 ${isCollapsed ? 'px-2' : ''}`} style={{ borderTop: '1px solid #dee2e6' }}>
         <button
           onClick={() => window.location.href = '/dashboard/account'}
-          className="w-full flex items-center gap-3 mb-3 px-2 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+          className={`w-full flex items-center gap-3 mb-3 ${isCollapsed ? 'px-2 py-2 justify-center' : 'px-2 py-2'} rounded-lg hover:bg-gray-200 transition-colors`}
+          title={isCollapsed ? 'Account Settings' : undefined}
         >
-          <div 
-            className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden"
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
             style={{ backgroundColor: '#e9ecef' }}
           >
             {user?.user_metadata?.avatar_url ? (
-              <img 
-                src={user.user_metadata.avatar_url} 
-                alt="Avatar" 
+              <img
+                src={user.user_metadata.avatar_url}
+                alt="Avatar"
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span 
+              <span
                 className="font-medium text-sm capitalize"
                 style={{ color: '#495057' }}
               >
@@ -226,33 +264,33 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
               </span>
             )}
           </div>
-          <div className="flex-1 min-w-0 text-left">
-            <p className="text-sm font-medium truncate" style={{ color: '#212529' }}>
-              {user?.user_metadata?.full_name || 'User'}
-            </p>
-            <p className="text-xs truncate" style={{ color: '#6c757d' }}>
-              {user?.email}
-            </p>
-            {role && (
-              <span
-                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1"
-                style={{ 
-                  backgroundColor: `${roleColors[role]}20`,
-                  color: roleColors[role]
-                }}
-              >
-                {roleLabels[role]}
-              </span>
-            )}
-          </div>
+          {!isCollapsed && (
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-sm font-medium truncate" style={{ color: '#212529' }}>
+                {user?.user_metadata?.full_name || 'User'}
+              </p>
+              <p className="text-xs truncate" style={{ color: '#6c757d' }}>
+                {user?.email}
+              </p>
+              {role && (
+                <span
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1"
+                  style={{ backgroundColor: `${roleColors[role]}20`, color: roleColors[role] }}
+                >
+                  {roleLabels[role]}
+                </span>
+              )}
+            </div>
+          )}
         </button>
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+          className={`w-full flex items-center gap-3 ${isCollapsed ? 'px-2 py-2.5 justify-center' : 'px-3 py-2.5'} rounded-lg text-sm font-medium transition-colors`}
           style={{ color: '#495057' }}
+          title={isCollapsed ? 'Sign Out' : undefined}
         >
-          <LogOut className="w-5 h-5" />
-          Sign Out
+          <LogOut className="w-5 h-5 flex-shrink-0" />
+          {!isCollapsed && <span>Sign Out</span>}
         </button>
       </div>
     </aside>
