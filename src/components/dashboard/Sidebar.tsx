@@ -47,6 +47,38 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     viewer: '#6c757d'
   }
 
+  const mainSections = [
+    {
+      id: 'payment-tracking',
+      label: 'Payment Tracking',
+      icon: <DollarSign className="w-5 h-5" />,
+      description: 'Manage payments, contacts, and track earnings',
+      category: 'main'
+    },
+    {
+      id: 'tools',
+      label: 'Tools',
+      icon: <FileUp className="w-5 h-5" />,
+      description: 'Productivity tools and utilities',
+      category: 'main'
+    },
+    {
+      id: 'team',
+      label: 'Team Management',
+      icon: <UserPlus className="w-5 h-5" />,
+      description: 'Manage team members and roles',
+      category: 'admin'
+    },
+    {
+      id: 'account',
+      label: 'Account',
+      icon: <User className="w-5 h-5" />,
+      description: 'Account settings and preferences',
+      category: 'main'
+    }
+  ]
+
+  // Legacy tabs for backward compatibility (not used in new structure)
   const tabs: { id: TabType; label: string; icon: React.ReactNode; category: 'payment' | 'resume' | 'team' | 'account' }[] = [
     { id: 'send', label: 'Send', icon: <Send className="w-5 h-5" />, category: 'payment' },
     { id: 'contacts', label: 'Contacts', icon: <Users className="w-5 h-5" />, category: 'payment' },
@@ -60,6 +92,13 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     { id: 'team', label: 'Team', icon: <UserPlus className="w-5 h-5" />, category: 'team' },
     { id: 'profile', label: 'Profile', icon: <User className="w-5 h-5" />, category: 'account' },
   ]
+
+  const mainSectionsFiltered = mainSections.filter(section => {
+    if (section.category === 'admin' && !isAdmin && !isSuperAdmin) {
+      return false
+    }
+    return true
+  })
 
   const paymentTabs = tabs.filter(t => t.category === 'payment')
   const resumeTabs = tabs.filter(t => t.category === 'resume')
@@ -89,125 +128,59 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4">
-        {/* Payment Tracking Section */}
-        <div className="px-4 mb-2">
-          <p 
-            className="text-xs font-semibold uppercase tracking-wider mb-2 px-2"
-            style={{ color: '#adb5bd' }}
-          >
-            Payment Tracking
-          </p>
-          <ul className="space-y-1">
-            {paymentTabs.map((tab) => (
-              <li key={tab.id}>
-                <button
-                  onClick={() => onTabChange(tab.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? ''
-                      : ''
-                  }`}
-                  style={{
-                    backgroundColor: activeTab === tab.id ? '#dee2e6' : 'transparent',
-                    color: activeTab === tab.id ? '#212529' : '#6c757d'
-                  }}
-                >
-                  {tab.icon}
-                  {tab.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Main Sections */}
+        <div className="px-4">
+          <ul className="space-y-2">
+            {mainSectionsFiltered.map((section) => {
+              const isActive = (() => {
+                if (section.id === 'payment-tracking') {
+                  return ['send', 'contacts', 'services', 'payments', 'templates', 'history', 'earnings', 'analytics'].includes(activeTab)
+                }
+                if (section.id === 'tools') {
+                  return activeTab === 'resume-builder'
+                }
+                if (section.id === 'team') {
+                  return activeTab === 'team'
+                }
+                if (section.id === 'account') {
+                  return activeTab === 'profile'
+                }
+                return false
+              })()
 
-        {/* Resume Builder Section */}
-        <div className="px-4 mt-6">
-          <p 
-            className="text-xs font-semibold uppercase tracking-wider mb-2 px-2"
-            style={{ color: '#adb5bd' }}
-          >
-            Tools
-          </p>
-          <ul className="space-y-1">
-            {resumeTabs.map((tab) => (
-              <li key={tab.id}>
-                <button
-                  onClick={() => onTabChange(tab.id)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
-                  style={{
-                    backgroundColor: activeTab === tab.id ? '#dee2e6' : 'transparent',
-                    color: activeTab === tab.id ? '#212529' : '#6c757d'
-                  }}
-                >
-                  {tab.icon}
-                  {tab.label}
-                  {tab.id === 'resume-builder' && (
-                    <span 
-                      className="ml-auto text-xs px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: '#212529', color: '#ffffff' }}
-                    >
-                      New
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Team Management Section - Only for Super Admins */}
-        {(isAdmin || isSuperAdmin) && (
-          <div className="px-4 mt-6">
-            <p 
-              className="text-xs font-semibold uppercase tracking-wider mb-2 px-2"
-              style={{ color: '#adb5bd' }}
-            >
-              Team Management
-            </p>
-            <ul className="space-y-1">
-              {teamTabs.map((tab) => (
-                <li key={tab.id}>
+              return (
+                <li key={section.id}>
                   <button
-                    onClick={() => onTabChange(tab.id)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                    onClick={() => {
+                      // Navigate to the appropriate page
+                      if (section.id === 'payment-tracking') {
+                        window.location.href = '/dashboard/payment-tracking'
+                      } else if (section.id === 'tools') {
+                        window.location.href = '/dashboard/tools'
+                      } else if (section.id === 'team') {
+                        window.location.href = '/dashboard/team'
+                      } else if (section.id === 'account') {
+                        window.location.href = '/dashboard/account'
+                      }
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
+                      isActive ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                    }`}
                     style={{
-                      backgroundColor: activeTab === tab.id ? '#dee2e6' : 'transparent',
-                      color: activeTab === tab.id ? '#212529' : '#6c757d'
+                      color: isActive ? '#1e40af' : '#6c757d'
                     }}
                   >
-                    {tab.icon}
-                    {tab.label}
+                    <div className={`p-1 rounded ${isActive ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                      {section.icon}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="font-medium">{section.label}</div>
+                      <div className="text-xs opacity-75">{section.description}</div>
+                    </div>
                   </button>
                 </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Account Section - Visible to all users */}
-        <div className="px-4 mt-6">
-          <p 
-            className="text-xs font-semibold uppercase tracking-wider mb-2 px-2"
-            style={{ color: '#adb5bd' }}
-          >
-            Account
-          </p>
-          <ul className="space-y-1">
-            {accountTabs.map((tab) => (
-              <li key={tab.id}>
-                <button
-                  onClick={() => onTabChange(tab.id)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
-                  style={{
-                    backgroundColor: activeTab === tab.id ? '#dee2e6' : 'transparent',
-                    color: activeTab === tab.id ? '#212529' : '#6c757d'
-                  }}
-                >
-                  {tab.icon}
-                  {tab.label}
-                </button>
-              </li>
-            ))}
+              )
+            })}
           </ul>
         </div>
       </nav>
@@ -215,7 +188,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       {/* User Section */}
       <div className="p-4" style={{ borderTop: '1px solid #dee2e6' }}>
         <button
-          onClick={() => onTabChange('profile')}
+          onClick={() => window.location.href = '/dashboard/account'}
           className="w-full flex items-center gap-3 mb-3 px-2 py-2 rounded-lg hover:bg-gray-200 transition-colors"
         >
           <div 

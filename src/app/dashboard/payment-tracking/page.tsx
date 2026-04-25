@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { useAnalytics } from '@/hooks/useDashboardData'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { SendTab } from '@/components/dashboard/tabs/SendTab'
 import { ContactsTab } from '@/components/dashboard/tabs/ContactsTab'
@@ -13,12 +12,11 @@ import { TemplatesTab } from '@/components/dashboard/tabs/TemplatesTab'
 import { HistoryTab } from '@/components/dashboard/tabs/HistoryTab'
 import { EarningsTab } from '@/components/dashboard/tabs/EarningsTab'
 import { AnalyticsTab } from '@/components/dashboard/tabs/AnalyticsTab'
-import { ResumeBuilderTab } from '@/components/dashboard/tabs/ResumeBuilderTab'
-import { TeamMembersTab } from '@/components/dashboard/tabs/TeamMembersTab'
-import ProfileTab from '@/components/dashboard/tabs/ProfileTab'
 import type { TabType } from '@/types/database'
 
-const tabTitles: Record<TabType, { title: string; description: string }> = {
+type PaymentTabType = 'send' | 'contacts' | 'services' | 'payments' | 'templates' | 'history' | 'earnings' | 'analytics'
+
+const tabTitles: Record<PaymentTabType, { title: string; description: string }> = {
   send: {
     title: 'Send Notification',
     description: 'Send payment notifications to your contacts via WhatsApp'
@@ -51,43 +49,19 @@ const tabTitles: Record<TabType, { title: string; description: string }> = {
     title: 'Analytics',
     description: 'Track user engagement and site analytics'
   },
-  'resume-builder': {
-    title: 'ATS Resume Builder',
-    description: 'Build ATS-compatible resumes'
-  },
-  team: {
-    title: 'Team Members',
-    description: 'Manage your team and their access roles'
-  },
-  profile: {
-    title: 'Profile',
-    description: 'Manage your account settings and preferences'
-  },
 }
 
-export default function DashboardPage() {
+export default function PaymentTrackingPage() {
   const router = useRouter()
   const { user, loading: authLoading, signOut } = useAuth()
-  const { trackVisit } = useAnalytics()
-  const [activeTab, setActiveTab] = useState<TabType>('send')
+  const [activeTab, setActiveTab] = useState<PaymentTabType>('send')
 
-  // Redirect to login if not authenticated, or to payment tracking if authenticated
+  // Redirect to login if not authenticated
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push('/login')
-      } else {
-        router.push('/dashboard/payment-tracking')
-      }
+    if (!authLoading && !user) {
+      router.push('/login')
     }
   }, [user, authLoading, router])
-
-  // Track page visit
-  useEffect(() => {
-    if (user && !authLoading) {
-      trackVisit('/dashboard', document.referrer)
-    }
-  }, [user, authLoading, trackVisit])
 
   const handleSignOut = async () => {
     await signOut()
@@ -98,9 +72,9 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f8f9fa' }}>
         <div className="text-center">
-          <div 
-            className="w-12 h-12 border-4 animate-spin mx-auto mb-4" 
-            style={{ borderColor: '#6c757d', borderTopColor: 'transparent', borderRadius: '50%' }} 
+          <div
+            className="w-12 h-12 border-4 animate-spin mx-auto mb-4"
+            style={{ borderColor: '#6c757d', borderTopColor: 'transparent', borderRadius: '50%' }}
           />
           <p style={{ color: '#6c757d' }}>Loading...</p>
         </div>
@@ -130,12 +104,6 @@ export default function DashboardPage() {
         return <EarningsTab userId={user.id} />
       case 'analytics':
         return <AnalyticsTab />
-      case 'resume-builder':
-        return <ResumeBuilderTab />
-      case 'team':
-        return <TeamMembersTab />
-      case 'profile':
-        return <ProfileTab user={user} />
       default:
         return <SendTab userId={user.id} />
     }
@@ -143,12 +111,48 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: '#f8f9fa' }}>
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Sidebar activeTab={activeTab as TabType} onTabChange={(tab) => {
+        // Handle navigation to other main sections
+        if (tab === 'resume-builder') {
+          router.push('/dashboard/tools')
+        } else if (tab === 'team') {
+          router.push('/dashboard/team')
+        } else if (tab === 'profile') {
+          router.push('/dashboard/account')
+        } else {
+          setActiveTab(tab as PaymentTabType)
+        }
+      }} />
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>{title}</h1>
+            <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>Payment Tracking</h1>
+            <p className="text-sm mt-1" style={{ color: '#6c757d' }}>Manage payments, contacts, and track earnings</p>
+          </div>
+
+          {/* Sub-tabs for Payment Tracking */}
+          <div className="mb-6">
+            <div className="flex gap-2 border-b border-gray-200">
+              {(Object.keys(tabTitles) as PaymentTabType[]).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === tab
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  {tabTitles[tab].title}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Current sub-tab title and description */}
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold" style={{ color: '#212529' }}>{title}</h2>
             <p className="text-sm mt-1" style={{ color: '#6c757d' }}>{description}</p>
           </div>
 
