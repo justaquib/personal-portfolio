@@ -77,42 +77,7 @@ CREATE TABLE IF NOT EXISTS public.analytics_sessions (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create indexes for better query performance (after all table modifications)
-CREATE INDEX IF NOT EXISTS idx_analytics_visits_visitor_id
-  ON public.analytics_visits(visitor_id);
-
-CREATE INDEX IF NOT EXISTS idx_analytics_visits_page
-  ON public.analytics_visits(page);
-
-CREATE INDEX IF NOT EXISTS idx_analytics_visits_visit_date
-  ON public.analytics_visits(visit_date DESC);
-
-CREATE INDEX IF NOT EXISTS idx_analytics_visits_ip_address
-  ON public.analytics_visits(ip_address);
-
-CREATE INDEX IF NOT EXISTS idx_analytics_visits_country
-  ON public.analytics_visits(country);
-
-CREATE INDEX IF NOT EXISTS idx_analytics_visits_device_type
-  ON public.analytics_visits(device_type);
-
-CREATE INDEX IF NOT EXISTS idx_analytics_visits_is_blocked
-  ON public.analytics_visits(is_blocked);
-
--- Remove the old unique constraint and create new indexes
-DROP INDEX IF EXISTS idx_analytics_visits_unique_daily;
-CREATE INDEX IF NOT EXISTS idx_analytics_visits_session_id
-  ON public.analytics_visits(session_id);
-CREATE INDEX IF NOT EXISTS idx_analytics_visits_session_start
-  ON public.analytics_visits(session_start);
-
--- Indexes for sessions table
-CREATE INDEX IF NOT EXISTS idx_analytics_sessions_visitor_id
-  ON public.analytics_sessions(visitor_id);
-CREATE INDEX IF NOT EXISTS idx_analytics_sessions_start_time
-  ON public.analytics_sessions(start_time DESC);
-CREATE INDEX IF NOT EXISTS idx_analytics_sessions_is_active
-  ON public.analytics_sessions(is_active);
+-- All index creation moved to the very end after all table modifications
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.analytics_visits ENABLE ROW LEVEL SECURITY;
@@ -311,6 +276,43 @@ BEGIN
   END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Create all indexes after all table modifications are complete
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_visitor_id
+  ON public.analytics_visits(visitor_id);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_page
+  ON public.analytics_visits(page);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_visit_date
+  ON public.analytics_visits(visit_date DESC);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_ip_address
+  ON public.analytics_visits(ip_address);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_country
+  ON public.analytics_visits(country);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_device_type
+  ON public.analytics_visits(device_type);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_is_blocked
+  ON public.analytics_visits(is_blocked);
+
+-- Remove the old unique constraint and create new indexes
+DROP INDEX IF EXISTS idx_analytics_visits_unique_daily;
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_session_id
+  ON public.analytics_visits(session_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_session_start
+  ON public.analytics_visits(session_start);
+
+-- Indexes for sessions table
+CREATE INDEX IF NOT EXISTS idx_analytics_sessions_visitor_id
+  ON public.analytics_sessions(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_sessions_start_time
+  ON public.analytics_sessions(start_time DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_sessions_is_active
+  ON public.analytics_sessions(is_active);
 
 -- Add comments for documentation
 COMMENT ON TABLE public.analytics_visits IS 'Stores detailed analytics data for each page visit with location and device info';
