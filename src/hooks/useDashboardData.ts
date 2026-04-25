@@ -593,16 +593,25 @@ export function useAnalytics() {
 
   const trackVisit = useCallback(async (page: string = '/', referrer?: string) => {
     try {
-      await fetch('/api/analytics', {
+      const response = await fetch('/api/analytics', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ page, referrer }),
       })
+
+      if (response.status === 403) {
+        // User is blocked - could redirect to blocked page or show message
+        console.warn('Access blocked for this user/IP')
+        return { blocked: true }
+      }
+
+      return { blocked: false }
     } catch (err) {
       // Silently fail - analytics shouldn't break the app
       console.warn('Failed to track analytics:', err)
+      return { blocked: false }
     }
   }, [])
 

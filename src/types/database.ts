@@ -163,6 +163,20 @@ export interface AnalyticsVisit {
   visit_date: string
   timestamp: string
   created_at: string
+  // Location and device tracking
+  country: string | null
+  city: string | null
+  region: string | null
+  latitude: number | null
+  longitude: number | null
+  device_type: string | null
+  browser: string | null
+  os: string | null
+  // Admin controls
+  is_blocked: boolean | null
+  blocked_reason: string | null
+  blocked_by: string | null
+  blocked_at: string | null
 }
 
 export interface AnalyticsData {
@@ -177,4 +191,36 @@ export interface AnalyticsData {
     total_page_views: number
   }
   period: string
+  recent_visits?: AnalyticsVisit[]
+}
+
+export interface BlockedVisitor {
+  id: string
+  visitor_id: string
+  reason: string | null
+  blocked_by: string
+  created_at: string
+  updated_at: string
+  blocker?: {
+    name: string | null
+    email: string
+  }
+}
+
+export interface BlockedIP {
+  id: string
+  ip_address: string
+  reason: string | null
+  blocked_by: string
+  created_at: string
+  updated_at: string
+  blocker?: {
+    name: string | null
+    email: string
+  }
+}
+
+export interface BlockedData {
+  blocked_visitors: BlockedVisitor[]
+  blocked_ips: BlockedIP[]
 }
