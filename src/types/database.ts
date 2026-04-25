@@ -151,3 +151,30 @@ export interface CreateUserRoleInput {
   name: string
   role: UserRole
 }
+
+// Analytics types
+export interface AnalyticsVisit {
+  id: string
+  visitor_id: string
+  page: string
+  user_agent: string | null
+  ip_address: string | null
+  referrer: string | null
+  visit_date: string
+  timestamp: string
+  created_at: string
+}
+
+export interface AnalyticsData {
+  data: Array<{
+    date?: string
+    period?: string
+    unique_users: number
+    page_views?: number
+  }>
+  totals: {
+    total_unique_users: number
+    total_page_views: number
+  }
+  period: string
+}

@@ -1,24 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Database from 'better-sqlite3'
-import path from 'path'
+import { createClient } from '@/lib/supabase/server'
 
-// Database setup
-const dbPath = path.join(process.cwd(), 'taskflow.db')
-const db = new Database(dbPath)
-
-// Initialize analytics table if it doesn't exist
-db.exec(`
-  CREATE TABLE IF NOT EXISTS analytics_visits (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    visitor_id TEXT NOT NULL,
-    page TEXT NOT NULL,
-    user_agent TEXT,
-    ip_address TEXT,
-    referrer TEXT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(visitor_id, DATE(timestamp))
-  )
-`)
+const supabase = createClient()
 
 // GET: Fetch analytics data
 export async function GET(request: NextRequest) {
@@ -26,47 +9,85 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'daily' // 'daily' or 'weekly'
 
-    let query: string
-    let params: any[] = []
+    let data: any[]
 
     if (period === 'weekly') {
+      // Group by week for last 4 weeks
+      const { data: weeklyData, error } = await supabase
+        .from('analytics_visits')
+        .select('visit_date, visitor_id')
+        .gte('visit_date', new Date(Date.now() - 4 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+        .order('visit_date', { ascending: false })
+
+      if (error) throw error
+
       // Group by week
-      query = `
-        SELECT
-          strftime('%Y-%W', timestamp) as period,
-          COUNT(DISTINCT visitor_id) as unique_users
-        FROM analytics_visits
-        WHERE timestamp >= date('now', '-4 weeks')
-        GROUP BY strftime('%Y-%W', timestamp)
-        ORDER BY period DESC
-        LIMIT 4
-      `
+      const weeklyMap = new Map<string, Set<string>>()
+      weeklyData?.forEach(visit => {
+        const date = new Date(visit.visit_date)
+        const year = date.getFullYear()
+        const week = Math.ceil((date.getDate() - date.getDay() + 1) / 7)
+        const weekKey = `${year}-W${week.toString().padStart(2, '0')}`
+
+        if (!weeklyMap.has(weekKey)) {
+          weeklyMap.set(weekKey, new Set())
+        }
+        weeklyMap.get(weekKey)!.add(visit.visitor_id)
+      })
+
+      data = Array.from(weeklyMap.entries())
+        .map(([period, visitors]) => ({
+          period,
+          unique_users: visitors.size
+        }))
+        .sort((a, b) => b.period.localeCompare(a.period))
+        .slice(0, 4)
+
     } else {
       // Daily data for last 7 days
-      query = `
-        SELECT
-          DATE(timestamp) as date,
-          COUNT(DISTINCT visitor_id) as unique_users,
-          COUNT(*) as page_views
-        FROM analytics_visits
-        WHERE timestamp >= date('now', '-7 days')
-        GROUP BY DATE(timestamp)
-        ORDER BY date ASC
-      `
+      const { data: dailyData, error } = await supabase
+        .from('analytics_visits')
+        .select('visit_date, visitor_id')
+        .gte('visit_date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+        .order('visit_date', { ascending: true })
+
+      if (error) throw error
+
+      // Group by date
+      const dailyMap = new Map<string, { unique_users: Set<string>; page_views: number }>()
+      dailyData?.forEach(visit => {
+        const date = visit.visit_date
+        if (!dailyMap.has(date)) {
+          dailyMap.set(date, { unique_users: new Set(), page_views: 0 })
+        }
+        dailyMap.get(date)!.unique_users.add(visit.visitor_id)
+        dailyMap.get(date)!.page_views++
+      })
+
+      data = Array.from(dailyMap.entries())
+        .map(([date, stats]) => ({
+          date,
+          unique_users: stats.unique_users.size,
+          page_views: stats.page_views
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date))
     }
 
-    const stmt = db.prepare(query)
-    const data = stmt.all(...params)
+    // Get total stats for last 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    // Get total stats
-    const totalStmt = db.prepare(`
-      SELECT
-        COUNT(DISTINCT visitor_id) as total_unique_users,
-        COUNT(*) as total_page_views
-      FROM analytics_visits
-      WHERE timestamp >= date('now', '-30 days')
-    `)
-    const totals = totalStmt.get() as { total_unique_users: number; total_page_views: number }
+    const { data: totalData, error: totalError } = await supabase
+      .from('analytics_visits')
+      .select('visitor_id')
+      .gte('visit_date', thirtyDaysAgo)
+
+    if (totalError) throw totalError
+
+    const uniqueVisitors = new Set(totalData?.map(d => d.visitor_id) || [])
+    const totals = {
+      total_unique_users: uniqueVisitors.size,
+      total_page_views: totalData?.length || 0
+    }
 
     return NextResponse.json({
       data,
@@ -100,14 +121,22 @@ export async function POST(request: NextRequest) {
     // In production, you'd want a more sophisticated tracking method
     const visitorId = Buffer.from(`${ip}-${userAgent.slice(0, 50)}`).toString('base64').slice(0, 32)
 
-    // Insert visit record (with UNIQUE constraint to avoid duplicates per day)
-    const stmt = db.prepare(`
-      INSERT OR REPLACE INTO analytics_visits
-      (visitor_id, page, user_agent, ip_address, referrer, timestamp)
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `)
+    // Insert visit record (will fail silently if duplicate for same day due to unique constraint)
+    const { error } = await supabase
+      .from('analytics_visits')
+      .insert({
+        visitor_id: visitorId,
+        page,
+        user_agent: userAgent,
+        ip_address: ip !== 'unknown' ? ip : null,
+        referrer,
+        visit_date: new Date().toISOString().split('T')[0]
+      })
 
-    stmt.run(visitorId, page, userAgent, ip, referrer)
+    // Ignore unique constraint violations (visitor already tracked today)
+    if (error && !error.message.includes('duplicate key value')) {
+      throw error
+    }
 
     return NextResponse.json({ success: true })
 
