@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-
-const supabase = createClient()
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // GET: Fetch analytics data
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createAdminClient()
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'daily' // 'daily' or 'weekly'
 
@@ -107,6 +106,7 @@ export async function GET(request: NextRequest) {
 // POST: Track a page visit
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createAdminClient()
     const body = await request.json()
     const { page = '/', referrer } = body
 
