@@ -14,6 +14,7 @@ interface AnalyticsData {
     total_page_views: number
   }
   period: string
+  recent_visits?: any[]
 }
 
 const supabase = createClient()

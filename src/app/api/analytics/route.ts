@@ -324,9 +324,14 @@ async function getLocationFromIP(ip: string) {
       return { country: 'Local', city: 'Local', region: 'Local', latitude: null, longitude: null }
     }
 
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout
+
     const response = await fetch(`http://ip-api.com/json/${ip}?fields=country,city,region,lat,lon`, {
-      timeout: 3000 // 3 second timeout
+      signal: controller.signal
     })
+
+    clearTimeout(timeoutId)
 
     if (!response.ok) {
       throw new Error('Geolocation API failed')
