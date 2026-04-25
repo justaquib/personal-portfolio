@@ -43,8 +43,10 @@ export default function ToolsPage() {
     <div className="min-h-screen flex" style={{ backgroundColor: '#f8f9fa' }}>
       <Sidebar activeTab='resume-builder' onTabChange={(tab) => {
         // Handle navigation to other main sections
-        if (['send', 'contacts', 'services', 'payments', 'templates', 'history', 'earnings', 'analytics'].includes(tab)) {
+        if (['send', 'contacts', 'services', 'payments', 'templates', 'history', 'earnings'].includes(tab)) {
           router.push('/dashboard/payment-tracking')
+        } else if (tab === 'analytics') {
+          router.push('/dashboard/analytics')
         } else if (tab === 'team') {
           router.push('/dashboard/team')
         } else if (tab === 'profile') {

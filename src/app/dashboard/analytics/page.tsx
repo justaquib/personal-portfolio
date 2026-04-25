@@ -4,10 +4,10 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { Sidebar } from '@/components/dashboard/Sidebar'
-import ProfileTab from '@/components/dashboard/tabs/ProfileTab'
+import { AnalyticsTab } from '@/components/dashboard/tabs/AnalyticsTab'
 import type { TabType } from '@/types/database'
 
-export default function AccountPage() {
+export default function AnalyticsPage() {
   const router = useRouter()
   const { user, loading: authLoading, signOut } = useAuth()
 
@@ -41,29 +41,29 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: '#f8f9fa' }}>
-      <Sidebar activeTab='profile' onTabChange={(tab) => {
+      <Sidebar activeTab='analytics' onTabChange={(tab) => {
         // Handle navigation to other main sections
         if (['send', 'contacts', 'services', 'payments', 'templates', 'history', 'earnings'].includes(tab)) {
           router.push('/dashboard/payment-tracking')
-        } else if (tab === 'analytics') {
-          router.push('/dashboard/analytics')
         } else if (tab === 'resume-builder') {
           router.push('/dashboard/tools')
         } else if (tab === 'team') {
           router.push('/dashboard/team')
+        } else if (tab === 'profile') {
+          router.push('/dashboard/account')
         }
       }} />
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>Account</h1>
-            <p className="text-sm mt-1" style={{ color: '#6c757d' }}>Manage your account settings and preferences</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>Analytics</h1>
+            <p className="text-sm mt-1" style={{ color: '#6c757d' }}>Track user engagement and site analytics</p>
           </div>
 
-          {/* Account/Profile Content */}
-          <div className="max-w-4xl">
-            <ProfileTab user={user} />
+          {/* Analytics Content */}
+          <div className="bg-white rounded-lg shadow-lg">
+            <AnalyticsTab />
           </div>
         </div>
       </main>

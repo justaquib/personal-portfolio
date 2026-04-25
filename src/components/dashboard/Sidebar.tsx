@@ -56,6 +56,13 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       category: 'main'
     },
     {
+      id: 'analytics',
+      label: 'Analytics',
+      icon: <BarChart3 className="w-5 h-5" />,
+      description: 'Track user engagement and site analytics',
+      category: 'main'
+    },
+    {
       id: 'tools',
       label: 'Tools',
       icon: <FileUp className="w-5 h-5" />,
@@ -134,7 +141,10 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             {mainSectionsFiltered.map((section) => {
               const isActive = (() => {
                 if (section.id === 'payment-tracking') {
-                  return ['send', 'contacts', 'services', 'payments', 'templates', 'history', 'earnings', 'analytics'].includes(activeTab)
+                  return ['send', 'contacts', 'services', 'payments', 'templates', 'history', 'earnings'].includes(activeTab)
+                }
+                if (section.id === 'analytics') {
+                  return activeTab === 'analytics'
                 }
                 if (section.id === 'tools') {
                   return activeTab === 'resume-builder'
@@ -155,6 +165,8 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                       // Navigate to the appropriate page
                       if (section.id === 'payment-tracking') {
                         window.location.href = '/dashboard/payment-tracking'
+                      } else if (section.id === 'analytics') {
+                        window.location.href = '/dashboard/analytics'
                       } else if (section.id === 'tools') {
                         window.location.href = '/dashboard/tools'
                       } else if (section.id === 'team') {
@@ -163,14 +175,18 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                         window.location.href = '/dashboard/account'
                       }
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
-                      isActive ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-blue-100 border-2 border-blue-300 shadow-sm'
+                        : 'hover:bg-gray-50 hover:shadow-sm'
                     }`}
                     style={{
                       color: isActive ? '#1e40af' : '#6c757d'
                     }}
                   >
-                    <div className={`p-1 rounded ${isActive ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                    <div className={`p-1 rounded transition-colors duration-200 ${
+                      isActive ? 'bg-blue-200 shadow-sm' : 'bg-gray-100'
+                    }`}>
                       {section.icon}
                     </div>
                     <div className="flex-1 text-left">

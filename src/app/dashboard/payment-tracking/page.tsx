@@ -14,7 +14,7 @@ import { EarningsTab } from '@/components/dashboard/tabs/EarningsTab'
 import { AnalyticsTab } from '@/components/dashboard/tabs/AnalyticsTab'
 import type { TabType } from '@/types/database'
 
-type PaymentTabType = 'send' | 'contacts' | 'services' | 'payments' | 'templates' | 'history' | 'earnings' | 'analytics'
+type PaymentTabType = 'send' | 'contacts' | 'services' | 'payments' | 'templates' | 'history' | 'earnings'
 
 const tabTitles: Record<PaymentTabType, { title: string; description: string }> = {
   send: {
@@ -44,10 +44,6 @@ const tabTitles: Record<PaymentTabType, { title: string; description: string }> 
   earnings: {
     title: 'Earnings',
     description: 'Track your earnings and revenue'
-  },
-  analytics: {
-    title: 'Analytics',
-    description: 'Track user engagement and site analytics'
   },
 }
 
@@ -102,8 +98,6 @@ export default function PaymentTrackingPage() {
         return <HistoryTab />
       case 'earnings':
         return <EarningsTab userId={user.id} />
-      case 'analytics':
-        return <AnalyticsTab />
       default:
         return <SendTab userId={user.id} />
     }
@@ -113,7 +107,9 @@ export default function PaymentTrackingPage() {
     <div className="min-h-screen flex" style={{ backgroundColor: '#f8f9fa' }}>
       <Sidebar activeTab={activeTab as TabType} onTabChange={(tab) => {
         // Handle navigation to other main sections
-        if (tab === 'resume-builder') {
+        if (tab === 'analytics') {
+          router.push('/dashboard/analytics')
+        } else if (tab === 'resume-builder') {
           router.push('/dashboard/tools')
         } else if (tab === 'team') {
           router.push('/dashboard/team')
