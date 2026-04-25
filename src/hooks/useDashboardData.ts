@@ -591,14 +591,24 @@ export function useAnalytics() {
     }
   }, [])
 
-  const trackVisit = useCallback(async (page: string = '/', referrer?: string) => {
+  const trackVisit = useCallback(async (
+    page: string = '/',
+    referrer?: string,
+    userInfo?: { userId: string; userName?: string; userEmail?: string }
+  ) => {
     try {
       const response = await fetch('/api/analytics', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ page, referrer }),
+        body: JSON.stringify({
+          page,
+          referrer,
+          userId: userInfo?.userId,
+          userName: userInfo?.userName,
+          userEmail: userInfo?.userEmail
+        }),
       })
 
       if (response.status === 403) {

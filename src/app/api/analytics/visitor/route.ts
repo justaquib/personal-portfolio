@@ -93,8 +93,12 @@ export async function GET(request: NextRequest) {
       ip_address: latestVisit.ip_address
     } : null
 
+    // Get user info if this is an authenticated visitor
+    const userInfo = latestVisit?.user_info || null
+
     const summary = {
       visitor_id: visitorId,
+      visitor_type: latestVisit?.visitor_type || 'anonymous',
       total_visits: totalVisits,
       total_sessions: enrichedSessions.length,
       unique_pages: uniquePages,
@@ -108,6 +112,7 @@ export async function GET(request: NextRequest) {
         browser: latestVisit.browser,
         os: latestVisit.os
       } : null,
+      user_info: userInfo,
       is_blocked: latestVisit?.is_blocked || false
     }
 

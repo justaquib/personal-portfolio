@@ -20,7 +20,9 @@ ADD COLUMN IF NOT EXISTS time_on_page INTEGER, -- Time spent on this page in sec
 ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS blocked_reason TEXT,
 ADD COLUMN IF NOT EXISTS blocked_by UUID REFERENCES auth.users(id),
-ADD COLUMN IF NOT EXISTS blocked_at TIMESTAMPTZ;
+ADD COLUMN IF NOT EXISTS blocked_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS visitor_type VARCHAR(20) DEFAULT 'anonymous', -- 'anonymous' or 'authenticated'
+ADD COLUMN IF NOT EXISTS user_info JSONB; -- Store user info for authenticated visitors
 
 -- Update existing records to have session_id (generate based on visitor_id and date)
 UPDATE public.analytics_visits

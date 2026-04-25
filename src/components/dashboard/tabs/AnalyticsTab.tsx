@@ -355,8 +355,15 @@ export function AnalyticsTab() {
                         onClick={() => handleVisitorClick(visit.visitor_id)}
                         className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
                       >
-                        Visitor {visit.visitor_id.slice(0, 8)}...
+                        {visit.user_info?.name ? (
+                          `${visit.user_info.name} (${visit.visitor_id.slice(0, 6)}...)`
+                        ) : (
+                          `Visitor ${visit.visitor_id.slice(0, 8)}...`
+                        )}
                       </button>
+                      {visit.user_info?.email && (
+                        <span className="text-xs text-gray-500">({visit.user_info.email})</span>
+                      )}
                       {visit.country && visit.country !== 'Unknown' && (
                         <span className="flex items-center gap-1 text-sm text-gray-500">
                           <MapPin className="w-3 h-3" />
@@ -366,6 +373,11 @@ export function AnalyticsTab() {
                       {visit.is_blocked && (
                         <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">
                           Blocked
+                        </span>
+                      )}
+                      {visit.visitor_type === 'authenticated' && (
+                        <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+                          Logged In
                         </span>
                       )}
                     </div>
@@ -511,6 +523,27 @@ export function AnalyticsTab() {
                 <div className="space-y-6">
                   {/* Visitor Summary */}
                   <Card title="Visitor Summary">
+                    <div className="mb-4">
+                      {visitorDetails.summary.user_info && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                              <span className="text-green-700 font-semibold text-sm">
+                                {visitorDetails.summary.user_info.name?.charAt(0).toUpperCase() || 'U'}
+                              </span>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-green-800">{visitorDetails.summary.user_info.name}</h3>
+                              <p className="text-sm text-green-600">{visitorDetails.summary.user_info.email}</p>
+                            </div>
+                            <span className="ml-auto px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                              Authenticated User
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="flex items-center gap-3">
                         <Eye className="w-5 h-5 text-blue-500" />

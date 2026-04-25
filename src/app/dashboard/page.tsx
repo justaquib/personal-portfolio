@@ -85,7 +85,11 @@ export default function DashboardPage() {
   // Track page visit
   useEffect(() => {
     if (user && !authLoading) {
-      trackVisit('/dashboard', document.referrer)
+      trackVisit('/dashboard', document.referrer, {
+        userId: user.id,
+        userName: user.user_metadata?.full_name || user.user_metadata?.name,
+        userEmail: user.email
+      })
     }
   }, [user, authLoading, trackVisit])
 

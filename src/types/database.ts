@@ -172,6 +172,16 @@ export interface AnalyticsVisit {
   device_type: string | null
   browser: string | null
   os: string | null
+  // Session tracking
+  session_id?: string | null
+  session_start?: string | null
+  time_on_page?: number | null
+  visitor_type?: string | null
+  user_info?: {
+    user_id: string
+    name: string | null
+    email: string | null
+  } | null
   // Admin controls
   is_blocked: boolean | null
   blocked_reason: string | null
@@ -220,6 +230,7 @@ export interface AnalyticsSession {
 export interface VisitorDetails {
   summary: {
     visitor_id: string
+    visitor_type: string
     total_visits: number
     total_sessions: number
     unique_pages: number
@@ -237,6 +248,11 @@ export interface VisitorDetails {
       device_type: string | null
       browser: string | null
       os: string | null
+    } | null
+    user_info: {
+      user_id: string
+      name: string | null
+      email: string | null
     } | null
     is_blocked: boolean
   }

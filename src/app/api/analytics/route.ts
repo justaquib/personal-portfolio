@@ -356,7 +356,7 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createAdminClient()
     const body = await request.json()
-    const { page = '/', referrer } = body
+    const { page = '/', referrer, userId, userName, userEmail } = body
 
     // Get IP address from headers
     const forwarded = request.headers.get('x-forwarded-for')
@@ -381,8 +381,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate visitor ID based on IP and user agent
-    const visitorId = Buffer.from(`${ip}-${userAgent.slice(0, 50)}`).toString('base64').slice(0, 32)
+    // Generate visitor ID - use user ID for logged-in users, otherwise hash IP + user agent
+    let visitorId: string
+    let visitorType = 'anonymous'
+    let visitorInfo = null
+
+    if (userId) {
+      // Logged-in user - use their user ID as visitor ID
+      visitorId = `user_${userId}`
+      visitorType = 'authenticated'
+      visitorInfo = {
+        user_id: userId,
+        name: userName,
+        email: userEmail
+      }
+    } else {
+      // Anonymous visitor - use hashed IP + user agent
+      visitorId = Buffer.from(`${ip}-${userAgent.slice(0, 50)}`).toString('base64').slice(0, 32)
+    }
 
     // Check if visitor is blocked
     const { data: blockedVisitor } = await supabase
@@ -456,7 +472,10 @@ export async function POST(request: NextRequest) {
         ...locationData,
         device_type: deviceType,
         browser,
-        os
+        os,
+        // Store visitor type and user info for logged-in users
+        visitor_type: visitorType,
+        user_info: visitorInfo
       })
 
     if (error) {
