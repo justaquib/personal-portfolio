@@ -682,7 +682,6 @@ export function AnalyticsTab() {
               )}
             </div>
           </div>
-        </div>
       )}
     </div>
   )
