@@ -404,25 +404,64 @@ export async function POST(request: NextRequest) {
     // Get location data
     const locationData = await getLocationFromIP(ip)
 
-    // Insert visit record (will fail silently if duplicate for same day due to unique constraint)
+    // Generate session ID (based on visitor + date + some randomness)
+    const today = new Date().toISOString().split('T')[0]
+    const sessionId = Buffer.from(`${visitorId}-${today}-${Date.now()}`).toString('base64').slice(0, 32)
+
+    // Check if this visitor has an active session (within last 30 minutes)
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+    const { data: activeSession } = await supabase
+      .from('analytics_sessions')
+      .select('session_id')
+      .eq('visitor_id', visitorId)
+      .eq('is_active', true)
+      .gte('start_time', thirtyMinutesAgo)
+      .single()
+
+    const currentSessionId = activeSession?.session_id || sessionId
+
+    // Manage the session
+    const { error: sessionError } = await supabase.rpc('manage_analytics_session', {
+      p_visitor_id: visitorId,
+      p_session_id: currentSessionId,
+      p_page: page,
+      p_ip_address: ip !== 'unknown' ? ip : null,
+      p_user_agent: userAgent,
+      p_country: locationData.country,
+      p_city: locationData.city,
+      p_region: locationData.region,
+      p_device_type: deviceType,
+      p_browser: browser,
+      p_os: os,
+      p_referrer: referrer
+    })
+
+    if (sessionError) {
+      console.error('Session management error:', sessionError)
+      // Continue with visit tracking even if session management fails
+    }
+
+    // Insert visit record
     const { error } = await supabase
       .from('analytics_visits')
       .insert({
         visitor_id: visitorId,
+        session_id: currentSessionId,
         page,
         user_agent: userAgent,
         ip_address: ip !== 'unknown' ? ip : null,
         referrer,
         visit_date: new Date().toISOString().split('T')[0],
+        session_start: activeSession ? null : new Date().toISOString(), // Only set for new sessions
         ...locationData,
         device_type: deviceType,
         browser,
         os
       })
 
-    // Ignore unique constraint violations (visitor already tracked today)
-    if (error && !error.message.includes('duplicate key value')) {
-      throw error
+    if (error) {
+      console.error('Visit tracking error:', error)
+      // Don't throw error - analytics shouldn't break the app
     }
 
     return NextResponse.json({ success: true })

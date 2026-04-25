@@ -194,6 +194,56 @@ export interface AnalyticsData {
   recent_visits?: AnalyticsVisit[]
 }
 
+export interface AnalyticsSession {
+  id: string
+  session_id: string
+  visitor_id: string
+  ip_address: string | null
+  user_agent: string | null
+  country: string | null
+  city: string | null
+  region: string | null
+  device_type: string | null
+  browser: string | null
+  os: string | null
+  start_time: string
+  end_time: string | null
+  duration_seconds: number | null
+  page_views: number
+  pages_visited: string[]
+  referrer: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface VisitorDetails {
+  summary: {
+    visitor_id: string
+    total_visits: number
+    total_sessions: number
+    unique_pages: number
+    total_time_spent: number
+    average_session_time: number
+    first_visit: string
+    last_visit: string
+    location: {
+      country: string | null
+      city: string | null
+      region: string | null
+      ip_address: string | null
+    } | null
+    device_info: {
+      device_type: string | null
+      browser: string | null
+      os: string | null
+    } | null
+    is_blocked: boolean
+  }
+  sessions: Array<AnalyticsSession & { visits: AnalyticsVisit[] }>
+  all_visits: AnalyticsVisit[]
+}
+
 export interface BlockedVisitor {
   id: string
   visitor_id: string

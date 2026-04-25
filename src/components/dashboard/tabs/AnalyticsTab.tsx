@@ -5,13 +5,16 @@ import { Card, LoadingState, EmptyState, Alert } from '../ui'
 import { useAnalytics } from '@/hooks/useDashboardData'
 import { useAuth } from '@/context/AuthContext'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts'
-import { MapPin, Monitor, Smartphone, Tablet, Globe, Shield, ShieldOff, Trash2 } from 'lucide-react'
+import { MapPin, Monitor, Smartphone, Tablet, Globe, Shield, ShieldOff, Trash2, Clock, Eye, Calendar, X } from 'lucide-react'
 
 export function AnalyticsTab() {
   const [timeRange, setTimeRange] = useState<'daily' | 'weekly'>('daily')
   const [activeView, setActiveView] = useState<'analytics' | 'blocked'>('analytics')
   const [blockedData, setBlockedData] = useState<any>(null)
   const [loadingBlocked, setLoadingBlocked] = useState(false)
+  const [visitorDetails, setVisitorDetails] = useState<any>(null)
+  const [loadingVisitorDetails, setLoadingVisitorDetails] = useState(false)
+  const [showVisitorModal, setShowVisitorModal] = useState(false)
   const { analyticsData, loading, error, fetchAnalytics } = useAnalytics()
   const { isAdmin, isSuperAdmin } = useAuth()
 
@@ -81,6 +84,7 @@ export function AnalyticsTab() {
         if (activeView === 'blocked') {
           fetchBlockedData()
         }
+        setShowVisitorModal(false)
         alert('Data deleted successfully')
       } else {
         alert('Delete failed')
@@ -89,6 +93,39 @@ export function AnalyticsTab() {
       console.error('Delete failed:', error)
       alert('Delete failed')
     }
+  }
+
+  const handleVisitorClick = async (visitorId: string) => {
+    setLoadingVisitorDetails(true)
+    setShowVisitorModal(true)
+
+    try {
+      const response = await fetch(`/api/analytics/visitor?visitor_id=${visitorId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setVisitorDetails(data)
+      } else {
+        alert('Failed to load visitor details')
+        setShowVisitorModal(false)
+      }
+    } catch (error) {
+      console.error('Failed to fetch visitor details:', error)
+      alert('Failed to load visitor details')
+      setShowVisitorModal(false)
+    } finally {
+      setLoadingVisitorDetails(false)
+    }
+  }
+
+  const formatDuration = (seconds: number) => {
+    if (!seconds) return 'N/A'
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = seconds % 60
+
+    if (hours > 0) return `${hours}h ${minutes}m ${secs}s`
+    if (minutes > 0) return `${minutes}m ${secs}s`
+    return `${secs}s`
   }
 
   const formatDate = (dateStr: string) => {
@@ -314,7 +351,12 @@ export function AnalyticsTab() {
                   {visit.device_type === 'desktop' && <Monitor className="w-4 h-4 text-gray-500" />}
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">Visitor {visit.visitor_id.slice(0, 8)}...</span>
+                      <button
+                        onClick={() => handleVisitorClick(visit.visitor_id)}
+                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                      >
+                        Visitor {visit.visitor_id.slice(0, 8)}...
+                      </button>
                       {visit.country && visit.country !== 'Unknown' && (
                         <span className="flex items-center gap-1 text-sm text-gray-500">
                           <MapPin className="w-3 h-3" />
@@ -446,6 +488,201 @@ export function AnalyticsTab() {
               </div>
             )}
           </Card>
+        </div>
+      )}
+
+      {/* Visitor Details Modal */}
+      {showVisitorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Visitor Details</h2>
+                <button
+                  onClick={() => setShowVisitorModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {loadingVisitorDetails ? (
+                <LoadingState message="Loading visitor details..." />
+              ) : visitorDetails ? (
+                <div className="space-y-6">
+                  {/* Visitor Summary */}
+                  <Card title="Visitor Summary">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex items-center gap-3">
+                        <Eye className="w-5 h-5 text-blue-500" />
+                        <div>
+                          <div className="text-2xl font-bold">{visitorDetails.summary.total_visits}</div>
+                          <div className="text-sm text-gray-500">Total Visits</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Calendar className="w-5 h-5 text-green-500" />
+                        <div>
+                          <div className="text-2xl font-bold">{visitorDetails.summary.total_sessions}</div>
+                          <div className="text-sm text-gray-500">Sessions</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Clock className="w-5 h-5 text-purple-500" />
+                        <div>
+                          <div className="text-2xl font-bold">{formatDuration(visitorDetails.summary.total_time_spent)}</div>
+                          <div className="text-sm text-gray-500">Total Time</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="font-semibold mb-2">Location & Device</h4>
+                        <div className="space-y-1 text-sm">
+                          {visitorDetails.summary.location && (
+                            <>
+                              <div><strong>IP:</strong> {visitorDetails.summary.location.ip_address || 'Unknown'}</div>
+                              <div><strong>Location:</strong> {visitorDetails.summary.location.city}, {visitorDetails.summary.location.region}, {visitorDetails.summary.location.country}</div>
+                            </>
+                          )}
+                          {visitorDetails.summary.device_info && (
+                            <>
+                              <div><strong>Device:</strong> {visitorDetails.summary.device_info.device_type}</div>
+                              <div><strong>Browser:</strong> {visitorDetails.summary.device_info.browser}</div>
+                              <div><strong>OS:</strong> {visitorDetails.summary.device_info.os}</div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-2">Activity Summary</h4>
+                        <div className="space-y-1 text-sm">
+                          <div><strong>Unique Pages:</strong> {visitorDetails.summary.unique_pages}</div>
+                          <div><strong>Avg Session:</strong> {formatDuration(visitorDetails.summary.average_session_time)}</div>
+                          <div><strong>First Visit:</strong> {new Date(visitorDetails.summary.first_visit).toLocaleString()}</div>
+                          <div><strong>Last Visit:</strong> {new Date(visitorDetails.summary.last_visit).toLocaleString()}</div>
+                          {visitorDetails.summary.is_blocked && (
+                            <div className="text-red-600 font-semibold">🚫 BLOCKED</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Sessions */}
+                  <Card title="Sessions">
+                    <div className="space-y-4">
+                      {visitorDetails.sessions.map((session: any) => (
+                        <div key={session.id} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-4">
+                              <div className="text-sm text-gray-500">
+                                <Calendar className="w-4 h-4 inline mr-1" />
+                                {new Date(session.start_time).toLocaleString()}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                <Clock className="w-4 h-4 inline mr-1" />
+                                Duration: {formatDuration(session.duration_seconds)}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                <Eye className="w-4 h-4 inline mr-1" />
+                                {session.page_views} pages
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <h5 className="font-medium">Page Flow:</h5>
+                            <div className="flex flex-wrap gap-2">
+                              {session.visits.map((visit: any, index: number) => (
+                                <div key={visit.id} className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded">
+                                  <span className="text-sm font-medium">{visit.page}</span>
+                                  {visit.time_on_page && (
+                                    <span className="text-xs text-gray-500">
+                                      ({formatDuration(visit.time_on_page)})
+                                    </span>
+                                  )}
+                                  {index < session.visits.length - 1 && (
+                                    <span className="text-gray-400">→</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+
+                  {/* All Visits Table */}
+                  <Card title="All Visits">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-2">Time</th>
+                            <th className="text-left py-2">Page</th>
+                            <th className="text-left py-2">Time on Page</th>
+                            <th className="text-left py-2">IP</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {visitorDetails.all_visits.map((visit: any) => (
+                            <tr key={visit.id} className="border-b">
+                              <td className="py-2">{new Date(visit.timestamp).toLocaleString()}</td>
+                              <td className="py-2">{visit.page}</td>
+                              <td className="py-2">{visit.time_on_page ? formatDuration(visit.time_on_page) : 'N/A'}</td>
+                              <td className="py-2">{visit.ip_address || 'Unknown'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+
+                  {/* Admin Actions */}
+                  {canManageBlocks && (
+                    <Card title="Admin Actions">
+                      <div className="flex gap-4">
+                        {!visitorDetails.summary.is_blocked ? (
+                          <button
+                            onClick={() => handleBlockAction('block_visitor', {
+                              visitor_id: visitorDetails.summary.visitor_id,
+                              reason: 'Blocked by admin from visitor details'
+                            })}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                          >
+                            <Shield className="w-4 h-4" />
+                            Block Visitor
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleBlockAction('unblock_visitor', {
+                              visitor_id: visitorDetails.summary.visitor_id
+                            })}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                          >
+                            <ShieldOff className="w-4 h-4" />
+                            Unblock Visitor
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteData(visitorDetails.summary.visitor_id)}
+                          className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete All Data
+                        </button>
+                      </div>
+                    </Card>
+                  )}
+                </div>
+              ) : (
+                <EmptyState message="Failed to load visitor details" />
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

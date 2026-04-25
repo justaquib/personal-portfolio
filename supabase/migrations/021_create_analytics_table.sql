@@ -8,6 +8,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS public.analytics_visits (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   visitor_id VARCHAR(64) NOT NULL,
+  session_id VARCHAR(64) NOT NULL, -- Unique session identifier
   page VARCHAR(255) NOT NULL DEFAULT '/',
   user_agent TEXT,
   ip_address INET,
@@ -24,6 +25,9 @@ CREATE TABLE IF NOT EXISTS public.analytics_visits (
   device_type VARCHAR(50), -- 'desktop', 'mobile', 'tablet'
   browser VARCHAR(100),
   os VARCHAR(100),
+  -- Session tracking
+  session_start TIMESTAMPTZ,
+  time_on_page INTEGER, -- Time spent on this page in seconds
   -- Admin controls
   is_blocked BOOLEAN DEFAULT FALSE,
   blocked_reason TEXT,
@@ -31,9 +35,12 @@ CREATE TABLE IF NOT EXISTS public.analytics_visits (
   blocked_at TIMESTAMPTZ
 );
 
--- Create unique index for visitor per day (this replaces the UNIQUE constraint)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_analytics_visits_unique_daily
-  ON public.analytics_visits(visitor_id, visit_date);
+-- Remove the old unique constraint and create new indexes
+DROP INDEX IF EXISTS idx_analytics_visits_unique_daily;
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_session_id
+  ON public.analytics_visits(session_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_session_start
+  ON public.analytics_visits(session_start);
 
 -- Create blocked_ips table for IP-based blocking
 CREATE TABLE IF NOT EXISTS public.blocked_ips (
@@ -51,6 +58,33 @@ CREATE TABLE IF NOT EXISTS public.blocked_visitors (
   visitor_id VARCHAR(64) NOT NULL UNIQUE,
   reason TEXT,
   blocked_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create sessions table for aggregated session data
+CREATE TABLE IF NOT EXISTS public.analytics_sessions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  session_id VARCHAR(64) NOT NULL UNIQUE,
+  visitor_id VARCHAR(64) NOT NULL,
+  ip_address INET,
+  user_agent TEXT,
+  -- Location data (copied from first visit in session)
+  country VARCHAR(100),
+  city VARCHAR(100),
+  region VARCHAR(100),
+  device_type VARCHAR(50),
+  browser VARCHAR(100),
+  os VARCHAR(100),
+  -- Session metrics
+  start_time TIMESTAMPTZ NOT NULL,
+  end_time TIMESTAMPTZ,
+  duration_seconds INTEGER, -- Total session duration
+  page_views INTEGER DEFAULT 1,
+  pages_visited TEXT[], -- Array of pages visited
+  referrer TEXT,
+  -- Status
+  is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -79,6 +113,14 @@ CREATE INDEX IF NOT EXISTS idx_analytics_visits_device_type
 
 CREATE INDEX IF NOT EXISTS idx_analytics_visits_is_blocked
   ON public.analytics_visits(is_blocked);
+
+-- Indexes for sessions table
+CREATE INDEX IF NOT EXISTS idx_analytics_sessions_visitor_id
+  ON public.analytics_sessions(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_sessions_start_time
+  ON public.analytics_sessions(start_time DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_sessions_is_active
+  ON public.analytics_sessions(is_active);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.analytics_visits ENABLE ROW LEVEL SECURITY;
@@ -183,17 +225,120 @@ BEGIN
 END
 $$;
 
+-- Enable RLS for analytics_sessions
+ALTER TABLE public.analytics_sessions ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies for analytics_sessions
+DO $$
+BEGIN
+  -- Allow authenticated users to read session analytics
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Allow authenticated users to read sessions'
+  ) THEN
+    CREATE POLICY "Allow authenticated users to read sessions"
+      ON public.analytics_sessions
+      FOR SELECT
+      TO authenticated
+      USING (true);
+  END IF;
+
+  -- Allow system to insert/update sessions
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Allow system to manage sessions'
+  ) THEN
+    CREATE POLICY "Allow system to manage sessions"
+      ON public.analytics_sessions
+      FOR ALL
+      TO authenticated
+      USING (true);
+  END IF;
+END
+$$;
+
+-- Function to manage analytics sessions
+CREATE OR REPLACE FUNCTION manage_analytics_session(
+  p_visitor_id VARCHAR(64),
+  p_session_id VARCHAR(64),
+  p_page VARCHAR(255),
+  p_ip_address INET,
+  p_user_agent TEXT,
+  p_country VARCHAR(100),
+  p_city VARCHAR(100),
+  p_region VARCHAR(100),
+  p_device_type VARCHAR(50),
+  p_browser VARCHAR(100),
+  p_os VARCHAR(100),
+  p_referrer TEXT
+) RETURNS VOID AS $$
+DECLARE
+  v_session_exists BOOLEAN;
+  v_last_visit_time TIMESTAMPTZ;
+  v_session_duration INTEGER;
+BEGIN
+  -- Check if session already exists
+  SELECT EXISTS(
+    SELECT 1 FROM public.analytics_sessions
+    WHERE session_id = p_session_id
+  ) INTO v_session_exists;
+
+  IF NOT v_session_exists THEN
+    -- Create new session
+    INSERT INTO public.analytics_sessions (
+      session_id, visitor_id, ip_address, user_agent,
+      country, city, region, device_type, browser, os,
+      start_time, pages_visited, referrer
+    ) VALUES (
+      p_session_id, p_visitor_id, p_ip_address, p_user_agent,
+      p_country, p_city, p_region, p_device_type, p_browser, p_os,
+      NOW(), ARRAY[p_page], p_referrer
+    );
+  ELSE
+    -- Update existing session
+    -- Get the time of last visit in this session
+    SELECT MAX(timestamp)
+    INTO v_last_visit_time
+    FROM public.analytics_visits
+    WHERE session_id = p_session_id;
+
+    -- Calculate session duration (in seconds)
+    IF v_last_visit_time IS NOT NULL THEN
+      v_session_duration := EXTRACT(EPOCH FROM (NOW() - v_last_visit_time))::INTEGER;
+    ELSE
+      v_session_duration := 0;
+    END IF;
+
+    -- Update session with new page and duration
+    UPDATE public.analytics_sessions
+    SET
+      end_time = NOW(),
+      duration_seconds = v_session_duration,
+      page_views = page_views + 1,
+      pages_visited = array_append(pages_visited, p_page),
+      updated_at = NOW()
+    WHERE session_id = p_session_id;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Add comments for documentation
-COMMENT ON TABLE public.analytics_visits IS 'Stores analytics data for tracking unique user visits per day with location and device info';
+COMMENT ON TABLE public.analytics_visits IS 'Stores detailed analytics data for each page visit with location and device info';
 COMMENT ON COLUMN public.analytics_visits.visitor_id IS 'Hashed identifier for unique visitors';
+COMMENT ON COLUMN public.analytics_visits.session_id IS 'Unique identifier for each browsing session';
 COMMENT ON COLUMN public.analytics_visits.page IS 'Page path that was visited';
 COMMENT ON COLUMN public.analytics_visits.visit_date IS 'Date of the visit (for daily aggregation)';
-COMMENT ON COLUMN public.analytics_visits.timestamp IS 'Exact timestamp of the visit';
+COMMENT ON COLUMN public.analytics_visits.timestamp IS 'Exact timestamp of the page visit';
+COMMENT ON COLUMN public.analytics_visits.session_start IS 'Timestamp when the session started';
+COMMENT ON COLUMN public.analytics_visits.time_on_page IS 'Time spent on this page in seconds';
 COMMENT ON COLUMN public.analytics_visits.country IS 'User country based on IP geolocation';
 COMMENT ON COLUMN public.analytics_visits.city IS 'User city based on IP geolocation';
 COMMENT ON COLUMN public.analytics_visits.device_type IS 'Device type: desktop, mobile, tablet';
 COMMENT ON COLUMN public.analytics_visits.browser IS 'Browser name and version';
 COMMENT ON COLUMN public.analytics_visits.os IS 'Operating system name and version';
 COMMENT ON COLUMN public.analytics_visits.is_blocked IS 'Whether this visitor is blocked from accessing the site';
+COMMENT ON TABLE public.analytics_sessions IS 'Aggregated session data with duration and page flow information';
+COMMENT ON COLUMN public.analytics_sessions.session_id IS 'Unique session identifier';
+COMMENT ON COLUMN public.analytics_sessions.duration_seconds IS 'Total session duration in seconds';
+COMMENT ON COLUMN public.analytics_sessions.pages_visited IS 'Array of pages visited during the session';
+COMMENT ON COLUMN public.analytics_sessions.page_views IS 'Total number of page views in the session';
 COMMENT ON TABLE public.blocked_ips IS 'Stores IP addresses that are blocked from accessing the site';
 COMMENT ON TABLE public.blocked_visitors IS 'Stores visitor IDs that are blocked from accessing the site';
