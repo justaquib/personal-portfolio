@@ -71,9 +71,10 @@ export default function AccountPage() {
           router.push('/dashboard/team')
         }
       }} />
-      <main className={`transition-all duration-300 overflow-y-auto min-h-screen ${
-        sidebarCollapsed ? 'ml-16' : 'ml-64'
-      }`}>
+      <main className="transition-all duration-300 overflow-y-auto min-h-screen" style={{
+        marginLeft: sidebarCollapsed ? '64px' : '256px',
+        width: `calc(100vw - ${sidebarCollapsed ? '64px' : '256px'})`
+      }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Page Header */}
           <div className="mb-8">
