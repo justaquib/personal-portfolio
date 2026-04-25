@@ -4,45 +4,33 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Create analytics_visits table if not exists
-CREATE TABLE IF NOT EXISTS public.analytics_visits (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  visitor_id VARCHAR(64) NOT NULL,
-  session_id VARCHAR(64) NOT NULL, -- Unique session identifier
-  page VARCHAR(255) NOT NULL DEFAULT '/',
-  user_agent TEXT,
-  ip_address INET,
-  referrer TEXT,
-  visit_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  timestamp TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  -- Location and device tracking
-  country VARCHAR(100),
-  city VARCHAR(100),
-  region VARCHAR(100),
-  latitude DECIMAL(10, 8),
-  longitude DECIMAL(11, 8),
-  device_type VARCHAR(50), -- 'desktop', 'mobile', 'tablet'
-  browser VARCHAR(100),
-  os VARCHAR(100),
-  -- Session tracking
-  session_start TIMESTAMPTZ,
-  time_on_page INTEGER, -- Time spent on this page in seconds
-  -- Admin controls
-  is_blocked BOOLEAN DEFAULT FALSE,
-  blocked_reason TEXT,
-  blocked_by UUID REFERENCES auth.users(id),
-  blocked_at TIMESTAMPTZ
-);
+-- Alter existing analytics_visits table to add new columns
+ALTER TABLE public.analytics_visits
+ADD COLUMN IF NOT EXISTS session_id VARCHAR(64),
+ADD COLUMN IF NOT EXISTS country VARCHAR(100),
+ADD COLUMN IF NOT EXISTS city VARCHAR(100),
+ADD COLUMN IF NOT EXISTS region VARCHAR(100),
+ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8),
+ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8),
+ADD COLUMN IF NOT EXISTS device_type VARCHAR(50), -- 'desktop', 'mobile', 'tablet'
+ADD COLUMN IF NOT EXISTS browser VARCHAR(100),
+ADD COLUMN IF NOT EXISTS os VARCHAR(100),
+ADD COLUMN IF NOT EXISTS session_start TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS time_on_page INTEGER, -- Time spent on this page in seconds
+ADD COLUMN IF NOT EXISTS blocked_reason TEXT,
+ADD COLUMN IF NOT EXISTS blocked_by UUID REFERENCES auth.users(id),
+ADD COLUMN IF NOT EXISTS blocked_at TIMESTAMPTZ;
 
--- Remove the old unique constraint and create new indexes
-DROP INDEX IF EXISTS idx_analytics_visits_unique_daily;
-CREATE INDEX IF NOT EXISTS idx_analytics_visits_session_id
-  ON public.analytics_visits(session_id);
-CREATE INDEX IF NOT EXISTS idx_analytics_visits_session_start
-  ON public.analytics_visits(session_start);
+-- Update existing records to have session_id (generate based on visitor_id and date)
+UPDATE public.analytics_visits
+SET session_id = CONCAT(visitor_id, '_', visit_date::text)
+WHERE session_id IS NULL;
 
--- Create blocked_ips table for IP-based blocking
+-- Make session_id NOT NULL after populating existing records
+ALTER TABLE public.analytics_visits
+ALTER COLUMN session_id SET NOT NULL;
+
+-- Create blocked_ips table for IP-based blocking (if not exists)
 CREATE TABLE IF NOT EXISTS public.blocked_ips (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   ip_address INET NOT NULL UNIQUE,
@@ -52,7 +40,7 @@ CREATE TABLE IF NOT EXISTS public.blocked_ips (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create blocked_visitors table for visitor ID-based blocking
+-- Create blocked_visitors table for visitor ID-based blocking (if not exists)
 CREATE TABLE IF NOT EXISTS public.blocked_visitors (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   visitor_id VARCHAR(64) NOT NULL UNIQUE,
@@ -62,7 +50,7 @@ CREATE TABLE IF NOT EXISTS public.blocked_visitors (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create sessions table for aggregated session data
+-- Create sessions table for aggregated session data (if not exists)
 CREATE TABLE IF NOT EXISTS public.analytics_sessions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   session_id VARCHAR(64) NOT NULL UNIQUE,
@@ -89,7 +77,7 @@ CREATE TABLE IF NOT EXISTS public.analytics_sessions (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create indexes for better query performance
+-- Create indexes for better query performance (after all table modifications)
 CREATE INDEX IF NOT EXISTS idx_analytics_visits_visitor_id
   ON public.analytics_visits(visitor_id);
 
@@ -98,9 +86,6 @@ CREATE INDEX IF NOT EXISTS idx_analytics_visits_page
 
 CREATE INDEX IF NOT EXISTS idx_analytics_visits_visit_date
   ON public.analytics_visits(visit_date DESC);
-
-CREATE INDEX IF NOT EXISTS idx_analytics_visits_timestamp
-  ON public.analytics_visits(timestamp DESC);
 
 CREATE INDEX IF NOT EXISTS idx_analytics_visits_ip_address
   ON public.analytics_visits(ip_address);
@@ -113,6 +98,13 @@ CREATE INDEX IF NOT EXISTS idx_analytics_visits_device_type
 
 CREATE INDEX IF NOT EXISTS idx_analytics_visits_is_blocked
   ON public.analytics_visits(is_blocked);
+
+-- Remove the old unique constraint and create new indexes
+DROP INDEX IF EXISTS idx_analytics_visits_unique_daily;
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_session_id
+  ON public.analytics_visits(session_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_session_start
+  ON public.analytics_visits(session_start);
 
 -- Indexes for sessions table
 CREATE INDEX IF NOT EXISTS idx_analytics_sessions_visitor_id
