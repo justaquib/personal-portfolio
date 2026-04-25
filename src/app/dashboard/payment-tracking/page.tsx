@@ -62,8 +62,12 @@ export default function PaymentTrackingPage() {
 
     checkCollapsed()
     window.addEventListener('storage', checkCollapsed)
+    window.addEventListener('sidebar-toggle', checkCollapsed)
 
-    return () => window.removeEventListener('storage', checkCollapsed)
+    return () => {
+      window.removeEventListener('storage', checkCollapsed)
+      window.removeEventListener('sidebar-toggle', checkCollapsed)
+    }
   }, [])
 
   // Redirect to login if not authenticated

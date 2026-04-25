@@ -17,9 +17,7 @@ import {
   LayoutDashboard,
   UserPlus,
   User,
-  BarChart3,
-  ChevronLeft,
-  ChevronRight
+  BarChart3
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -40,11 +38,13 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     }
   }, [])
 
-  // Save collapse state to localStorage
+  // Save collapse state to localStorage and dispatch custom event
   const toggleCollapse = () => {
     const newState = !isCollapsed
     setIsCollapsed(newState)
     localStorage.setItem('sidebar-collapsed', JSON.stringify(newState))
+    // Dispatch custom event for immediate updates
+    window.dispatchEvent(new CustomEvent('sidebar-toggle', { detail: { collapsed: newState } }))
   }
 
   const handleSignOut = async () => {
@@ -139,8 +139,12 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       style={{ backgroundColor: '#f8f9fa', borderRight: '1px solid #dee2e6' }}
     >
       {/* Logo/Brand */}
-      <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid #dee2e6' }}>
-        <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
+      <div className="p-4" style={{ borderBottom: '1px solid #dee2e6' }}>
+        <button
+          onClick={toggleCollapse}
+          className={`w-full flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''} hover:bg-gray-50 transition-colors rounded-lg p-2`}
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: '#212529' }}
@@ -148,21 +152,10 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             <LayoutDashboard className="w-6 h-6 text-white" />
           </div>
           {!isCollapsed && (
-            <div className="min-w-0 flex-1">
-              <h1 className="text-lg font-bold truncate" style={{ color: '#212529' }}>Dashboard</h1>
-              <p className="text-xs truncate" style={{ color: '#6c757d' }}>Just Aquib</p>
+            <div className="min-w-0 flex-1 text-left">
+              <h1 className="text-lg font-bold" style={{ color: '#212529' }}>Dashboard</h1>
+              <p className="text-xs" style={{ color: '#6c757d' }}>Just Aquib</p>
             </div>
-          )}
-        </div>
-        <button
-          onClick={toggleCollapse}
-          className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors flex-shrink-0"
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {isCollapsed ? (
-            <ChevronRight className="w-4 h-4" style={{ color: '#6c757d' }} />
-          ) : (
-            <ChevronLeft className="w-4 h-4" style={{ color: '#6c757d' }} />
           )}
         </button>
       </div>
