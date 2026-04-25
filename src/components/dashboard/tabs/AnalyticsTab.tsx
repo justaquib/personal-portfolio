@@ -493,8 +493,8 @@ export function AnalyticsTab() {
 
       {/* Visitor Details Side Drawer */}
       {showVisitorModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 z-50">
-          <div className="absolute right-0 top-0 h-full w-[40%] bg-white shadow-xl overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-10 backdrop-blur-sm z-50">
+          <div className="absolute right-0 top-0 h-full w-[40%] bg-white shadow-xl overflow-y-auto border-l border-gray-200">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold">Visitor Details</h2>
