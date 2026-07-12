@@ -65,3 +65,32 @@ Blocked items GET error: {
  GET /dashboard/analytics 200 in 39ms (compile: 6ms, render: 34ms)
  GET /api/analytics?period=daily 200 in 784ms (compile: 4ms, render: 780ms)
  GET /api/analytics?period=daily 200 in 733ms (compile: 2ms, render: 730ms)
+Blocked items GET error: {
+  code: 'PGRST200',
+  details: "Searched for a foreign key relationship between 'blocked_visitors' and 'user_roles' using the hint 'blocked_visitors_blocked_by_fkey' in the schema 'public', but no matches were found.",
+  hint: null,
+  message: "Could not find a relationship between 'blocked_visitors' and 'user_roles' in the schema cache"
+}
+ GET /api/analytics/blocked?type=all 500 in 1762ms (compile: 6ms, render: 1755ms)
+ GET /dashboard/payment-tracking 200 in 67ms (compile: 10ms, render: 57ms)
+ GET /dashboard/analytics 200 in 94ms (compile: 22ms, render: 73ms)
+ GET /dashboard/analytics 200 in 50ms (compile: 8ms, render: 42ms)
+ GET /api/analytics?period=daily 200 in 384ms (compile: 4ms, render: 380ms)
+ GET /dashboard/analytics 200 in 48ms (compile: 3ms, render: 45ms)
+ GET /api/analytics?period=daily 200 in 755ms (compile: 1459µs, render: 754ms)
+ GET /api/analytics?period=daily 200 in 680ms (compile: 3ms, render: 677ms)
+ GET /dashboard/payment-tracking 200 in 39ms (compile: 4ms, render: 35ms)
+ GET /dashboard/analytics 200 in 51ms (compile: 5ms, render: 46ms)
+ GET /api/analytics?period=daily 200 in 646ms (compile: 2ms, render: 644ms)
+ GET /api/analytics?period=daily 200 in 571ms (compile: 3ms, render: 568ms)
+ GET /api/analytics?period=weekly 200 in 579ms (compile: 3ms, render: 576ms)
+ GET /dashboard/tools 200 in 47ms (compile: 6ms, render: 41ms)
+ GET /api/resumes?userId=cb50b0aa-2422-4e31-a83c-87fbe3026c45 200 in 12ms (compile: 4ms, render: 8ms)
+ GET /api/resumes?userId=cb50b0aa-2422-4e31-a83c-87fbe3026c45 200 in 3ms (compile: 1147µs, render: 2ms)
+ GET /dashboard/payment-tracking 200 in 34ms (compile: 3ms, render: 31ms)
+ GET /dashboard/payment-tracking 200 in 1349ms (compile: 743ms, render: 606ms)
+ GET /dashboard/payment-tracking 200 in 166ms (compile: 88ms, render: 79ms)
+ GET /dashboard/payment-tracking 200 in 88ms (compile: 19ms, render: 69ms)
+ GET /dashboard/payment-tracking 200 in 99ms (compile: 34ms, render: 64ms)
+ GET /dashboard/payment-tracking 200 in 118ms (compile: 39ms, render: 79ms)
+[?25h

@@ -17,6 +17,7 @@ export default function LoginPage() {
   const router = useRouter()
 
   // Redirect to dashboard after user is loaded and authenticated
+  // Primary redirect is handled by middleware, this is a fallback
   useEffect(() => {
     if (!loading && user) {
       router.push('/dashboard')

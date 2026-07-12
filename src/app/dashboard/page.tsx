@@ -71,14 +71,11 @@ export default function DashboardPage() {
   const { trackVisit } = useAnalytics()
   const [activeTab, setActiveTab] = useState<TabType>('send')
 
-  // Redirect to login if not authenticated, or to payment tracking if authenticated
+  // Redirect to payment tracking if authenticated
+  // Auth protection is handled by middleware, this redirects to the default dashboard page
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push('/login')
-      } else {
-        router.push('/dashboard/payment-tracking')
-      }
+    if (!authLoading && user) {
+      router.push('/dashboard/payment-tracking')
     }
   }, [user, authLoading, router])
 
