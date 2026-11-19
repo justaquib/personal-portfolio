@@ -27,7 +27,7 @@
     "id": 3,
     "slug": "doc-reader",
     "title": "RAG Document Studio",
-    "stack": "React + Gemini + PDF.js + SheetJS + ORC",
+    "stack": "Gemini + PDF.js + SheetJS + ORC",
     "comment": "Document summaries and context-aware Q&A",
     "problem": "Reviewing long documents takes time, and useful details can be difficult to find. This workspace brings document text, an AI-generated summary, and question answering into one focused view.",
     "approach": "Extracts text from PDF, DOC/DOCX, XLS/XLSX, CSV, and TXT files in the browser. Sends up to 30,000 characters of extracted text to the Gemini API for a summary or an answer grounded in the uploaded document and recent conversation.",

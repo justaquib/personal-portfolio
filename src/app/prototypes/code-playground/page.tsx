@@ -818,10 +818,10 @@ export default function ${normalizedName}() {
   // Get log icon
   const getLogIcon = (type: ConsoleLog['type']) => {
     switch (type) {
-      case 'error': return <AlertCircle className="w-4 h-4 text-red-400" />;
-      case 'warn': return <AlertCircle className="w-4 h-4 text-yellow-400" />;
-      case 'info': return <Info className="w-4 h-4 text-blue-400" />;
-      default: return <CheckCircle className="w-4 h-4 text-green-400" />;
+      case 'error': return <AlertCircle className="w-4 h-4 text-red-600" />;
+      case 'warn': return <AlertCircle className="w-4 h-4 text-amber-600" />;
+      case 'info': return <Info className="w-4 h-4 text-blue-600" />;
+      default: return <CheckCircle className="w-4 h-4 text-[#688746]" />;
     }
   };
 
@@ -837,17 +837,17 @@ export default function ${normalizedName}() {
   };
 
   return (
-    <div className="h-screen bg-[#0d0d0d] text-white flex flex-col overflow-hidden">
+    <div className="h-screen min-h-[620px] bg-[#f5f4ef] text-[#222520] flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-2 bg-[#161616] border-b border-[#2a2a2a]">
+      <header className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-[#fbfaf7] border-b border-[#e5e3dc]">
         <div className="flex items-center gap-3">
-          <Code2 className="w-6 h-6 text-[#e94560]" />
-          <h1 className="text-lg font-semibold">Code Playground</h1>
+          <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#e6eddb] text-[#557a32]"><Code2 className="w-5 h-5" /></div>
+          <div><h1 className="text-base font-semibold tracking-tight">Code Playground</h1><p className="text-xs text-[#85877f]">Build, run, and refine in your browser</p></div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowDetails(true)}
-            className="p-2 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-lg transition-colors"
+            className="p-2 text-[#686b63] bg-white hover:bg-[#f1f0eb] border border-[#e5e3dc] rounded-lg transition-colors"
             title="View Details"
           >
             <Info className="w-4 h-4" />
@@ -855,25 +855,25 @@ export default function ${normalizedName}() {
           <button
             onClick={runCode}
             disabled={isRunning}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#e94560] to-[#ff6b6b] rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[#222520] text-white rounded-lg hover:bg-[#3b4135] transition-colors disabled:opacity-50"
           >
             {isRunning ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Play className="w-4 h-4 text-white" />
+              <Play className="w-4 h-4" />
             )}
-            <span className="text-sm font-medium text-white">Run</span>
+            <span className="text-sm font-medium">Run</span>
           </button>
           <button
             onClick={resetCode}
-            className="flex items-center gap-2 px-4 py-2 bg-[#2a2a2a] rounded-lg hover:bg-[#3a3a3a] transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-white text-[#53564f] border border-[#e5e3dc] rounded-lg hover:bg-[#f1f0eb] transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
             <span>Reset</span>
           </button>
           <button
             onClick={() => router.push('/prototypes')}
-            className="flex items-center gap-2 px-4 py-2 bg-[#2a2a2a] rounded-lg hover:bg-[#3a3a3a] transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-white text-[#53564f] border border-[#e5e3dc] rounded-lg hover:bg-[#f1f0eb] transition-colors"
           >
             <Home className="w-4 h-4" />
             <span>Home</span>
@@ -894,15 +894,20 @@ export default function ${normalizedName}() {
         }}
       />
 
+      <style>{`@media (max-width: 767px) {
+        .playground-workspace { flex-direction: column; }
+        .playground-editor-panel, .playground-output-panel { width: 100% !important; height: 50%; flex: 0 0 50%; }
+        .playground-splitter { display: none; }
+      }`}</style>
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="playground-workspace flex-1 flex overflow-hidden">
         {/* Editor Panel */}
         <div 
-          className="flex flex-col bg-[#1a1a1a] overflow-hidden"
+          className="playground-editor-panel flex flex-col bg-[#fbfaf7] overflow-hidden border-r border-[#e5e3dc]"
           style={{ width: `${splitPosition}%` }}
         >
           {/* Tabs */}
-          <div className="flex items-center bg-[#161616] border-b border-[#2a2a2a] overflow-x-auto">
+          <div className="flex items-center bg-[#f0efe9] border-b border-[#e5e3dc] overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -911,8 +916,8 @@ export default function ${normalizedName}() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors border-b-2 whitespace-nowrap ${
                     activeTab === tab.id
-                      ? 'text-white border-[#e94560] bg-[#1a1a1a]'
-                      : 'text-gray-400 border-transparent hover:text-gray-200 hover:bg-[#1a1a1a]/50'
+                      ? 'text-[#35472b] border-[#73944c] bg-[#fbfaf7]'
+                      : 'text-[#777a72] border-transparent hover:text-[#343730] hover:bg-white/70'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -923,14 +928,14 @@ export default function ${normalizedName}() {
           </div>
 
           {activeTab === 'react' && (
-            <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-[#1b1b1b] border-b border-[#2a2a2a]">
+            <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-[#fbfaf7] border-b border-[#e5e3dc]">
               <select
                 value={activeReactProject?.id || ''}
                 onChange={(event) => {
                   setActiveReactProjectId(event.target.value);
                   setActiveReactFilePath('App.jsx');
                 }}
-                className="min-w-0 max-w-52 rounded-md border border-[#353535] bg-[#242424] px-3 py-1.5 text-sm text-gray-200 outline-none focus:border-cyan-400"
+                className="min-w-0 max-w-52 rounded-lg border border-[#deddd5] bg-white px-3 py-1.5 text-sm text-[#41443d] outline-none focus:border-[#8da86b]"
                 aria-label="Select React project"
               >
                 {reactProjects.map(project => (
@@ -940,7 +945,7 @@ export default function ${normalizedName}() {
               <select
                 value={activeReactFilePath}
                 onChange={(event) => setActiveReactFilePath(event.target.value)}
-                className="min-w-0 max-w-52 rounded-md border border-[#353535] bg-[#242424] px-3 py-1.5 text-sm text-gray-200 outline-none focus:border-cyan-400"
+                className="min-w-0 max-w-52 rounded-lg border border-[#deddd5] bg-white px-3 py-1.5 text-sm text-[#41443d] outline-none focus:border-[#8da86b]"
                 aria-label="Select project file"
               >
                 {Object.keys(activeReactProject?.files || {}).sort((a, b) => a === 'App.jsx' ? -1 : b === 'App.jsx' ? 1 : a.localeCompare(b)).map(path => (
@@ -950,7 +955,7 @@ export default function ${normalizedName}() {
               <button
                 type="button"
                 onClick={createReactProject}
-                className="flex items-center gap-1.5 rounded-md border border-[#3a3a3a] px-2.5 py-1.5 text-xs text-gray-200 transition-colors hover:border-cyan-400 hover:text-cyan-300"
+                className="flex items-center gap-1.5 rounded-lg border border-[#deddd5] bg-white px-2.5 py-1.5 text-xs text-[#4d5148] transition-colors hover:border-[#8da86b] hover:text-[#567736]"
               >
                 <Plus className="h-3.5 w-3.5" /> New React project
               </button>
@@ -958,11 +963,11 @@ export default function ${normalizedName}() {
                 type="button"
                 onClick={createReactComponent}
                 disabled={!activeReactProject}
-                className="flex items-center gap-1.5 rounded-md border border-[#3a3a3a] px-2.5 py-1.5 text-xs text-gray-200 transition-colors hover:border-cyan-400 hover:text-cyan-300 disabled:opacity-40"
+                className="flex items-center gap-1.5 rounded-lg border border-[#deddd5] bg-white px-2.5 py-1.5 text-xs text-[#4d5148] transition-colors hover:border-[#8da86b] hover:text-[#567736] disabled:opacity-40"
               >
                 <Plus className="h-3.5 w-3.5" /> Add component
               </button>
-              <span className="ml-auto text-[11px] text-gray-500">{activeReactFilePath} · auto-saved · React 18 + Tailwind</span>
+              <span className="ml-auto text-[11px] text-[#85877f]">{activeReactFilePath} · auto-saved · React 18 + Tailwind</span>
             </div>
           )}
 
@@ -973,7 +978,7 @@ export default function ${normalizedName}() {
               language={tabs.find(t => t.id === activeTab)?.language || 'html'}
               value={activeTab === 'react' ? (activeReactProject?.files[activeReactFilePath] || defaultReactCode) : codes[activeTab as keyof typeof codes]}
               onChange={handleCodeChange}
-              theme="vs-dark"
+              theme="light"
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
@@ -1004,22 +1009,22 @@ export default function ${normalizedName}() {
 
         {/* Resizer */}
         <div
-          className={`w-1 bg-[#2a2a2a] hover:bg-[#e94560] cursor-col-resize transition-colors ${
-            isDragging ? 'bg-[#e94560]' : ''
+          className={`playground-splitter w-1 bg-[#e5e3dc] hover:bg-[#9aae7e] cursor-col-resize transition-colors ${
+            isDragging ? 'bg-[#9aae7e]' : ''
           }`}
           onMouseDown={handleMouseDown}
         />
 
         {/* Output Panel */}
         <div 
-          className="flex flex-col bg-[#0d0d0d] overflow-hidden"
+          className="playground-output-panel flex flex-col bg-[#fbfaf7] overflow-hidden"
           style={{ width: `${100 - splitPosition}%` }}
         >
           {/* Output Header */}
-          <div className="flex items-center justify-between px-4 py-2 bg-[#161616] border-b border-[#2a2a2a]">
-            <span className="text-sm font-medium text-gray-300">Output Preview</span>
+          <div className="flex items-center justify-between px-4 py-2 bg-[#f0efe9] border-b border-[#e5e3dc]">
+            <span className="text-sm font-medium text-[#41443d]">Output Preview</span>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-[#85877f]">
                 {getOutputLabel()}
               </span>
             </div>
@@ -1040,20 +1045,20 @@ export default function ${normalizedName}() {
 
       {/* Console Drawer */}
       <div 
-        className={`bg-[#161616] border-t border-[#2a2a2a] transition-all duration-300 ${
+        className={`bg-[#fbfaf7] border-t border-[#e5e3dc] transition-all duration-300 ${
           isConsoleMinimized ? 'h-10' : 'h-48'
         } ${!isConsoleOpen ? 'h-0 border-0' : ''}`}
       >
         {/* Console Header */}
         <div 
-          className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-[#1a1a1a]"
+          className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-[#f0efe9]"
           onClick={() => setIsConsoleMinimized(!isConsoleMinimized)}
         >
           <div className="flex items-center gap-2">
-            <Terminal className="w-4 h-4 text-[#e94560]" />
+            <Terminal className="w-4 h-4 text-[#688746]" />
             <span className="text-sm font-medium">Console</span>
             {consoleLogs.length > 0 && (
-              <span className="px-2 py-0.5 text-xs bg-[#2a2a2a] rounded-full">
+              <span className="px-2 py-0.5 text-xs bg-[#eeede7] text-[#66695f] rounded-full">
                 {consoleLogs.length}
               </span>
             )}
@@ -1064,7 +1069,7 @@ export default function ${normalizedName}() {
                 e.stopPropagation();
                 clearConsole();
               }}
-              className="px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors"
+              className="px-2 py-1 text-xs text-[#777a72] hover:text-[#282b25] transition-colors"
             >
               Clear
             </button>
@@ -1073,14 +1078,14 @@ export default function ${normalizedName}() {
                 e.stopPropagation();
                 setIsConsoleOpen(false);
               }}
-              className="p-1 hover:bg-[#2a2a2a] rounded transition-colors"
+              className="p-1 text-[#777a72] hover:bg-[#eeede7] rounded transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
             {isConsoleMinimized ? (
-              <ChevronUp className="w-4 h-4 text-gray-400" />
+              <ChevronUp className="w-4 h-4 text-[#777a72]" />
             ) : (
-              <ChevronDown className="w-4 h-4 text-gray-400" />
+              <ChevronDown className="w-4 h-4 text-[#777a72]" />
             )}
           </div>
         </div>
@@ -1089,7 +1094,7 @@ export default function ${normalizedName}() {
         {!isConsoleMinimized && (
           <div className="flex-1 overflow-auto px-4 pb-2 font-mono text-sm">
             {consoleLogs.length === 0 ? (
-              <div className="text-gray-500 text-center py-4">
+              <div className="text-[#85877f] text-center py-4">
                 No logs yet. Run your code to see output.
               </div>
             ) : (
@@ -1099,25 +1104,25 @@ export default function ${normalizedName}() {
                     key={log.id}
                     className={`flex items-start gap-2 py-1 px-2 rounded ${
                       log.type === 'error' 
-                        ? 'bg-red-500/10' 
+                        ? 'bg-red-50'
                         : log.type === 'warn' 
-                        ? 'bg-yellow-500/10' 
+                        ? 'bg-amber-50'
                         : ''
                     }`}
                   >
                     {getLogIcon(log.type)}
                     <span className={`flex-1 ${
                       log.type === 'error' 
-                        ? 'text-red-300' 
+                        ? 'text-red-700'
                         : log.type === 'warn' 
-                        ? 'text-yellow-300' 
+                        ? 'text-amber-700'
                         : log.type === 'info'
-                        ? 'text-blue-300'
-                        : 'text-gray-300'
+                        ? 'text-blue-700'
+                        : 'text-[#41443d]'
                     }`}>
                       {log.message}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-[#85877f]">
                       {log.timestamp.toLocaleTimeString()}
                     </span>
                   </div>
@@ -1135,12 +1140,12 @@ export default function ${normalizedName}() {
             setIsConsoleOpen(true);
             setIsConsoleMinimized(false);
           }}
-          className="fixed bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-[#2a2a2a] rounded-lg hover:bg-[#3a3a3a] transition-colors shadow-lg"
+          className="fixed bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-[#222520] text-white rounded-lg hover:bg-[#3b4135] transition-colors shadow-lg"
         >
-          <Terminal className="w-4 h-4 text-[#e94560]" />
+          <Terminal className="w-4 h-4 text-[#b6ce91]" />
           <span className="text-sm">Show Console</span>
           {consoleLogs.length > 0 && (
-            <span className="px-2 py-0.5 text-xs bg-[#e94560] rounded-full">
+            <span className="px-2 py-0.5 text-xs bg-[#688746] rounded-full">
               {consoleLogs.length}
             </span>
           )}
