@@ -185,23 +185,23 @@ export function EarningsTab({ userId }: EarningsTabProps) {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="bg-green-500 text-white p-4">
+        <Card className="p-4" style={{ backgroundColor: '#edf4ec', color: '#355f3d' }}>
           <div className="text-xs opacity-90">Total Revenue</div>
           <div className="text-xl font-bold mt-1">₹{totalRevenue.toLocaleString()}</div>
         </Card>
-        <Card className="bg-red-500 text-white p-4">
+        <Card className="p-4" style={{ backgroundColor: '#fff1ed', color: '#99523f' }}>
           <div className="text-xs opacity-90">Total Cost</div>
           <div className="text-xl font-bold mt-1">₹{totalCost.toLocaleString()}</div>
         </Card>
-        <Card className="p-4" style={{ backgroundColor: '#212529', color: '#ffffff' }}>
+        <Card className="p-4" style={{ backgroundColor: '#e7f0e7', color: '#2f5b39' }}>
           <div className="text-xs opacity-90">Net Profit</div>
           <div className="text-xl font-bold mt-1">₹{netProfit.toLocaleString()}</div>
         </Card>
-        <Card className="bg-amber-500 text-white p-4">
+        <Card className="p-4" style={{ backgroundColor: '#faf3e1', color: '#856a31' }}>
           <div className="text-xs opacity-90">Total Due</div>
           <div className="text-xl font-bold mt-1">₹{remainingDue.toLocaleString()}</div>
         </Card>
-        <Card className="bg-blue-500 text-white p-4">
+        <Card className="p-4" style={{ backgroundColor: '#edf3ef', color: '#42644a' }}>
           <div className="text-xs opacity-90">Outstanding</div>
           <div className="text-xl font-bold mt-1">₹{outstanding.toLocaleString()}</div>
         </Card>

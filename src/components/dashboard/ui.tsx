@@ -10,7 +10,7 @@ interface CardProps {
 
 export function Card({ title, children, className = '', actions, style }: CardProps) {
   return (
-    <div className={`bg-white rounded-2xl shadow-lg p-6 ${className}`} style={style}>
+    <div className={`dashboard-panel p-5 sm:p-6 ${className}`} style={style}>
       {title && (
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
@@ -30,8 +30,8 @@ export function Card({ title, children, className = '', actions, style }: CardPr
 export function LoadingState({ message = 'Loading...' }: { message?: string }) {
   return (
     <div className="flex items-center justify-center py-8">
-      <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: '#6c757d', borderTopColor: 'transparent' }} />
-      <span className="ml-3" style={{ color: '#6c757d' }}>{message}</span>
+      <div className="h-8 w-8 animate-spin rounded-full border-4" style={{ borderColor: '#8eb193', borderTopColor: 'transparent' }} />
+      <span className="ml-3 text-sm" style={{ color: '#718176' }}>{message}</span>
     </div>
   )
 }
@@ -164,9 +164,9 @@ export function Button({
     <button
       className={`inline-flex items-center justify-center font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${sizes[size]} ${className}`}
       style={{
-        backgroundColor: variant === 'primary' ? '#212529' : variant === 'danger' ? '#343a40' : 'transparent',
-        color: variant === 'primary' || variant === 'danger' ? '#ffffff' : variant === 'secondary' ? '#212529' : '#495057',
-        border: variant === 'secondary' || variant === 'ghost' ? '1px solid #ced4da' : 'none',
+        backgroundColor: variant === 'primary' ? '#254f36' : variant === 'danger' ? '#a94e3c' : 'transparent',
+        color: variant === 'primary' || variant === 'danger' ? '#ffffff' : variant === 'secondary' ? '#405546' : '#65756a',
+        border: variant === 'secondary' || variant === 'ghost' ? '1px solid #dce5dc' : 'none',
         cursor: 'pointer',
       }}
       disabled={disabled || loading}
@@ -202,9 +202,9 @@ export function Input({ label, error, className = '', ...props }: InputProps) {
           error ? 'border-red-300' : ''
         } ${className}`}
         style={{
-          borderColor: error ? '#ef4444' : '#ced4da',
-          backgroundColor: '#f8f9fa',
-          color: '#212529',
+          borderColor: error ? '#d79080' : '#dfe7df',
+          backgroundColor: '#ffffff',
+          color: '#33483a',
           outline: 'none'
         }}
         {...props}
@@ -231,9 +231,9 @@ export function Select({ label, options, className = '', ...props }: SelectProps
       <select
         className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 transition-colors ${className}`}
         style={{
-          borderColor: '#ced4da',
-          backgroundColor: '#f8f9fa',
-          color: '#212529',
+          borderColor: '#dfe7df',
+          backgroundColor: '#ffffff',
+          color: '#33483a',
           outline: 'none'
         }}
         {...props}
@@ -272,11 +272,11 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', variant =
     return (
       <div className="fixed inset-0 z-50">
         <div
-          className="fixed inset-0 bg-black/50 transition-opacity"
+          className="fixed inset-0 bg-[#17251f]/45 backdrop-blur-sm transition-opacity"
           onClick={onClose}
         />
-        <div className={`fixed right-0 top-0 h-full bg-white shadow-xl w-full ${sizes[size]} overflow-y-auto`}>
-          <div className="flex items-center justify-between p-6 border-b">
+        <div className={`fixed right-0 top-0 h-full w-full ${sizes[size]} overflow-y-auto border-l border-[#e2e8e0] bg-[#fbfcfa] shadow-xl`}>
+          <div className="flex items-center justify-between border-b border-[#e5ebe5] bg-white p-5 sm:p-6">
             <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
             <button
               onClick={onClose}
@@ -299,11 +299,11 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', variant =
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center p-4">
         <div
-          className="fixed inset-0 bg-black/50 transition-opacity"
+          className="fixed inset-0 bg-[#17251f]/45 backdrop-blur-sm transition-opacity"
           onClick={onClose}
         />
-        <div className={`relative bg-white rounded-2xl shadow-xl w-full ${sizes[size]} max-h-[90vh] overflow-y-auto`}>
-          <div className="flex items-center justify-between p-6 border-b">
+        <div className={`relative w-full ${sizes[size]} max-h-[90vh] overflow-y-auto rounded-2xl border border-[#dce6df] bg-[#fbfcfa] shadow-[0_28px_90px_-28px_rgba(12,34,24,.42)]`}>
+          <div className="flex items-center justify-between border-b border-[#e5ebe5] bg-white p-5 sm:p-6">
             <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
             <button
               onClick={onClose}

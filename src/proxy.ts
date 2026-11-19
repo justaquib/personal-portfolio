@@ -1,7 +1,27 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { DEMO_SESSION_COOKIE, verifyDemoSessionToken } from '@/lib/demo-session'
 
 export async function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname
+  const demoSession = verifyDemoSessionToken(request.cookies.get(DEMO_SESSION_COOKIE)?.value)
+
+  // Demo credentials only open the isolated, sample-data demo route.
+  if (path.startsWith('/dashboard/demo')) {
+    if (demoSession) return NextResponse.next()
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('demo', '1')
+    return NextResponse.redirect(url)
+  }
+
+  if (demoSession && path === '/login') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard/demo'
+    url.search = ''
+    return NextResponse.redirect(url)
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })

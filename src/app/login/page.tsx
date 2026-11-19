@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { Eye, EyeOff } from 'lucide-react'
+import { ArrowRight, Check, Eye, EyeOff, LayoutDashboard, LockKeyhole, ShieldCheck } from 'lucide-react'
+
+type LoginMode = 'account' | 'demo'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -12,274 +14,151 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [demoUsername, setDemoUsername] = useState('justaquib')
+  const [demoPassword, setDemoPassword] = useState('')
+  const [demoError, setDemoError] = useState<string | null>(null)
+  const [demoLoading, setDemoLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle, user, loading } = useAuth()
+  const [mode, setMode] = useState<LoginMode>('account')
+  const { signInWithEmail, signUpWithEmail, user, loading } = useAuth()
   const router = useRouter()
 
-  // Redirect to dashboard after user is loaded and authenticated
-  // Primary redirect is handled by middleware, this is a fallback
   useEffect(() => {
-    if (!loading && user) {
-      router.push('/dashboard')
-    }
+    if (new URLSearchParams(window.location.search).get('demo') === '1') setMode('demo')
+  }, [])
+
+  useEffect(() => {
+    if (!loading && user) router.replace('/dashboard')
   }, [user, loading, router])
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const changeMode = (nextMode: LoginMode) => {
+    setMode(nextMode)
+    setError(null)
+    setDemoError(null)
+    setSuccess(null)
+  }
+
+  const handleEmailSignIn = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
     setIsLoading(true)
     setError(null)
     setSuccess(null)
 
-    // Basic validation
     if (!email.trim() || !password.trim()) {
-      setError('Please enter both email and password')
+      setError('Enter your email and password to continue.')
       setIsLoading(false)
       return
     }
 
     try {
       if (isSignUp) {
-        await signUpWithEmail(email, password)
-        setSuccess('Account created successfully! You can now sign in with your credentials.')
+        await signUpWithEmail(email.trim(), password)
+        setSuccess('Your account is ready. Sign in with your new credentials.')
         setIsSignUp(false)
-        setEmail('')
         setPassword('')
       } else {
-        await signInWithEmail(email, password)
-        // Redirect will happen via useEffect
+        await signInWithEmail(email.trim(), password)
       }
-    } catch (err: any) {
-      console.error('Authentication error:', err)
-      
-      // Handle specific Supabase auth errors
-      if (err.message?.includes('Invalid login credentials')) {
-        setError('Invalid email or password. Please try again. Make sure you have created an account first.')
-      } else if (err.message?.includes('Email not confirmed')) {
-        setError('Please verify your email address before signing in, or disable email confirmation in Supabase settings.')
-      } else if (err.message?.includes('User already registered')) {
-        setError('An account with this email already exists. Please sign in instead.')
-      } else if (err.message?.includes('Password should be at least')) {
-        setError('Password must be at least 6 characters long.')
-      } else {
-        setError(err.message || 'Failed to authenticate. Please try again.')
-      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Authentication failed. Please try again.'
+      if (message.includes('Invalid login credentials')) setError('That email and password combination was not recognized.')
+      else if (message.includes('Email not confirmed')) setError('Confirm your email address before signing in.')
+      else if (message.includes('User already registered')) setError('An account with this email already exists. Sign in instead.')
+      else if (message.includes('Password should be at least')) setError('Use a password with at least six characters.')
+      else setError(message)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleGoogleSignIn = async () => {
-    // Show message that Google login is not available for team members
-    setError('Google login is not available for team member accounts. Please use email and password to sign in.')
-    return
+  const handleDemoSignIn = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setDemoLoading(true)
+    setDemoError(null)
+    try {
+      const response = await fetch('/api/demo-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: demoUsername, password: demoPassword }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Demo sign-in failed.')
+      router.replace('/dashboard/demo')
+    } catch (err) {
+      setDemoError(err instanceof Error ? err.message : 'Demo sign-in failed. Please try again.')
+    } finally {
+      setDemoLoading(false)
+    }
   }
 
-  // Show loading while checking auth
   if (loading) {
-    return (
-      <div 
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: '#f8f9fa' }}
-      >
-        <div 
-          className="w-12 h-12 border-4 animate-spin"
-          style={{ borderColor: '#212529', borderTopColor: 'transparent', borderRadius: '50%' }}
-        />
-      </div>
-    )
+    return <main className="grid min-h-screen place-items-center bg-[#f5f6f2]"><div className="h-9 w-9 animate-spin rounded-full border-[3px] border-[#dce8dc] border-t-[#4d7954]" /></main>
   }
 
-  // Don't render if user is already authenticated (will redirect)
-  if (user) {
-    return null
-  }
+  if (user) return null
+
+  const inputClass = 'h-12 w-full rounded-xl border border-[#dfe7df] bg-white px-3.5 text-sm text-[#33483a] outline-none transition placeholder:text-[#a0aaa2] focus:border-[#a5c0a7] focus:ring-4 focus:ring-[#eaf2e9]'
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center"
-      style={{ backgroundColor: '#f8f9fa' }}
-    >
-      <div className="relative z-10 max-w-md w-full mx-4">
-        <div 
-          className="rounded-3xl p-8 shadow-2xl"
-          style={{ backgroundColor: '#e9ecef', border: '1px solid #ced4da' }}
-        >
-          <div className="text-center mb-8">
-            <h1 
-              className="text-4xl font-bold mb-2"
-              style={{ color: '#212529' }}
-            >
-              {isSignUp ? 'Create Account' : 'Welcome Back'}
-            </h1>
-            <p style={{ color: '#212529' }}>
-              {isSignUp ? 'Sign up to access your payment dashboard' : 'Sign in to access your payment dashboard'}
-            </p>
-          </div>
+    <main className="min-h-screen overflow-hidden bg-[#f5f6f2] text-[#263b2e]">
+      <div className="mx-auto flex min-h-screen max-w-[1320px] flex-col px-4 sm:px-7 lg:px-10">
+        <header className="flex h-[76px] shrink-0 items-center justify-between border-b border-[#e1e6de]">
+          <a href="/" className="flex items-center gap-2.5" aria-label="Just Aquib home">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#254f36] text-white"><LayoutDashboard className="h-4 w-4" /></span>
+            <span className="text-sm font-semibold tracking-tight text-[#2d4433]">Just Aquib</span>
+          </a>
+          <span className="hidden items-center gap-1.5 text-[11px] font-medium text-[#7f8c82] sm:flex"><LockKeyhole className="h-3.5 w-3.5" />Secure workspace access</span>
+        </header>
 
-          {error && (
-            <div 
-              className="mb-6 p-4 rounded-xl text-sm"
-              style={{ backgroundColor: '#dee2e6', border: '1px solid #ced4da', color: '#495057' }}
-            >
-              {error}
+        <div className="grid flex-1 items-center gap-10 py-8 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-20 lg:py-12">
+          <section className="mx-auto w-full max-w-xl lg:mx-0">
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#d9e5d8] bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#67806a]"><span className="h-1.5 w-1.5 rounded-full bg-[#75a077]" />Personal workspace</p>
+            <h1 className="max-w-lg text-4xl font-semibold leading-[1.08] tracking-[-0.055em] text-[#21382b] sm:text-5xl">A clear view of the work behind the work.</h1>
+            <p className="mt-5 max-w-md text-sm leading-6 text-[#738178] sm:text-base sm:leading-7">Sign in to manage payments, clients, analytics, and the tools that keep your work moving.</p>
+            <div className="mt-8 grid max-w-lg gap-3 sm:grid-cols-3">
+              {[
+                { title: 'Manage', text: 'Payments and clients' },
+                { title: 'Review', text: 'Activity and analytics' },
+                { title: 'Build', text: 'Resumes and tools' },
+              ].map((item) => <div key={item.title} className="rounded-xl border border-[#e2e8e0] bg-white/80 p-3.5"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#5b7a5f]">{item.title}</span><p className="mt-1.5 text-xs leading-5 text-[#7d8a80]">{item.text}</p></div>)}
             </div>
-          )}
+          </section>
 
-          {success && (
-            <div 
-              className="mb-6 p-4 rounded-xl text-sm"
-              style={{ backgroundColor: '#e9ecef', border: '1px solid #ced4da', color: '#495057' }}
-            >
-              {success}
-            </div>
-          )}
-
-          {/* Email/Password Form */}
-          <form onSubmit={handleEmailSignIn} className="space-y-4 mb-6">
-            <div>
-              <label 
-                htmlFor="email" 
-                className="block text-sm font-medium mb-1"
-                style={{ color: '#495057' }}
-              >
-                Email Address
-              </label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-xl transition-all"
-                style={{ 
-                  backgroundColor: '#f8f9fa', 
-                  border: '1px solid #ced4da', 
-                  color: '#212529',
-                  outline: 'none'
-                }}
-                disabled={isLoading}
-              />
+          <section className="mx-auto w-full max-w-[440px] rounded-2xl border border-[#e0e7df] bg-white p-5 shadow-[0_22px_70px_-44px_rgba(30,66,42,.35)] sm:p-7">
+            <div className="grid grid-cols-2 rounded-xl bg-[#f3f6f2] p-1" role="tablist" aria-label="Sign-in type">
+              <button type="button" role="tab" aria-selected={mode === 'account'} onClick={() => changeMode('account')} className={`h-10 rounded-lg text-xs font-semibold transition ${mode === 'account' ? 'bg-white text-[#2f5138] shadow-[0_1px_5px_rgba(36,67,42,.1)]' : 'text-[#7f8b81] hover:text-[#45634a]'}`}>Account sign in</button>
+              <button type="button" role="tab" aria-selected={mode === 'demo'} onClick={() => changeMode('demo')} className={`h-10 rounded-lg text-xs font-semibold transition ${mode === 'demo' ? 'bg-white text-[#2f5138] shadow-[0_1px_5px_rgba(36,67,42,.1)]' : 'text-[#7f8b81] hover:text-[#45634a]'}`}>Demo access</button>
             </div>
 
-            <div>
-              <label 
-                htmlFor="password" 
-                className="block text-sm font-medium mb-1"
-                style={{ color: '#495057' }}
-              >
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl transition-all pr-12"
-                  style={{ 
-                    backgroundColor: '#f8f9fa', 
-                    border: '1px solid #ced4da', 
-                    color: '#212529',
-                    outline: 'none'
-                  }}
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
-                  style={{ color: '#212529' }}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
+            {mode === 'account' ? (
+              <div className="pt-6" role="tabpanel">
+                <div className="mb-5"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#78907a]">{isSignUp ? 'New account' : 'Welcome back'}</p><h2 className="mt-1.5 text-xl font-semibold tracking-tight text-[#2a4031]">{isSignUp ? 'Create your account' : 'Sign in to your workspace'}</h2><p className="mt-1.5 text-xs leading-5 text-[#849087]">{isSignUp ? 'Set up access to your dashboard.' : 'Use your Supabase account credentials.'}</p></div>
+                {error && <div role="alert" className="mb-4 rounded-xl border border-[#efd2c9] bg-[#fff6f3] px-3.5 py-3 text-xs leading-5 text-[#984d3d]">{error}</div>}
+                {success && <div role="status" className="mb-4 rounded-xl border border-[#d5e5d4] bg-[#f0f7ef] px-3.5 py-3 text-xs leading-5 text-[#416c48]">{success}</div>}
+                <form onSubmit={handleEmailSignIn} className="space-y-4">
+                  <label className="block"><span className="mb-1.5 block text-xs font-semibold text-[#53665a]">Email address</span><input autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required className={inputClass} disabled={isLoading} /></label>
+                  <label className="block"><span className="mb-1.5 block text-xs font-semibold text-[#53665a]">Password</span><span className="relative block"><input autoComplete={isSignUp ? 'new-password' : 'current-password'} type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" required className={`${inputClass} pr-12`} disabled={isLoading} /><button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[#8b978d] hover:bg-[#f2f6f1] hover:text-[#41664a]">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></span></label>
+                  <button type="submit" disabled={isLoading} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#254f36] px-4 text-sm font-semibold text-white transition hover:bg-[#1d412c] disabled:cursor-wait disabled:opacity-60">{isLoading ? 'Please wait…' : isSignUp ? 'Create account' : 'Sign in'}{!isLoading && <ArrowRight className="h-4 w-4" />}</button>
+                </form>
+                <p className="mt-5 text-center text-xs text-[#829087]">{isSignUp ? 'Already have an account?' : 'Need an account?'} <button type="button" onClick={() => { setIsSignUp((value) => !value); setError(null); setSuccess(null); }} className="font-semibold text-[#47734f] hover:text-[#2f5938]">{isSignUp ? 'Sign in' : 'Create one'}</button></p>
               </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 font-semibold py-3 px-6 rounded-xl transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#212529', color: '#ffffff' }}
-            >
-              {isLoading ? (
-                <div 
-                  className="w-5 h-5 border-2 animate-spin"
-                  style={{ borderColor: '#ffffff', borderTopColor: 'transparent', borderRadius: '50%' }}
-                />
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                </svg>
-              )}
-              <span>{isLoading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}</span>
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full" style={{ borderTop: '1px solid #ced4da' }}></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4" style={{ backgroundColor: '#e9ecef', color: '#212529' }}>or continue with</span>
-            </div>
-          </div>
-
-          {/* Google OAuth Button - Active */}
-          <button
-            onClick={handleGoogleSignIn}
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 font-semibold py-3 px-6 rounded-xl transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg"
-            style={{ backgroundColor: '#f8f9fa', color: '#495057', border: '1px solid #ced4da' }}
-          >
-            {isLoading ? (
-              <div 
-                className="w-5 h-5 border-2 animate-spin"
-                style={{ borderColor: '#495057', borderTopColor: 'transparent', borderRadius: '50%' }}
-              />
             ) : (
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="#212529"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#495057"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#212529"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="#495057"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
+              <div className="pt-6" role="tabpanel">
+                <div className="mb-5"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#78907a]">Isolated preview</p><h2 className="mt-1.5 text-xl font-semibold tracking-tight text-[#2a4031]">Enter the demo workspace</h2><p className="mt-1.5 text-xs leading-5 text-[#849087]">Read-only dashboard preview with sample data. Your account records stay separate.</p></div>
+                {demoError && <div role="alert" className="mb-4 rounded-xl border border-[#efd2c9] bg-[#fff6f3] px-3.5 py-3 text-xs leading-5 text-[#984d3d]">{demoError}</div>}
+                <form onSubmit={handleDemoSignIn} className="space-y-4">
+                  <label className="block"><span className="mb-1.5 block text-xs font-semibold text-[#53665a]">Username</span><input autoComplete="username" value={demoUsername} onChange={(event) => setDemoUsername(event.target.value)} required className={inputClass} disabled={demoLoading} /></label>
+                  <label className="block"><span className="mb-1.5 block text-xs font-semibold text-[#53665a]">Demo password</span><span className="relative block"><input autoComplete="current-password" type={showPassword ? 'text' : 'password'} value={demoPassword} onChange={(event) => setDemoPassword(event.target.value)} placeholder="Enter demo password" required className={`${inputClass} pr-12`} disabled={demoLoading} /><button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[#8b978d] hover:bg-[#f2f6f1] hover:text-[#41664a]">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></span></label>
+                  <button type="submit" disabled={demoLoading} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#254f36] px-4 text-sm font-semibold text-white transition hover:bg-[#1d412c] disabled:cursor-wait disabled:opacity-60">{demoLoading ? 'Opening demo…' : 'Open demo dashboard'}{!demoLoading && <ArrowRight className="h-4 w-4" />}</button>
+                </form>
+                <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-[#87938a]"><ShieldCheck className="h-3.5 w-3.5 text-[#6c936f]" />Demo session expires after four hours</p>
+              </div>
             )}
-            <span>Google</span>
-          </button>
+          </section>
         </div>
-      </div>
 
-      <style jsx global>{`
-        @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-      `}</style>
-    </div>
+        <footer className="flex min-h-12 items-center justify-center border-t border-[#e1e6de] py-3 text-[10px] text-[#9aa49b]">© {new Date().getFullYear()} Just Aquib · Private workspace</footer>
+      </div>
+    </main>
   )
 }

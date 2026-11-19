@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { Sidebar } from '@/components/dashboard/Sidebar'
+import { DashboardTopbar } from '@/components/dashboard/DashboardTopbar'
 import { SendTab } from '@/components/dashboard/tabs/SendTab'
 import { ContactsTab } from '@/components/dashboard/tabs/ContactsTab'
 import { ServicesTab } from '@/components/dashboard/tabs/ServicesTab'
@@ -122,7 +123,7 @@ export default function PaymentTrackingPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa' }}>
+      <div className="dashboard-theme">
       <Sidebar activeTab={activeTab as TabType} onTabChange={(tab) => {
         // Handle navigation to other main sections
         if (tab === 'analytics') {
@@ -137,28 +138,26 @@ export default function PaymentTrackingPage() {
           setActiveTab(tab as PaymentTabType)
         }
       }} />
-      <main className="transition-all duration-300 overflow-y-auto min-h-screen" style={{
-        marginLeft: sidebarCollapsed ? '64px' : '256px',
-        width: `calc(100vw - ${sidebarCollapsed ? '64px' : '256px'})`
-      }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="dashboard-shell-main overflow-y-auto" data-sidebar-collapsed={sidebarCollapsed}>
+        <DashboardTopbar />
+        <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>Payment Tracking</h1>
-            <p className="text-sm mt-1" style={{ color: '#6c757d' }}>Manage payments, contacts, and track earnings</p>
+            <h1 className="dashboard-page-title">Payment tracking</h1>
+            <p className="dashboard-page-description mt-1">Manage payments, contacts, and track earnings</p>
           </div>
 
           {/* Sub-tabs for Payment Tracking */}
           <div className="mb-6">
-            <div className="flex gap-2 border-b border-gray-200">
+            <div className="flex snap-x gap-1 overflow-x-auto rounded-2xl border border-[#e2e8e0] bg-white p-1.5 shadow-[0_8px_24px_-22px_rgba(34,64,42,.4)]">
               {(Object.keys(tabTitles) as PaymentTabType[]).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  className={`shrink-0 rounded-xl px-3.5 py-2 text-xs font-medium transition-colors sm:text-sm ${
                     activeTab === tab
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'bg-[#edf4ec] text-[#315b3b]'
+                      : 'text-[#78867b] hover:bg-[#f7f9f6] hover:text-[#3f5d46]'
                   }`}
                 >
                   {tabTitles[tab].title}
@@ -168,9 +167,9 @@ export default function PaymentTrackingPage() {
           </div>
 
           {/* Current sub-tab title and description */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold" style={{ color: '#212529' }}>{title}</h2>
-            <p className="text-sm mt-1" style={{ color: '#6c757d' }}>{description}</p>
+          <div className="mb-5 mt-6 flex items-end justify-between gap-3">
+            <div><h2 className="text-lg font-semibold tracking-tight text-[#334a38]">{title}</h2><p className="mt-1 text-xs text-[#87938a]">{description}</p></div>
+            <span className="hidden rounded-full border border-[#e1e8df] bg-white px-3 py-1.5 text-[10px] font-medium text-[#829087] sm:inline-flex">Workspace</span>
           </div>
 
           {/* Tab Content */}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { Sidebar } from '@/components/dashboard/Sidebar'
+import { DashboardTopbar } from '@/components/dashboard/DashboardTopbar'
 import { ResumeBuilderTab } from '@/components/dashboard/tabs/ResumeBuilderTab'
 import type { TabType } from '@/types/database'
 
@@ -58,7 +59,7 @@ export default function ToolsPage() {
   if (!user) return null
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa' }}>
+    <div className="dashboard-theme">
       <Sidebar activeTab='resume-builder' onTabChange={(tab) => {
         // Handle navigation to other main sections
         if (['send', 'contacts', 'services', 'payments', 'templates', 'history', 'earnings'].includes(tab)) {
@@ -71,57 +72,55 @@ export default function ToolsPage() {
           router.push('/dashboard/account')
         }
       }} />
-      <main className="transition-all duration-300 overflow-y-auto min-h-screen" style={{
-        marginLeft: sidebarCollapsed ? '64px' : '256px',
-        width: `calc(100vw - ${sidebarCollapsed ? '64px' : '256px'})`
-      }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="dashboard-shell-main overflow-y-auto" data-sidebar-collapsed={sidebarCollapsed}>
+        <DashboardTopbar />
+        <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>Tools</h1>
-            <p className="text-sm mt-1" style={{ color: '#6c757d' }}>Productivity tools and utilities</p>
+            <h1 className="dashboard-page-title">Tools</h1>
+            <p className="dashboard-page-description mt-1">Productivity tools and utilities</p>
           </div>
 
           {/* Tools Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {/* Resume Builder Tool */}
-            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <div className="dashboard-panel p-5 sm:p-6">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[#edf4ec]">
+                  <svg className="h-6 w-6 text-[#4b7851]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">ATS Resume Builder</h3>
-                  <p className="text-sm text-gray-500">Create ATS-compatible resumes</p>
+                  <h3 className="text-base font-semibold text-[#334a38]">ATS Resume Builder</h3>
+                  <p className="text-xs text-[#839087]">Create ATS-compatible resumes</p>
                 </div>
               </div>
               <button
-                onClick={() => {/* Could add modal or direct render */}}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                onClick={() => document.getElementById('resume-builder-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="w-full rounded-xl bg-[#254f36] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1d412c]"
               >
                 Open Resume Builder
               </button>
             </div>
 
             {/* Placeholder for future tools */}
-            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 border-dashed">
+            <div className="rounded-2xl border border-dashed border-[#d8e1d7] bg-white p-5 sm:p-6">
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-6 w-6 text-[#98a49a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                   </div>
-                  <p className="text-sm text-gray-500">More tools coming soon</p>
+                  <p className="text-sm text-[#89958c]">More tools coming soon</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Resume Builder Content */}
-          <div className="bg-white rounded-lg shadow-lg">
+          <div id="resume-builder-content" className="dashboard-panel scroll-mt-6 overflow-hidden">
             <ResumeBuilderTab />
           </div>
         </div>

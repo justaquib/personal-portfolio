@@ -111,6 +111,90 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Shared layout and palette for authenticated dashboard pages. */
+.dashboard-theme {
+  min-height: 100vh;
+  background: #f5f6f2;
+  color: #263b2e;
+}
+.dashboard-shell-main {
+  width: calc(100vw - 252px);
+  min-height: 100vh;
+  margin-left: 252px;
+  transition: width .2s ease, margin-left .2s ease;
+}
+.dashboard-shell-main[data-sidebar-collapsed="true"] {
+  width: calc(100vw - 76px);
+  margin-left: 76px;
+}
+@media (max-width: 767px) {
+  .dashboard-shell-main,
+  .dashboard-shell-main[data-sidebar-collapsed="true"] {
+    width: 100%;
+    margin-left: 0;
+    padding-bottom: calc(66px + env(safe-area-inset-bottom));
+  }
+}
+.dashboard-page-title {
+  color: #263d2e;
+  font-size: clamp(1.5rem, 2vw, 1.9rem);
+  font-weight: 650;
+  letter-spacing: -.045em;
+}
+.dashboard-page-description { color: #7d8a80; font-size: .875rem; line-height: 1.55; }
+.dashboard-panel {
+  border: 1px solid #e2e8e0;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 8px 24px -22px rgba(34, 64, 42, .4);
+}
+.dashboard-theme .text-gray-900,
+.dashboard-theme .text-gray-800,
+.dashboard-theme .text-gray-700 { color: #344a39; }
+.dashboard-theme .text-gray-600,
+.dashboard-theme .text-gray-500 { color: #78867b; }
+.dashboard-theme .text-gray-400 { color: #9aa59b; }
+.dashboard-theme .bg-gray-50,
+.dashboard-theme .bg-gray-100 { background-color: #f3f6f2; }
+.dashboard-theme .bg-gray-200 { background-color: #e4eae3; }
+.dashboard-theme .border-gray-100,
+.dashboard-theme .border-gray-200,
+.dashboard-theme .border-gray-300 { border-color: #e2e8e0; }
+.dashboard-theme .text-blue-500,
+.dashboard-theme .text-blue-600,
+.dashboard-theme .text-blue-700 { color: #477550; }
+.dashboard-theme .bg-blue-50,
+.dashboard-theme .bg-blue-100 { background-color: #edf4ec; }
+.dashboard-theme .border-blue-200,
+.dashboard-theme .border-blue-300,
+.dashboard-theme .border-blue-500 { border-color: #c8ddc9; }
+.dashboard-theme .bg-blue-500,
+.dashboard-theme .bg-blue-600 { background-color: #315d3d; }
+.dashboard-theme .hover\:bg-blue-700:hover { background-color: #254f36; }
+.dashboard-theme .shadow-lg { box-shadow: 0 10px 30px -24px rgba(34, 64, 42, .42); }
+.dashboard-theme input:not([type="checkbox"]):not([type="radio"]),
+.dashboard-theme select,
+.dashboard-theme textarea {
+  border-color: #dfe7df;
+  border-radius: .7rem;
+}
+.dashboard-theme input:focus,
+.dashboard-theme select:focus,
+.dashboard-theme textarea:focus {
+  --tw-ring-color: #dcebdc;
+  border-color: #a5c0a7;
+}
+.dashboard-topbar {
+  display: flex;
+  height: 64px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  border-bottom: 1px solid #e5eae3;
+  background: rgba(255,255,255,.88);
+  padding-inline: clamp(16px, 3vw, 36px);
+}
+
 .custom-spotlight-card a {
   pointer-events: auto;
 }

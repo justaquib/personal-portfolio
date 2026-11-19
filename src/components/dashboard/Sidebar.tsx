@@ -5,19 +5,15 @@ import { useRouter } from 'next/navigation'
 import { TabType } from '@/types/database'
 import { useState, useEffect } from 'react'
 import {
-  Send,
-  Users,
-  Package,
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
   CreditCard,
-  FileText,
-  History,
-  DollarSign,
   FileUp,
-  LogOut,
   LayoutDashboard,
-  UserPlus,
+  LogOut,
   User,
-  BarChart3
+  UserPlus,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -30,21 +26,16 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const router = useRouter()
   const [isCollapsed, setIsCollapsed] = useState(false)
 
-  // Load collapse state from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('sidebar-collapsed')
-    if (saved) {
-      setIsCollapsed(JSON.parse(saved))
-    }
+    if (saved) setIsCollapsed(JSON.parse(saved))
   }, [])
 
-  // Save collapse state to localStorage and dispatch custom event
   const toggleCollapse = () => {
-    const newState = !isCollapsed
-    setIsCollapsed(newState)
-    localStorage.setItem('sidebar-collapsed', JSON.stringify(newState))
-    // Dispatch custom event for immediate updates
-    window.dispatchEvent(new CustomEvent('sidebar-toggle', { detail: { collapsed: newState } }))
+    const nextState = !isCollapsed
+    setIsCollapsed(nextState)
+    localStorage.setItem('sidebar-collapsed', JSON.stringify(nextState))
+    window.dispatchEvent(new CustomEvent('sidebar-toggle', { detail: { collapsed: nextState } }))
   }
 
   const handleSignOut = async () => {
@@ -52,240 +43,54 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     router.push('/login')
   }
 
-  const roleLabels: Record<string, string> = {
-    super_admin: 'Super Admin',
-    admin: 'Admin',
-    editor: 'Editor',
-    viewer: 'Viewer'
+  const sections: { id: string; label: string; description: string; icon: React.ReactNode; active: boolean; adminOnly?: boolean; tab: TabType; route: string }[] = [
+    { id: 'payment-tracking', label: 'Payment tracking', description: 'Payments, contacts, earnings', icon: <CreditCard className="h-[18px] w-[18px]" />, active: ['send', 'contacts', 'services', 'payments', 'templates', 'history', 'earnings'].includes(activeTab), tab: 'send', route: '/dashboard/payment-tracking' },
+    { id: 'analytics', label: 'Analytics', description: 'Traffic and engagement', icon: <BarChart3 className="h-[18px] w-[18px]" />, active: activeTab === 'analytics', tab: 'analytics', route: '/dashboard/analytics' },
+    { id: 'tools', label: 'Tools', description: 'Resume builder and utilities', icon: <FileUp className="h-[18px] w-[18px]" />, active: activeTab === 'resume-builder', tab: 'resume-builder', route: '/dashboard/tools' },
+    { id: 'team', label: 'Team management', description: 'Members and access', icon: <UserPlus className="h-[18px] w-[18px]" />, active: activeTab === 'team', adminOnly: true, tab: 'team', route: '/dashboard/team' },
+    { id: 'account', label: 'Account', description: 'Profile and preferences', icon: <User className="h-[18px] w-[18px]" />, active: activeTab === 'profile', tab: 'profile', route: '/dashboard/account' },
+  ]
+  const visibleSections = sections.filter((section) => !section.adminOnly || isAdmin || isSuperAdmin)
+
+  const navigate = (section: (typeof sections)[number]) => {
+    if (section.id === 'payment-tracking') onTabChange(section.tab)
+    router.push(section.route)
   }
 
-  const roleColors: Record<string, string> = {
-    super_admin: '#6f42c1',
-    admin: '#dc3545',
-    editor: '#28a745',
-    viewer: '#6c757d'
-  }
-
-  const mainSections = [
-    {
-      id: 'payment-tracking',
-      label: 'Payment Tracking',
-      icon: <DollarSign className="w-5 h-5" />,
-      description: 'Manage payments, contacts, and track earnings',
-      category: 'main'
-    },
-    {
-      id: 'analytics',
-      label: 'Analytics',
-      icon: <BarChart3 className="w-5 h-5" />,
-      description: 'Track user engagement and site analytics',
-      category: 'main'
-    },
-    {
-      id: 'tools',
-      label: 'Tools',
-      icon: <FileUp className="w-5 h-5" />,
-      description: 'Productivity tools and utilities',
-      category: 'main'
-    },
-    {
-      id: 'team',
-      label: 'Team Management',
-      icon: <UserPlus className="w-5 h-5" />,
-      description: 'Manage team members and roles',
-      category: 'admin'
-    },
-    {
-      id: 'account',
-      label: 'Account',
-      icon: <User className="w-5 h-5" />,
-      description: 'Account settings and preferences',
-      category: 'main'
-    }
-  ]
-
-  // Legacy tabs for backward compatibility (not used in new structure)
-  const tabs: { id: TabType; label: string; icon: React.ReactNode; category: 'payment' | 'resume' | 'team' | 'account' }[] = [
-    { id: 'send', label: 'Send', icon: <Send className="w-5 h-5" />, category: 'payment' },
-    { id: 'contacts', label: 'Contacts', icon: <Users className="w-5 h-5" />, category: 'payment' },
-    { id: 'services', label: 'Services', icon: <Package className="w-5 h-5" />, category: 'payment' },
-    { id: 'payments', label: 'Payments', icon: <CreditCard className="w-5 h-5" />, category: 'payment' },
-    { id: 'templates', label: 'Templates', icon: <FileText className="w-5 h-5" />, category: 'payment' },
-    { id: 'history', label: 'History', icon: <History className="w-5 h-5" />, category: 'payment' },
-    { id: 'earnings', label: 'Earnings', icon: <DollarSign className="w-5 h-5" />, category: 'payment' },
-    { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-5 h-5" />, category: 'payment' },
-    { id: 'resume-builder', label: 'Resume Builder', icon: <FileUp className="w-5 h-5" />, category: 'resume' },
-    { id: 'team', label: 'Team', icon: <UserPlus className="w-5 h-5" />, category: 'team' },
-    { id: 'profile', label: 'Profile', icon: <User className="w-5 h-5" />, category: 'account' },
-  ]
-
-  const mainSectionsFiltered = mainSections.filter(section => {
-    if (section.category === 'admin' && !isAdmin && !isSuperAdmin) {
-      return false
-    }
-    return true
-  })
-
-  const paymentTabs = tabs.filter(t => t.category === 'payment')
-  const resumeTabs = tabs.filter(t => t.category === 'resume')
-  const teamTabs = tabs.filter(t => t.category === 'team' && (isAdmin || isSuperAdmin))
-  const accountTabs = tabs.filter(t => t.category === 'account')
+  const initials = (user?.user_metadata?.full_name || user?.email || 'U').charAt(0).toUpperCase()
+  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Account'
 
   return (
-    <aside
-      className={`fixed left-0 top-0 h-full flex flex-col transition-all duration-300 ease-in-out z-40 ${
-        isCollapsed ? 'w-16' : 'w-64'
-      }`}
-      style={{ backgroundColor: '#f8f9fa', borderRight: '1px solid #dee2e6' }}
-    >
-      {/* Logo/Brand */}
-      <div className="p-4" style={{ borderBottom: '1px solid #dee2e6' }}>
-        <button
-          onClick={toggleCollapse}
-          className={`w-full flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''} hover:bg-gray-50 transition-colors rounded-lg p-2`}
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: '#212529' }}
-          >
-            <LayoutDashboard className="w-6 h-6 text-white" />
-          </div>
-          {!isCollapsed && (
-            <div className="min-w-0 flex-1 text-left">
-              <h1 className="text-lg font-bold" style={{ color: '#212529' }}>Dashboard</h1>
-              <p className="text-xs" style={{ color: '#6c757d' }}>Just Aquib</p>
-            </div>
-          )}
-        </button>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4">
-        {/* Main Sections */}
-        <div className={isCollapsed ? 'px-2' : 'px-4'}>
-          <ul className="space-y-2">
-            {mainSectionsFiltered.map((section) => {
-              const isActive = (() => {
-                if (section.id === 'payment-tracking') {
-                  return ['send', 'contacts', 'services', 'payments', 'templates', 'history', 'earnings'].includes(activeTab)
-                }
-                if (section.id === 'analytics') {
-                  return activeTab === 'analytics'
-                }
-                if (section.id === 'tools') {
-                  return activeTab === 'resume-builder'
-                }
-                if (section.id === 'team') {
-                  return activeTab === 'team'
-                }
-                if (section.id === 'account') {
-                  return activeTab === 'profile'
-                }
-                return false
-              })()
-
-              return (
-                <li key={section.id}>
-                  <button
-                    onClick={() => {
-                      // Navigate to the appropriate page
-                      if (section.id === 'payment-tracking') {
-                        window.location.href = '/dashboard/payment-tracking'
-                      } else if (section.id === 'analytics') {
-                        window.location.href = '/dashboard/analytics'
-                      } else if (section.id === 'tools') {
-                        window.location.href = '/dashboard/tools'
-                      } else if (section.id === 'team') {
-                        window.location.href = '/dashboard/team'
-                      } else if (section.id === 'account') {
-                        window.location.href = '/dashboard/account'
-                      }
-                    }}
-                    className={`w-full flex items-center gap-3 ${isCollapsed ? 'px-2 py-3 justify-center' : 'px-3 py-3'} rounded-lg text-sm font-medium transition-all duration-200 ${
-                      isActive
-                        ? 'bg-blue-100 border-2 border-blue-300 shadow-sm'
-                        : 'hover:bg-gray-50 hover:shadow-sm'
-                    }`}
-                    style={{
-                      color: isActive ? '#1e40af' : '#6c757d'
-                    }}
-                    title={isCollapsed ? section.label : undefined}
-                  >
-                    <div className={`p-1 rounded transition-colors duration-200 flex-shrink-0 ${
-                      isActive ? 'bg-blue-200 shadow-sm' : 'bg-gray-100'
-                    }`}>
-                      {section.icon}
-                    </div>
-                    {!isCollapsed && (
-                      <div className="flex-1 text-left min-w-0">
-                        <div className="font-medium truncate">{section.label}</div>
-                        <div className="text-xs opacity-75 truncate">{section.description}</div>
-                      </div>
-                    )}
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
+    <>
+      <aside className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-[#e4e9e2] bg-white transition-[width] duration-200 md:flex ${isCollapsed ? 'w-[76px]' : 'w-[252px]'}`}>
+        <div className={`flex h-[76px] shrink-0 items-center border-b border-[#edf0eb] ${isCollapsed ? 'justify-center px-3' : 'justify-between px-5'}`}>
+          <button onClick={() => router.push('/dashboard/payment-tracking')} className="flex min-w-0 items-center gap-3 text-left" title="Open dashboard">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#254f36] text-white"><LayoutDashboard className="h-[17px] w-[17px]" /></span>
+            {!isCollapsed && <span className="min-w-0"><span className="block truncate text-sm font-semibold tracking-tight text-[#2d4433]">Just Aquib</span><span className="mt-0.5 block text-[10px] text-[#8c988e]">Workspace</span></span>}
+          </button>
+          {!isCollapsed && <button onClick={toggleCollapse} aria-label="Collapse sidebar" title="Collapse sidebar" className="rounded-lg p-1.5 text-[#8a978d] transition hover:bg-[#f1f5ef] hover:text-[#426149]"><ChevronLeft className="h-4 w-4" /></button>}
+          {isCollapsed && <button onClick={toggleCollapse} aria-label="Expand sidebar" title="Expand sidebar" className="absolute -right-3 top-[60px] grid h-6 w-6 place-items-center rounded-full border border-[#e1e7df] bg-white text-[#708073] shadow-sm hover:text-[#315d3d]"><ChevronRight className="h-3.5 w-3.5" /></button>}
         </div>
-      </nav>
 
-      {/* User Section */}
-      <div className={`p-4 ${isCollapsed ? 'px-2' : ''}`} style={{ borderTop: '1px solid #dee2e6' }}>
-        <button
-          onClick={() => window.location.href = '/dashboard/account'}
-          className={`w-full flex items-center gap-3 mb-3 ${isCollapsed ? 'px-2 py-2 justify-center' : 'px-2 py-2'} rounded-lg hover:bg-gray-200 transition-colors`}
-          title={isCollapsed ? 'Account Settings' : undefined}
-        >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
-            style={{ backgroundColor: '#e9ecef' }}
-          >
-            {user?.user_metadata?.avatar_url ? (
-              <img
-                src={user.user_metadata.avatar_url}
-                alt="Avatar"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span
-                className="font-medium text-sm capitalize"
-                style={{ color: '#495057' }}
-              >
-                {user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
-              </span>
-            )}
-          </div>
-          {!isCollapsed && (
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-sm font-medium truncate" style={{ color: '#212529' }}>
-                {user?.user_metadata?.full_name || 'User'}
-              </p>
-              <p className="text-xs truncate" style={{ color: '#6c757d' }}>
-                {user?.email}
-              </p>
-              {role && (
-                <span
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1"
-                  style={{ backgroundColor: `${roleColors[role]}20`, color: roleColors[role] }}
-                >
-                  {roleLabels[role]}
-                </span>
-              )}
-            </div>
-          )}
-        </button>
-        <button
-          onClick={handleSignOut}
-          className={`w-full flex items-center gap-3 ${isCollapsed ? 'px-2 py-2.5 justify-center' : 'px-3 py-2.5'} rounded-lg text-sm font-medium transition-colors`}
-          style={{ color: '#495057' }}
-          title={isCollapsed ? 'Sign Out' : undefined}
-        >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
-          {!isCollapsed && <span>Sign Out</span>}
-        </button>
-      </div>
-    </aside>
+        <nav aria-label="Dashboard navigation" className="flex-1 overflow-y-auto px-3 py-5">
+          <p className={`mb-3 px-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#a0aaa1] ${isCollapsed ? 'sr-only' : ''}`}>Workspace</p>
+          <ul className="space-y-1.5">
+            {visibleSections.map((section) => <li key={section.id}><button onClick={() => navigate(section)} title={isCollapsed ? section.label : undefined} aria-current={section.active ? 'page' : undefined} className={`group flex w-full items-center gap-3 rounded-xl text-left transition ${isCollapsed ? 'justify-center px-2 py-3' : 'px-3 py-2.5'} ${section.active ? 'bg-[#edf4ec] text-[#315b3b]' : 'text-[#69796d] hover:bg-[#f7f9f6] hover:text-[#365541]'}`}><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition ${section.active ? 'bg-white text-[#4d7b53] shadow-[0_1px_4px_rgba(34,66,40,.08)]' : 'text-[#819087] group-hover:bg-white group-hover:text-[#4f7456]'}`}>{section.icon}</span>{!isCollapsed && <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold">{section.label}</span><span className="mt-0.5 block truncate text-[10px] text-[#9aa49b]">{section.description}</span></span>}{section.active && !isCollapsed && <span className="h-1.5 w-1.5 rounded-full bg-[#6f9a70]" />}</button></li>)}
+          </ul>
+        </nav>
+
+        <div className={`shrink-0 border-t border-[#edf0eb] p-3 ${isCollapsed ? 'px-2' : ''}`}>
+          <button onClick={() => router.push('/dashboard/account')} title={isCollapsed ? displayName : undefined} className={`mb-1 flex w-full items-center gap-2.5 rounded-xl p-2 text-left transition hover:bg-[#f6f8f5] ${isCollapsed ? 'justify-center' : ''}`}>
+            {user?.user_metadata?.avatar_url ? <img src={user.user_metadata.avatar_url} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" /> : <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#edf3ec] text-xs font-semibold text-[#4a704e]">{initials}</span>}
+            {!isCollapsed && <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-[#45584a]">{displayName}</span><span className="block truncate text-[10px] text-[#98a198]">{role ? role.replace('_', ' ') : user?.email}</span></span>}
+          </button>
+          <button onClick={handleSignOut} title={isCollapsed ? 'Sign out' : undefined} className={`flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-medium text-[#7b8780] transition hover:bg-[#fff2ef] hover:text-[#9d4f3e] ${isCollapsed ? 'justify-center' : ''}`}><LogOut className="h-4 w-4 shrink-0" />{!isCollapsed && 'Sign out'}</button>
+        </div>
+      </aside>
+
+      <nav aria-label="Dashboard navigation" className="fixed inset-x-0 bottom-0 z-40 flex h-[66px] items-stretch justify-around border-t border-[#e1e7df] bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg md:hidden">
+        {visibleSections.map((section) => <button key={section.id} onClick={() => navigate(section)} aria-current={section.active ? 'page' : undefined} className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 text-[9px] font-medium transition ${section.active ? 'text-[#35613f]' : 'text-[#89958c]'}`}><span className={`grid h-7 w-9 place-items-center rounded-lg ${section.active ? 'bg-[#edf4ec]' : ''}`}>{section.icon}</span><span className="max-w-full truncate">{section.id === 'payment-tracking' ? 'Payments' : section.label === 'Team management' ? 'Team' : section.label}</span></button>)}
+      </nav>
+    </>
   )
 }

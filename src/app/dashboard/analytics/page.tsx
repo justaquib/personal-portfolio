@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { Sidebar } from '@/components/dashboard/Sidebar'
+import { DashboardTopbar } from '@/components/dashboard/DashboardTopbar'
 import { AnalyticsTab } from '@/components/dashboard/tabs/AnalyticsTab'
 import type { TabType } from '@/types/database'
 
@@ -58,7 +59,7 @@ export default function AnalyticsPage() {
   if (!user) return null
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa' }}>
+    <div className="dashboard-theme">
       <Sidebar activeTab='analytics' onTabChange={(tab) => {
         // Handle navigation to other main sections
         if (['send', 'contacts', 'services', 'payments', 'templates', 'history', 'earnings'].includes(tab)) {
@@ -71,19 +72,17 @@ export default function AnalyticsPage() {
           router.push('/dashboard/account')
         }
       }} />
-      <main className="transition-all duration-300 overflow-y-auto min-h-screen" style={{
-        marginLeft: sidebarCollapsed ? '64px' : '256px',
-        width: `calc(100vw - ${sidebarCollapsed ? '64px' : '256px'})`
-      }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="dashboard-shell-main overflow-y-auto" data-sidebar-collapsed={sidebarCollapsed}>
+        <DashboardTopbar />
+        <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>Analytics</h1>
-            <p className="text-sm mt-1" style={{ color: '#6c757d' }}>Track user engagement and site analytics</p>
+            <h1 className="dashboard-page-title">Analytics</h1>
+            <p className="dashboard-page-description mt-1">Track user engagement and site analytics</p>
           </div>
 
           {/* Analytics Content */}
-          <div className="bg-white rounded-lg shadow-lg">
+          <div className="dashboard-panel overflow-hidden">
             <AnalyticsTab />
           </div>
         </div>

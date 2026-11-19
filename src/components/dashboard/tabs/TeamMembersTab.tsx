@@ -188,7 +188,7 @@ export function TeamMembersTab() {
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors"
-          style={{ backgroundColor: '#212529', color: '#ffffff' }}
+          style={{ backgroundColor: '#254f36', color: '#ffffff' }}
         >
           <Plus className="w-4 h-4" />
           Add Team Member
@@ -283,7 +283,7 @@ export function TeamMembersTab() {
               <button
                 type="submit"
                 className="px-4 py-2 rounded-lg font-medium transition-colors"
-                style={{ backgroundColor: '#212529', color: '#ffffff' }}
+                style={{ backgroundColor: '#254f36', color: '#ffffff' }}
               >
                 Add Member
               </button>

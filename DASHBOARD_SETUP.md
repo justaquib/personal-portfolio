@@ -35,7 +35,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 TWILIO_ACCOUNT_SID=your-account-sid
 TWILIO_AUTH_TOKEN=your-auth-token
 TWILIO_PHONE_NUMBER=whatsapp:+14155238886
+
+# Isolated, read-only dashboard demo (keep these server-side)
+DASHBOARD_DEMO_USERNAME=your-demo-username
+DASHBOARD_DEMO_PASSWORD=use-a-unique-demo-password
+DASHBOARD_DEMO_SESSION_SECRET=generate-a-random-secret-at-least-32-characters-long
 ```
+
+The demo sign-in is separate from Supabase and only opens `/dashboard/demo`, which uses sample data and does not access account records. Demo sessions expire after four hours. Configure these variables in `.env.local` for local development and in your hosting provider's server environment for deployment. Never use `NEXT_PUBLIC_` for these values.
 
 ### 3. Enable Email Authentication in Supabase
 

@@ -204,7 +204,7 @@ export function SendTab({ userId }: SendTabProps) {
                 disabled={!contact.is_active}
                 className="w-full text-left p-3 rounded-lg transition-colors"
                 style={{
-                  backgroundColor: selectedContact?.id === contact.id ? '#dee2e6' : '#f8f9fa',
+                  backgroundColor: selectedContact?.id === contact.id ? '#315d3d' : '#ffffff',
                   color: selectedContact?.id === contact.id ? '#ffffff' : '#212529',
                   cursor: contact.is_active ? 'pointer' : 'not-allowed',
                   opacity: contact.is_active ? 1 : 0.5,
@@ -239,7 +239,7 @@ export function SendTab({ userId }: SendTabProps) {
                   onClick={() => handleSelectSubscription(sub)}
                   className="w-full text-left p-3 rounded-lg transition-colors"
                   style={{
-                    backgroundColor: selectedSubscription?.id === sub.id ? '#dee2e6' : '#f8f9fa',
+                    backgroundColor: selectedSubscription?.id === sub.id ? '#315d3d' : '#ffffff',
                     color: selectedSubscription?.id === sub.id ? '#ffffff' : '#212529',
                     cursor: sub.is_active ? 'pointer' : 'not-allowed',
                     opacity: sub.is_active ? 1 : 0.5,
@@ -272,7 +272,7 @@ export function SendTab({ userId }: SendTabProps) {
                 onClick={() => handleSelectTemplate(template)}
                 className="w-full text-left p-3 rounded-lg transition-colors"
                 style={{
-                  backgroundColor: selectedTemplate?.id === template.id ? '#dee2e6' : '#f8f9fa',
+                  backgroundColor: selectedTemplate?.id === template.id ? '#315d3d' : '#ffffff',
                   color: selectedTemplate?.id === template.id ? '#ffffff' : '#212529',
                 }}
               >

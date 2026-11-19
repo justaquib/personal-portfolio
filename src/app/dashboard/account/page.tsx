@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { Sidebar } from '@/components/dashboard/Sidebar'
+import { DashboardTopbar } from '@/components/dashboard/DashboardTopbar'
 import ProfileTab from '@/components/dashboard/tabs/ProfileTab'
 import type { TabType } from '@/types/database'
 
@@ -58,7 +59,7 @@ export default function AccountPage() {
   if (!user) return null
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa' }}>
+    <div className="dashboard-theme">
       <Sidebar activeTab='profile' onTabChange={(tab) => {
         // Handle navigation to other main sections
         if (['send', 'contacts', 'services', 'payments', 'templates', 'history', 'earnings'].includes(tab)) {
@@ -71,15 +72,13 @@ export default function AccountPage() {
           router.push('/dashboard/team')
         }
       }} />
-      <main className="transition-all duration-300 overflow-y-auto min-h-screen" style={{
-        marginLeft: sidebarCollapsed ? '64px' : '256px',
-        width: `calc(100vw - ${sidebarCollapsed ? '64px' : '256px'})`
-      }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="dashboard-shell-main overflow-y-auto" data-sidebar-collapsed={sidebarCollapsed}>
+        <DashboardTopbar />
+        <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>Account</h1>
-            <p className="text-sm mt-1" style={{ color: '#6c757d' }}>Manage your account settings and preferences</p>
+            <h1 className="dashboard-page-title">Account</h1>
+            <p className="dashboard-page-description mt-1">Manage your account settings and preferences</p>
           </div>
 
           {/* Account/Profile Content */}

@@ -1251,7 +1251,7 @@ Technologies: ${proj.technologies}`
                       disabled={isSaving || !hasResumeContent()} 
                       className="flex-1"
                       style={{
-                        backgroundColor: '#212529',
+                        backgroundColor: '#254f36',
                         color: '#ffffff'
                       }}
                     >

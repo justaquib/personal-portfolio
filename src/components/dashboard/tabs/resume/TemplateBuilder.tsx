@@ -217,7 +217,7 @@ export function TemplateBuilder({ onClose }: { onClose?: () => void }) {
           <Button
             onClick={handleCreateNew}
             className="flex items-center gap-2"
-            style={{ backgroundColor: '#212529', color: '#ffffff' }}
+            style={{ backgroundColor: '#254f36', color: '#ffffff' }}
           >
             <Plus className="w-4 h-4" />
             Create New Template
@@ -530,7 +530,7 @@ export function TemplateBuilder({ onClose }: { onClose?: () => void }) {
                 onClick={handleSave}
                 disabled={isSaving}
                 className="flex items-center gap-2"
-                style={{ backgroundColor: '#212529', color: '#ffffff' }}
+                style={{ backgroundColor: '#254f36', color: '#ffffff' }}
               >
                 <Save className="w-4 h-4" />
                 {isSaving ? 'Saving...' : 'Save Template'}
