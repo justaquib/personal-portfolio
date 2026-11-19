@@ -50,16 +50,21 @@ interface User {
 }
 
 const COLORS = [
-  '#1a1a2e', '#e94560', '#0f3460', '#16213e', '#533483',
-  '#00d9ff', '#39ff14', '#ff6b35', '#f7dc6f', '#ff69b4'
+  '#20352a', '#4f8057', '#557086', '#9a7045', '#b45243',
+  '#64748b', '#8b6ca8', '#c17c4a', '#bd9951', '#3f8c8a'
 ];
 
 export default function CollaborationBoard() {
   // Room state
   const [roomId, setRoomId] = useState('');
+  const [roomName, setRoomName] = useState('');
+  const [createRoomName, setCreateRoomName] = useState('');
   const [username, setUsername] = useState('');
+  const [createUsername, setCreateUsername] = useState('');
+  const [joinUsername, setJoinUsername] = useState('');
   const [isInRoom, setIsInRoom] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [formError, setFormError] = useState('');
   const [userId, setUserId] = useState('');
   const [userColor, setUserColor] = useState('');
   const [users, setUsers] = useState<User[]>([]);
@@ -101,39 +106,40 @@ export default function CollaborationBoard() {
   }, [historyIndex]);
 
   // Connect to WebSocket
-  const connect = useCallback((type: 'create' | 'join', room?: string) => {
-    if (!username.trim()) {
-      alert('Please enter your name');
-      return;
-    }
-
+  const connect = useCallback((type: 'create' | 'join', room: string | undefined, participantName: string, name?: string) => {
+    setFormError('');
     setIsConnecting(true);
-    
-    const ws = new WebSocket(WS_URL);
-    wsRef.current = ws;
 
-    ws.onopen = () => {
-      const payload = {
-        type: type === 'create' ? 'create-room' : 'join-room',
-        payload: {
-          roomId: room || '',
-          userId: generateId(),
-          username: username.trim()
-        }
+    try {
+      const ws = new WebSocket(WS_URL);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        const payload = {
+          type: type === 'create' ? 'create-room' : 'join-room',
+          payload: {
+            roomId: room || '',
+            userId: generateId(),
+            username: participantName.trim(),
+            roomName: name?.trim()
+          }
+        };
+        ws.send(JSON.stringify(payload));
       };
-      ws.send(JSON.stringify(payload));
-    };
 
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      const { type: msgType, payload } = message;
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        const { type: msgType, payload } = message;
 
-      switch (msgType) {
+        switch (msgType) {
         case 'room-created':
         case 'room-joined':
+          setIsConnecting(false);
+          setUsername(payload.username || participantName);
           setUserId(payload.userId);
           setUserColor(payload.color);
           setRoomId(payload.roomId);
+          setRoomName(payload.roomName || 'Shared room');
           setIsInRoom(true);
           setElements(payload.elements || []);
           setUsers(payload.users || []);
@@ -197,24 +203,55 @@ export default function CollaborationBoard() {
           addToHistory([]);
           break;
 
-        case 'error':
-          alert(payload.message);
-          setIsConnecting(false);
-          break;
-      }
-    };
+          case 'error':
+            setFormError(payload.message || 'Could not join that room. Check the room ID and try again.');
+            setIsConnecting(false);
+            ws.close();
+            break;
+        }
+      };
 
-    ws.onerror = () => {
-      alert('Connection error. Make sure the collaboration server is running.\n\nFor local development: npm run collab\nOr set NEXT_PUBLIC_WS_URL environment variable for external server.');
+      ws.onerror = () => {
+        setFormError('Could not connect to the collaboration server. Check that it is running, then try again.');
+        setIsConnecting(false);
+      };
+
+      ws.onclose = () => {
+        setIsConnecting(false);
+        setIsInRoom(false);
+        setUsers([]);
+        setCursors(new Map());
+      };
+    } catch {
+      setFormError('Could not start a room connection. Check the WebSocket address and try again.');
       setIsConnecting(false);
-    };
+    }
+  }, [addToHistory]);
 
-    ws.onclose = () => {
-      setIsInRoom(false);
-      setUsers([]);
-      setCursors(new Map());
-    };
-  }, [username, addToHistory]);
+  const handleCreateRoom = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const name = createUsername.trim();
+    const title = createRoomName.trim();
+    if (!name || !title) {
+      setFormError('Enter the room name and your name to create a room.');
+      return;
+    }
+    setUsername(name);
+    connect('create', undefined, name, title);
+  };
+
+  const handleJoinRoom = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const name = joinUsername.trim();
+    const code = roomId.trim().toUpperCase();
+    if (!name || !code) {
+      setFormError('Enter your name and the room code to join.');
+      return;
+    }
+    setUsername(name);
+    setRoomId(code);
+    connect('join', code, name);
+  };
 
   // Send element to server
   const sendElement = useCallback((element: CanvasElement, action: 'add' | 'update' | 'delete') => {
@@ -684,6 +721,7 @@ export default function CollaborationBoard() {
     }
     setIsInRoom(false);
     setRoomId('');
+    setRoomName('');
     setElements([]);
     setUsers([]);
     setCursors(new Map());
@@ -693,99 +731,94 @@ export default function CollaborationBoard() {
 
   if (!isInRoom) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 w-full max-w-md shadow-2xl border border-white/20">
-          <h1 className="text-3xl font-bold text-white mb-2 text-center">
-            Collaboration Board 🎨
-          </h1>
-          <p className="text-gray-300 text-center mb-8">
-            Create or join a room to collaborate in real-time
-          </p>
+      <main className="min-h-screen bg-[#f5f6f2] text-[#25392d]">
+        <div className="mx-auto flex min-h-screen max-w-[1240px] flex-col px-4 sm:px-7 lg:px-10">
+          <header className="flex h-[74px] shrink-0 items-center justify-between border-b border-[#e1e6de]">
+            <Link href={BASE_URL} className="flex items-center gap-2.5 text-sm font-semibold tracking-tight text-[#2d4433]">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#254f36] text-white"><Users className="h-4 w-4" /></span>
+              Collaboration board
+            </Link>
+            <Link href={BASE_URL} className="inline-flex items-center gap-2 rounded-lg border border-[#dfe6dd] bg-white px-3 py-2 text-xs font-medium text-[#66776a] transition hover:bg-[#f7f9f6]"><Home className="h-3.5 w-3.5" /><span className="hidden sm:inline">Portfolio home</span><span className="sm:hidden">Home</span></Link>
+          </header>
 
-          <div className="space-y-4">
-            <div>
-              <label className="text-gray-300 text-sm mb-1 block">Your Name</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your name"
-                className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => connect('create')}
-                disabled={isConnecting}
-                className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50"
-              >
-                {isConnecting ? 'Connecting...' : 'Create Room'}
-              </button>
-            </div>
-
-            <div className="relative flex py-2 items-center">
-              <div className="flex-grow border-t border-white/20"></div>
-              <span className="flex-shrink mx-4 text-gray-400">OR</span>
-              <div className="flex-grow border-t border-white/20"></div>
-            </div>
-
-            <div>
-              <label className="text-gray-300 text-sm mb-1 block">Room ID</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={roomId}
-                  onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-                  placeholder="Enter room ID"
-                  className="flex-1 px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 uppercase"
-                />
-                <button
-                  onClick={() => connect('join', roomId)}
-                  disabled={isConnecting || !roomId}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all disabled:opacity-50"
-                >
-                  Join
-                </button>
+          <div className="grid flex-1 items-center gap-10 py-8 lg:grid-cols-[.9fr_1.1fr] lg:gap-16 lg:py-12">
+            <section className="mx-auto w-full max-w-lg lg:mx-0">
+              <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#d8e5d7] bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#66816a]"><span className="h-1.5 w-1.5 rounded-full bg-[#77a078]" />Live collaboration</p>
+              <h1 className="max-w-xl text-4xl font-semibold leading-[1.08] tracking-[-0.055em] text-[#21382b] sm:text-5xl">Make ideas visible, together.</h1>
+              <p className="mt-5 max-w-md text-sm leading-7 text-[#738178] sm:text-base">Sketch, map, and shape ideas on a shared canvas. Start a room or join your team with a room code.</p>
+              <div className="mt-7 flex flex-wrap gap-2 text-[11px] text-[#76857a]">
+                {['Live cursors', 'Shared drawing tools', 'Room-based access'].map((feature) => <span key={feature} className="rounded-full border border-[#e0e7df] bg-white px-3 py-1.5">{feature}</span>)}
               </div>
-            </div>
+            </section>
+
+            <section className="mx-auto w-full max-w-2xl">
+              <div className="mb-5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#78907a]">Get started</p>
+                <h2 className="mt-1.5 text-xl font-semibold tracking-tight text-[#2a4031]">Choose how to enter</h2>
+              </div>
+              {formError && <div role="alert" className="mb-4 flex items-start gap-2 rounded-xl border border-[#efd2c9] bg-[#fff6f3] px-3.5 py-3 text-xs leading-5 text-[#984d3d]"><X className="mt-0.5 h-4 w-4 shrink-0" />{formError}</div>}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <form onSubmit={handleCreateRoom} className="flex flex-col rounded-2xl border border-[#dfe7df] bg-white p-5 shadow-[0_16px_45px_-36px_rgba(30,66,42,.35)] sm:p-6">
+                  <div className="mb-5 flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#edf4ec] text-[#4f7955]"><Plus className="h-5 w-5" /></span><div><h3 className="text-sm font-semibold text-[#334a38]">Create a new room</h3><p className="mt-1 text-xs leading-5 text-[#89958c]">Name your space and start a shared canvas.</p></div></div>
+                  <label htmlFor="create-room-title" className="mb-1.5 text-xs font-semibold text-[#53665a]">Room name</label>
+                  <input id="create-room-title" value={createRoomName} onChange={(event) => setCreateRoomName(event.target.value)} maxLength={60} required placeholder="e.g. Product brainstorm" className="mb-4 h-11 w-full rounded-xl border border-[#dfe7df] bg-[#fcfdfb] px-3.5 text-sm text-[#33483a] outline-none placeholder:text-[#a0aaa2] focus:border-[#a5c0a7] focus:ring-4 focus:ring-[#eaf2e9]" disabled={isConnecting} />
+                  <label htmlFor="create-room-name" className="mb-1.5 text-xs font-semibold text-[#53665a]">Your name</label>
+                  <input id="create-room-name" value={createUsername} onChange={(event) => setCreateUsername(event.target.value)} autoComplete="name" maxLength={40} required placeholder="e.g. Alex Morgan" className="h-11 w-full rounded-xl border border-[#dfe7df] bg-[#fcfdfb] px-3.5 text-sm text-[#33483a] outline-none placeholder:text-[#a0aaa2] focus:border-[#a5c0a7] focus:ring-4 focus:ring-[#eaf2e9]" disabled={isConnecting} />
+                  <p className="mt-2 text-[11px] leading-5 text-[#929d94]">Your name appears to collaborators in the room.</p>
+                  <button type="submit" disabled={isConnecting} className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#254f36] px-4 text-sm font-semibold text-white transition hover:bg-[#1d412c] disabled:cursor-wait disabled:opacity-60">{isConnecting ? 'Connecting…' : 'Create room'}{!isConnecting && <MoveRight className="h-4 w-4" />}</button>
+                </form>
+
+                <form onSubmit={handleJoinRoom} className="flex flex-col rounded-2xl border border-[#dfe7df] bg-white p-5 shadow-[0_16px_45px_-36px_rgba(30,66,42,.35)] sm:p-6">
+                  <div className="mb-5 flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#eef2ed] text-[#5b7460]"><MoveRight className="h-5 w-5" /></span><div><h3 className="text-sm font-semibold text-[#334a38]">Join an existing room</h3><p className="mt-1 text-xs leading-5 text-[#89958c]">Enter your name and the room code.</p></div></div>
+                  <label htmlFor="join-room-name" className="mb-1.5 text-xs font-semibold text-[#53665a]">Your name</label>
+                  <input id="join-room-name" value={joinUsername} onChange={(event) => setJoinUsername(event.target.value)} autoComplete="name" maxLength={40} required placeholder="e.g. Alex Morgan" className="mb-4 h-11 w-full rounded-xl border border-[#dfe7df] bg-[#fcfdfb] px-3.5 text-sm text-[#33483a] outline-none placeholder:text-[#a0aaa2] focus:border-[#a5c0a7] focus:ring-4 focus:ring-[#eaf2e9]" disabled={isConnecting} />
+                  <label htmlFor="join-room-code" className="mb-1.5 text-xs font-semibold text-[#53665a]">Room code</label>
+                  <input id="join-room-code" value={roomId} onChange={(event) => setRoomId(event.target.value.toUpperCase().replace(/\s/g, ''))} autoComplete="off" maxLength={12} required placeholder="e.g. A1B2C3" className="h-11 w-full rounded-xl border border-[#dfe7df] bg-[#fcfdfb] px-3.5 font-mono text-sm uppercase tracking-[0.12em] text-[#33483a] outline-none placeholder:font-sans placeholder:normal-case placeholder:tracking-normal placeholder:text-[#a0aaa2] focus:border-[#a5c0a7] focus:ring-4 focus:ring-[#eaf2e9]" disabled={isConnecting} />
+                  <button type="submit" disabled={isConnecting} className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#d8e4d7] bg-[#f5f8f4] px-4 text-sm font-semibold text-[#3f6647] transition hover:bg-[#edf4ec] disabled:cursor-wait disabled:opacity-60">{isConnecting ? 'Connecting…' : 'Join room'}{!isConnecting && <MoveRight className="h-4 w-4" />}</button>
+                </form>
+              </div>
+              <p className="mt-4 text-center text-[10px] leading-5 text-[#9aa49b]">Rooms are temporary and stay available while someone is connected.</p>
+            </section>
           </div>
+
+          <footer className="hidden min-h-10 items-center justify-between border-t border-[#e1e6de] text-[10px] text-[#9aa49b] sm:flex"><span>Shared canvas · Real-time updates</span><span>Draw with care</span></footer>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
-      <div className="bg-white shadow-sm border-b px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <div className="flex h-[100dvh] min-h-0 flex-col bg-[#f1f4ef] text-[#2d4033]">
+      <div className="z-20 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[#e1e7df] bg-white px-3 py-2.5 shadow-[0_4px_14px_-12px_rgba(30,66,42,.3)] sm:px-5">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 sm:gap-4">
           <Link href={BASE_URL} className="flex items-center gap-2">
-            <div className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-              <Home className="w-5 h-5 text-gray-600" />
+            <div className="rounded-lg p-2 transition-colors hover:bg-[#f1f5f0]">
+              <Home className="h-4 w-4 text-[#718176]" />
             </div>
           </Link>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="font-semibold text-gray-800">Room: {roomId}</span>
+            <div className="h-2 w-2 animate-pulse rounded-full bg-[#65a06f]"></div>
+            <span className="max-w-[32vw] truncate text-xs font-semibold text-[#38513c] sm:max-w-[220px] sm:text-sm">{roomName || 'Shared room'}</span>
+            <span className="rounded-md bg-[#f1f5f0] px-1.5 py-1 font-mono text-[10px] tracking-[0.08em] text-[#718176] sm:text-[11px]">{roomId}</span>
             <button
               onClick={copyRoomId}
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
+              className="rounded p-1 text-[#839087] transition-colors hover:bg-[#f1f5f0]"
               title="Copy room ID"
             >
-              {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-gray-500" />}
+              {copied ? <Check size={15} className="text-[#52835b]" /> : <Copy size={15} />}
             </button>
           </div>
           
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Users size={16} />
-            <span>{users.length} user{users.length !== 1 ? 's' : ''}</span>
+          <div className="flex items-center gap-1.5 text-[11px] text-[#78867c] sm:text-xs">
+            <Users size={14} />
+            <span>{users.length} here</span>
           </div>
 
           <div className="flex -space-x-2">
             {users.filter(u => u.userId !== userId).map((user) => (
               <div
                 key={user.userId}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold border-2 border-white"
+                className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white"
                 style={{ backgroundColor: user.color }}
                 title={user.username}
               >
@@ -793,7 +826,7 @@ export default function CollaborationBoard() {
               </div>
             ))}
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold border-2 border-white"
+              className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white"
               style={{ backgroundColor: userColor }}
               title="You"
             >
@@ -802,11 +835,11 @@ export default function CollaborationBoard() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-gray-400">
+        <div className="flex shrink-0 items-center gap-0.5 text-[#7b897e] sm:gap-1">
           <button
             onClick={undo}
             disabled={historyIndex <= 0}
-            className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 transition-colors"
+            className="rounded-lg p-2 transition-colors hover:bg-[#f1f5f0] disabled:opacity-40"
             title="Undo"
           >
             <Undo size={20} />
@@ -814,144 +847,147 @@ export default function CollaborationBoard() {
           <button
             onClick={redo}
             disabled={historyIndex >= history.length - 1}
-            className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 transition-colors"
+            className="rounded-lg p-2 transition-colors hover:bg-[#f1f5f0] disabled:opacity-40"
             title="Redo"
           >
             <Redo size={20} />
           </button>
           <button
             onClick={clearCanvas}
-            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+            className="rounded-lg p-2 text-[#a64f40] transition-colors hover:bg-[#fff2ef]"
             title="Clear Canvas"
           >
             <Trash2 size={20} />
           </button>
           <button
             onClick={saveState}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="rounded-lg p-2 transition-colors hover:bg-[#f1f5f0]"
             title="Save Board State"
           >
             <Save size={20} />
           </button>
           <button
             onClick={exportAsImage}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="rounded-lg p-2 transition-colors hover:bg-[#f1f5f0]"
             title="Export as Image"
           >
             <Download size={20} />
           </button>
           <button
             onClick={leaveRoom}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            className="rounded-lg bg-[#a64f40] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#914433] sm:px-4 sm:text-sm"
           >
             Leave
           </button>
         </div>
       </div>
 
-      <div className="bg-white border-b px-4 py-2 flex items-center gap-4">
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 text-gray-400">
+      <div className="z-10 flex shrink-0 items-center gap-3 overflow-x-auto border-b border-[#e1e7df] bg-white px-3 py-2 text-[#728075] sm:gap-4 sm:px-5">
+        <div className="flex shrink-0 items-center gap-0.5 rounded-xl bg-[#f1f4ef] p-1">
           <button
             onClick={() => setSelectedTool('eraser')}
-            className={`p-2 rounded-lg transition-colors ${selectedTool === 'eraser' ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}
+            className={`rounded-lg p-2 transition-colors ${selectedTool === 'eraser' ? 'bg-white text-[#365d3d] shadow-sm' : 'hover:bg-white/70'}`}
             title="Eraser"
           >
             <Eraser size={20} />
           </button>
           <button
             onClick={() => setSelectedTool('pan')}
-            className={`p-2 rounded-lg transition-colors ${selectedTool === 'pan' ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}
+            className={`rounded-lg p-2 transition-colors ${selectedTool === 'pan' ? 'bg-white text-[#365d3d] shadow-sm' : 'hover:bg-white/70'}`}
             title="Pan/Move (or hold Space)"
           >
             <Hand size={20} />
           </button>
           <button
             onClick={() => setSelectedTool('pencil')}
-            className={`p-2 rounded-lg transition-colors ${selectedTool === 'pencil' ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}
+            className={`rounded-lg p-2 transition-colors ${selectedTool === 'pencil' ? 'bg-white text-[#365d3d] shadow-sm' : 'hover:bg-white/70'}`}
             title="Pencil"
           >
             <Pencil size={20} />
           </button>
           <button
             onClick={() => setSelectedTool('rectangle')}
-            className={`p-2 rounded-lg transition-colors ${selectedTool === 'rectangle' ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}
+            className={`rounded-lg p-2 transition-colors ${selectedTool === 'rectangle' ? 'bg-white text-[#365d3d] shadow-sm' : 'hover:bg-white/70'}`}
             title="Rectangle"
           >
             <Square size={20} />
           </button>
           <button
             onClick={() => setSelectedTool('circle')}
-            className={`p-2 rounded-lg transition-colors ${selectedTool === 'circle' ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}
+            className={`rounded-lg p-2 transition-colors ${selectedTool === 'circle' ? 'bg-white text-[#365d3d] shadow-sm' : 'hover:bg-white/70'}`}
             title="Circle"
           >
             <Circle size={20} />
           </button>
           <button
             onClick={() => setSelectedTool('text')}
-            className={`p-2 rounded-lg transition-colors ${selectedTool === 'text' ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}
+            className={`rounded-lg p-2 transition-colors ${selectedTool === 'text' ? 'bg-white text-[#365d3d] shadow-sm' : 'hover:bg-white/70'}`}
             title="Text"
           >
             <Type size={20} />
           </button>
           <button
             onClick={() => setSelectedTool('arrow')}
-            className={`p-2 rounded-lg transition-colors ${selectedTool === 'arrow' ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}
+            className={`rounded-lg p-2 transition-colors ${selectedTool === 'arrow' ? 'bg-white text-[#365d3d] shadow-sm' : 'hover:bg-white/70'}`}
             title="Arrow"
           >
             <MoveRight size={20} />
           </button>
           <button
             onClick={() => setSelectedTool('triangle')}
-            className={`p-2 rounded-lg transition-colors ${selectedTool === 'triangle' ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}
+            className={`rounded-lg p-2 transition-colors ${selectedTool === 'triangle' ? 'bg-white text-[#365d3d] shadow-sm' : 'hover:bg-white/70'}`}
             title="Triangle"
           >
             <Triangle size={20} />
           </button>
         </div>
 
-        <div className="w-px h-8 bg-gray-200"></div>
+        <div className="h-8 w-px shrink-0 bg-[#e4eae3]"></div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           {COLORS.map((color) => (
             <button
               key={color}
               onClick={() => setSelectedColor(color)}
-              className={`w-7 h-7 rounded-full border-2 transition-all ${selectedColor === color ? 'scale-110 border-gray-800' : 'border-transparent hover:scale-105'}`}
+              aria-label={`Select drawing color ${color}`}
+              className={`h-6 w-6 rounded-full border-2 transition-all ${selectedColor === color ? 'scale-110 border-[#304a35] ring-2 ring-[#dce8dc]' : 'border-transparent hover:scale-105'}`}
               style={{ backgroundColor: color }}
             />
           ))}
         </div>
 
-        <div className="w-px h-8 bg-gray-200"></div>
+        <div className="h-8 w-px shrink-0 bg-[#e4eae3]"></div>
 
-        <div className="flex items-center gap-2 text-gray-400">
+        <div className="flex shrink-0 items-center gap-2 text-[#78867c]">
           <button
             onClick={() => setStrokeWidth(Math.max(2, strokeWidth - 2))}
-            className="p-1 hover:bg-gray-100 rounded"
+            aria-label="Decrease brush size"
+            className="rounded p-1 hover:bg-[#f1f5f0]"
           >
             <Minus size={16} />
           </button>
-          <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[#e4eae3] sm:w-20">
             <div
-              className="h-full bg-gray-800 transition-all"
+              className="h-full bg-[#4d7853] transition-all"
               style={{ width: `${(strokeWidth / 12) * 100}%` }}
             />
           </div>
           <button
             onClick={() => setStrokeWidth(Math.min(12, strokeWidth + 2))}
-            className="p-1 hover:bg-gray-100 rounded"
+            aria-label="Increase brush size"
+            className="rounded p-1 hover:bg-[#f1f5f0]"
           >
             <Plus size={16} />
           </button>
         </div>
 
-        <div className="w-px h-8 bg-gray-200"></div>
+        <div className="h-8 w-px shrink-0 bg-[#e4eae3]"></div>
 
         {/* Zoom controls */}
-        <div className="flex items-center gap-1 text-gray-400">
-          <button onClick={handleZoomOut} className="p-2 hover:bg-gray-100 rounded-lg" title="Zoom Out"><ZoomOut size={20} /></button>
-          <span className="text-sm text-gray-600 min-w-[50px] text-center">{Math.round(zoom * 100)}%</span>
-          <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded-lg" title="Zoom In"><ZoomIn size={20} /></button>
+        <div className="flex shrink-0 items-center gap-1 text-[#78867c]">
+          <button onClick={handleZoomOut} className="rounded-lg p-2 hover:bg-[#f1f5f0]" title="Zoom out" aria-label="Zoom out"><ZoomOut size={18} /></button>
+          <span className="min-w-[44px] text-center text-xs text-[#637368]">{Math.round(zoom * 100)}%</span>
+          <button onClick={handleZoomIn} className="rounded-lg p-2 hover:bg-[#f1f5f0]" title="Zoom in" aria-label="Zoom in"><ZoomIn size={18} /></button>
         </div>
       </div>
 
@@ -992,7 +1028,7 @@ export default function CollaborationBoard() {
         ))}
       </div>
 
-      <div className="bg-gray-50 px-4 py-2 text-sm text-gray-600 flex items-center justify-between">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-1 border-t border-[#e1e7df] bg-white px-3 py-2 text-[10px] text-[#738178] sm:px-5 sm:text-xs">
         <div>
           Drawing as <span className="font-semibold" style={{ color: userColor }}>{username}</span>
           {' '}with <span className="font-medium">{selectedTool}</span> tool
