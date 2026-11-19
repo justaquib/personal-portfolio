@@ -17,7 +17,7 @@ interface AnalyticsData {
   recent_visits?: any[]
 }
 
-const supabase = createClient()
+const getSupabase = () => createClient()
 
 // Subscription hook - for linking services to contacts (replaces contact_services)
 export function useSubscriptions() {
@@ -29,7 +29,7 @@ export function useSubscriptions() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await getSupabase()
         .from('service_subscriptions')
         .select('*, service:services(*), contact:contacts(*)')
         .order('created_at', { ascending: false })
@@ -49,7 +49,7 @@ export function useSubscriptions() {
     id?: string
   ) => {
     if (id) {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('service_subscriptions')
         .update({
           contact_id: data.contact_id,
@@ -59,7 +59,7 @@ export function useSubscriptions() {
         .eq('id', id)
       if (error) throw error
     } else {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('service_subscriptions')
         .insert({
           contact_id: data.contact_id,
@@ -73,7 +73,7 @@ export function useSubscriptions() {
   }, [fetchSubscriptions])
 
   const deleteSubscription = useCallback(async (id: string) => {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('service_subscriptions')
       .delete()
       .eq('id', id)
@@ -83,7 +83,7 @@ export function useSubscriptions() {
 
   const getSubscriptionsForContact = useCallback(async (contactId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('service_subscriptions')
         .select('*, service:services(*), contact:contacts(*)')
         .eq('contact_id', contactId)
@@ -108,7 +108,7 @@ export function usePayments() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await getSupabase()
         .from('subscription_payments')
         .select('*')
         .order('payment_month', { ascending: false })
@@ -125,7 +125,7 @@ export function usePayments() {
 
   const fetchPaymentsForSubscription = useCallback(async (subscriptionId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('subscription_payments')
         .select('*')
         .eq('subscription_id', subscriptionId)
@@ -143,7 +143,7 @@ export function usePayments() {
       console.log('Saving payment with data:', JSON.stringify(data, null, 2))
       
       // Get the service amount
-      const { data: subData, error: subError } = await supabase
+      const { data: subData, error: subError } = await getSupabase()
         .from('service_subscriptions')
         .select('service:services(amount), total_due')
         .eq('id', data.subscription_id)
@@ -161,7 +161,7 @@ export function usePayments() {
       
       // Helper function to generate invoice ID (0001, 0002, etc.)
       const generateInvoiceId = async (): Promise<string> => {
-        const { data: lastInvoice } = await supabase
+        const { data: lastInvoice } = await getSupabase()
           .from('subscription_payments')
           .select('invoice_id')
           .not('invoice_id', 'is', null)
@@ -179,7 +179,7 @@ export function usePayments() {
       
       // Helper function to generate sub-invoice ID (0001-a, 0001-b, etc.)
       const generateSubInvoiceId = async (invoiceId: string): Promise<string> => {
-        const { data: existingSubInvoices } = await supabase
+        const { data: existingSubInvoices } = await getSupabase()
           .from('subscription_payments')
           .select('sub_invoice_id')
           .eq('invoice_id', invoiceId)
@@ -194,7 +194,7 @@ export function usePayments() {
       if (id) {
         // Update existing payment by ID
         const remainingDue = data.amount_due - data.amount_paid
-        const { error } = await supabase
+        const { error } = await getSupabase()
           .from('subscription_payments')
           .update({
             amount_due: data.amount_due,
@@ -209,7 +209,7 @@ export function usePayments() {
         if (error) throw error
         
         // Update subscription's last_payment_date
-        await supabase
+        await getSupabase()
           .from('service_subscriptions')
           .update({ last_payment_date: data.payment_date })
           .eq('id', data.subscription_id)
@@ -217,7 +217,7 @@ export function usePayments() {
         // Check if invoice already exists for this payment month
         let existingInvoice: any[] | null = null
         try {
-          const result = await supabase
+          const result = await getSupabase()
             .from('subscription_payments')
             .select('id, invoice_id, amount_due, amount_paid')
             .eq('subscription_id', data.subscription_id)
@@ -244,7 +244,7 @@ export function usePayments() {
           // Try to insert sub-invoice
           let insertError: any = null
           const remainingDueSub = remainingAmount - data.amount_paid
-          const { error } = await supabase
+          const { error } = await getSupabase()
             .from('subscription_payments')
             .insert({
               subscription_id: data.subscription_id,
@@ -275,7 +275,7 @@ export function usePayments() {
           // Decrease total_due by payment amount
           currentTotalDue = Math.max(0, currentTotalDue - data.amount_paid)
           
-          await supabase
+          await getSupabase()
             .from('service_subscriptions')
             .update({
               total_due: currentTotalDue,
@@ -288,7 +288,7 @@ export function usePayments() {
           console.log('Creating new invoice with ID:', newInvoiceId)
           const newRemainingDue = serviceAmount - data.amount_paid
           
-          const { error } = await supabase
+          const { error } = await getSupabase()
             .from('subscription_payments')
             .insert({ 
               subscription_id: data.subscription_id,
@@ -312,7 +312,7 @@ export function usePayments() {
           // Increase total_due for new billing period
           currentTotalDue = currentTotalDue + serviceAmount
           
-          await supabase
+          await getSupabase()
             .from('service_subscriptions')
             .update({
               total_due: currentTotalDue,
@@ -330,7 +330,7 @@ export function usePayments() {
   }, [fetchPayments])
 
   const deletePayment = useCallback(async (id: string) => {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('subscription_payments')
       .delete()
       .eq('id', id)
@@ -351,7 +351,7 @@ export function useServices() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await getSupabase()
         .from('services')
         .select('*')
         .order('name', { ascending: true })
@@ -368,13 +368,13 @@ export function useServices() {
 
   const saveService = useCallback(async (data: ServiceFormData, userId: string, id?: string) => {
     if (id) {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('services')
         .update(data)
         .eq('id', id)
       if (error) throw error
     } else {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('services')
         .insert({ ...data, user_id: userId })
       if (error) throw error
@@ -383,7 +383,7 @@ export function useServices() {
   }, [fetchServices])
 
   const deleteService = useCallback(async (id: string) => {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('services')
       .delete()
       .eq('id', id)
@@ -404,7 +404,7 @@ export function useContacts() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await getSupabase()
         .from('contacts')
         .select('*')
         .order('name', { ascending: true })
@@ -421,13 +421,13 @@ export function useContacts() {
 
   const saveContact = useCallback(async (data: ContactFormData, userId: string, id?: string) => {
     if (id) {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('contacts')
         .update(data)
         .eq('id', id)
       if (error) throw error
     } else {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('contacts')
         .insert({ ...data, user_id: userId })
       if (error) throw error
@@ -436,7 +436,7 @@ export function useContacts() {
   }, [fetchContacts])
 
   const deleteContact = useCallback(async (id: string) => {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('contacts')
       .delete()
       .eq('id', id)
@@ -457,7 +457,7 @@ export function useTemplates() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await getSupabase()
         .from('message_templates')
         .select('*')
         .order('name', { ascending: true })
@@ -474,13 +474,13 @@ export function useTemplates() {
 
   const saveTemplate = useCallback(async (data: TemplateFormData, userId: string, id?: string) => {
     if (id) {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('message_templates')
         .update(data)
         .eq('id', id)
       if (error) throw error
     } else {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('message_templates')
         .insert({ ...data, user_id: userId })
       if (error) throw error
@@ -489,7 +489,7 @@ export function useTemplates() {
   }, [fetchTemplates])
 
   const deleteTemplate = useCallback(async (id: string) => {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('message_templates')
       .delete()
       .eq('id', id)
@@ -510,7 +510,7 @@ export function useNotifications() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await getSupabase()
         .from('notifications')
         .select('*')
         .order('timestamp', { ascending: false })
@@ -538,7 +538,7 @@ export function useNotifications() {
 
     // Save to database
     try {
-      await supabase.from('notifications').insert({
+      await getSupabase().from('notifications').insert({
         phone_number: phoneNumber,
         message,
         timestamp: new Date().toISOString(),
@@ -554,7 +554,7 @@ export function useNotifications() {
 
   const deleteNotification = useCallback(async (id: string) => {
     console.log('Deleting notification with id:', id)
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('notifications')
       .delete()
       .eq('id', id)

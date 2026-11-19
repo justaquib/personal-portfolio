@@ -21,20 +21,21 @@ export const TyperwriterText: React.FC<TyperwriterTextProps> = ({
 }) => {
   const [displayedText, setDisplayedText] = useState("");
   const [index, setIndex] = useState(0);
-  const synthRef = useRef<Tone.Synth | null>(null);
+  const synthRef = useRef<Tone.PolySynth<Tone.Synth> | null>(null);
+  const lastNoteTimeRef = useRef(0);
 
   useEffect(() => {
-    synthRef.current = new Tone.Synth({
-      oscillator: {
-        type: "square"
-      },
+    const polySynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: "square" },
       envelope: {
         attack: 0.01,
         decay: 0.1,
         sustain: 0.1,
-        release: 0.1
-      }
-    }).toDestination();
+        release: 0.1,
+      },
+    });
+    polySynth.maxPolyphony = 8;
+    synthRef.current = polySynth.toDestination();
 
     return () => {
       if (synthRef.current) {
@@ -55,7 +56,13 @@ export const TyperwriterText: React.FC<TyperwriterTextProps> = ({
           if (synthRef.current) {
             const notes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4"];
             const randomNote = notes[Math.floor(Math.random() * notes.length)];
-            synthRef.current.triggerAttackRelease(randomNote, "8n");
+            const noteTime = Math.max(Tone.now() + 0.01, lastNoteTimeRef.current + 0.01);
+            lastNoteTimeRef.current = noteTime;
+            try {
+              synthRef.current.triggerAttackRelease(randomNote, "16n", noteTime);
+            } catch {
+              // Sound is decorative; it should never interrupt the typing animation.
+            }
           }
         }, speed);
       } else if (loop) {

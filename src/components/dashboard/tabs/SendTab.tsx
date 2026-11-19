@@ -46,39 +46,33 @@ export function SendTab({ userId }: SendTabProps) {
     return subscriptions.filter(s => s.contact_id === contactId)
   }
 
-  const calculateOutstandingBalance = async (subscription: SubscriptionWithPayments): Promise<number> => {
-    if (!subscription) return 0
-    
-    const serviceAmount = subscription.service?.amount || 0
-    const subscriptionStart = subscription.started_at || new Date().toISOString().split('T')[0]
-    
-    const startDate = new Date(subscriptionStart)
-    const startYear = startDate.getFullYear()
-    const startMonth = startDate.getMonth() + 1
-    const currentYear = new Date().getFullYear()
-    const currentMonthNum = new Date().getMonth() + 1
-    
-    let outstanding = 0
-    const subPayments = await fetchPaymentsForSubscription(subscription.id)
-    
-    for (let year = startYear; year <= currentYear; year++) {
-      const monthStart = (year === startYear) ? startMonth : 1
-      const monthEnd = (year === currentYear) ? currentMonthNum : 12
-      
-      for (let month = monthStart; month <= monthEnd; month++) {
-        const paymentForMonth = subPayments.find((p: Payment) => {
-          const paymentDate = new Date(p.payment_month)
-          return paymentDate.getFullYear() === year && paymentDate.getMonth() + 1 === month
-        })
-        
-        const isPaidForMonth = paymentForMonth && paymentForMonth.amount_paid >= paymentForMonth.amount_due
-        if (!isPaidForMonth) {
-          outstanding += serviceAmount
+  const calculateOutstandingFromPayments = (payments: Payment[]): { outstandingBalance: number; dueMonths: string[] } => {
+    let outstandingBalance = 0
+    const dueMonths: string[] = []
+
+    const mainInvoices = payments.filter((p: Payment) => !p.sub_invoice_id)
+
+    mainInvoices.forEach((payment: Payment) => {
+      const subInvoices = payments.filter((p: Payment) =>
+        p.invoice_id === payment.invoice_id && p.sub_invoice_id
+      )
+
+      const mainPaid = payment.amount_paid || 0
+      const subInvoicesPaid = subInvoices.reduce((sum: number, sub: Payment) => sum + (sub.amount_paid || 0), 0)
+      const totalPaid = mainPaid + subInvoicesPaid
+      const mainDue = payment.amount_due || 0
+      const remainingDue = totalPaid >= mainDue ? 0 : (mainDue - totalPaid)
+
+      if (remainingDue > 0) {
+        outstandingBalance += remainingDue
+        const paymentMonth = payment.payment_month ? new Date(payment.payment_month).toISOString().slice(0, 7) : ''
+        if (paymentMonth && !dueMonths.includes(paymentMonth)) {
+          dueMonths.push(paymentMonth)
         }
       }
-    }
-    
-    return outstanding
+    })
+
+    return { outstandingBalance, dueMonths }
   }
 
   const replaceTemplatePlaceholders = (template: string, contact: Contact | null, subscription: SubscriptionWithPayments | null): string => {
@@ -94,33 +88,15 @@ export function SendTab({ userId }: SendTabProps) {
     result = result.replace(/\{\{service\}\}/g, serviceName)
     
     let outstandingBalance = 0
-    let dueMonths: string[] = []
-    
+    let displayMonth = getCurrentMonth()
+
     if (subscription && subscription.payments) {
-      const mainInvoices = subscription.payments.filter((p: Payment) => !p.sub_invoice_id)
-      
-      mainInvoices.forEach((payment: Payment) => {
-        const subInvoices = subscription.payments!.filter((p: Payment) => 
-          p.invoice_id === payment.invoice_id && p.sub_invoice_id
-        )
-        
-        const mainPaid = payment.amount_paid || 0
-        const subInvoicesPaid = subInvoices.reduce((sum: number, sub: Payment) => sum + (sub.amount_paid || 0), 0)
-        const totalPaid = mainPaid + subInvoicesPaid
-        const mainDue = payment.amount_due || 0
-        const remainingDue = totalPaid >= mainDue ? 0 : (mainDue - totalPaid)
-        
-        if (remainingDue > 0) {
-          outstandingBalance += remainingDue
-          const paymentMonth = payment.payment_month ? new Date(payment.payment_month).toISOString().slice(0, 7) : ''
-          if (paymentMonth && !dueMonths.includes(paymentMonth)) {
-            dueMonths.push(paymentMonth)
-          }
-        }
-      })
+      const { outstandingBalance: balance, dueMonths } = calculateOutstandingFromPayments(subscription.payments)
+      outstandingBalance = balance
+      if (dueMonths.length > 0) {
+        displayMonth = dueMonths.sort().join(', ')
+      }
     }
-    
-    const displayMonth = dueMonths.length > 0 ? dueMonths.sort().join(', ') : getCurrentMonth()
     result = result.replace(/\{\{month\}\}/g, displayMonth)
     result = result.replace(/\{\{outstanding\}\}/g, String(outstandingBalance))
     
@@ -138,24 +114,28 @@ export function SendTab({ userId }: SendTabProps) {
       return
     }
 
-    const outstandingBalance = selectedSubscription ? await calculateOutstandingBalance(selectedSubscription) : 0
     const currentMonth = getCurrentMonth()
-    const currentPayments = await fetchPaymentsForSubscription(selectedSubscription?.id || '')
-    const isCurrentMonthPaid = currentPayments.some((p: Payment) => {
-      const paymentDate = new Date(p.payment_month)
-      const paymentMonthStr = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
-      return paymentMonthStr === currentMonth && p.amount_paid >= p.amount_due
-    })
-    
+    let outstandingBalance = 0
+    let isCurrentMonthPaid = false
+
+    if (selectedSubscription) {
+      const subPayments = await fetchPaymentsForSubscription(selectedSubscription.id)
+      const { outstandingBalance: balance } = calculateOutstandingFromPayments(subPayments)
+      outstandingBalance = balance
+
+      isCurrentMonthPaid = subPayments.some((p: Payment) => {
+        const paymentDate = new Date(p.payment_month)
+        const paymentMonthStr = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
+        return paymentMonthStr === currentMonth && p.amount_paid >= p.amount_due
+      })
+    }
+
     if (isCurrentMonthPaid && outstandingBalance === 0) {
       setSendError('Payment already received for this month and no outstanding balance.')
       return
     }
 
-    let finalMessage = message.trim()
-    if (outstandingBalance > 0) {
-      finalMessage = `Outstanding Balance: ${CURRENCY_SYMBOL}${outstandingBalance}\n\n${finalMessage}`
-    }
+    const finalMessage = message.trim()
 
     const encodedMessage = encodeURIComponent(finalMessage)
     const whatsappUrl = `https://wa.me/${cleanedPhone}?text=${encodedMessage}`
@@ -174,11 +154,6 @@ export function SendTab({ userId }: SendTabProps) {
     }
     
     setSendSuccess(true)
-    setPhoneNumber('')
-    setMessage('')
-    setSelectedContact(null)
-    setSelectedTemplate(null)
-    setSelectedSubscription(null)
     setTimeout(() => setSendSuccess(false), 5000)
   }
 

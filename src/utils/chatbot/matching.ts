@@ -169,7 +169,7 @@ export function findBestMatch(userQuery: string, history: Array<{ role: string; 
   
   // No good match found - provide helpful response based on context
   return {
-    answer: "I'm not sure I understand that specific question, but I can tell you about:\n\n• Aquib Shahbaz - the developer\n• All 10 projects on this website\n• The tech stack used\n• How to contact Aquib\n\nTry asking something like 'Who is Aquib?' or 'Tell me about the AI Document Intelligence Workspace'!",
+    answer: "I'm not sure I understand that specific question, but I can tell you about:\n\n• Aquib Shahbaz - the developer\n• All 10 projects on this website\n• The tech stack used\n• How to contact Aquib\n\nTry asking something like 'Who is Aquib?' or 'Tell me about RAG Document Studio'!",
     confidence: 10
   };
 }
@@ -179,7 +179,7 @@ export function getSuggestedQuestions(): string[] {
   return [
     "Who is Aquib Shahbaz?",
     "What projects are available?",
-    "What is AI Document Intelligence Workspace?",
+    "What is RAG Document Studio?",
     "How can I contact Aquib?"
   ];
 }

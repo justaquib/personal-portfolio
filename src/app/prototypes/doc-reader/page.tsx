@@ -337,28 +337,39 @@ export default function DocReader() {
   };
 
   return (
-    <main className="relative min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      {/* Header */}
-      <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-        <BackButton />
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-          AI Document Intelligence Workspace
-        </h1>
-        <button
-          onClick={() => setShowDetails(true)}
-          className="p-2 bg-gray-800 hover:bg-gray-700 rounded-full transition-colors"
-          title="View Details"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </button>
-      </div>
+    <main className="min-h-screen bg-[#f3f6f4] text-[#182b27]">
+      <header className="sticky top-0 z-30 border-b border-[#dce5df] bg-white/95 backdrop-blur-xl">
+        <div className="mx-auto flex h-[72px] max-w-[1680px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="rounded-xl bg-[#183b33] p-2.5 shadow-sm">
+              <FileText className="h-5 w-5 text-[#d5f1df]" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="truncate text-base font-semibold tracking-tight text-[#18332d] sm:text-lg">RAG Document Studio</h1>
+                <span className="rounded-full border border-[#b8d8c7] bg-[#e9f5ed] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#27634d]">RAG</span>
+              </div>
+              <p className="hidden text-xs text-[#71827b] sm:block">Summarize and ask questions across your files</p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="rounded-full bg-[#183b33]"><BackButton /></div>
+            <button
+              onClick={() => setShowDetails(true)}
+              className="rounded-xl border border-[#dce5df] bg-white p-2.5 text-[#5e746c] transition hover:border-[#afcbb9] hover:bg-[#f3f8f4] hover:text-[#214f3e]"
+              title="About this prototype"
+              aria-label="About this prototype"
+            >
+              <Sparkles className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </header>
 
       <DetailsModal
         isOpen={showDetails}
         onClose={() => setShowDetails(false)}
-        title={prototype?.title || 'AI Document Intelligence Workspace'}
+        title={prototype?.title || 'RAG Document Studio'}
         details={{
           problem: prototype?.problem || '',
           approach: prototype?.approach || '',
@@ -368,40 +379,44 @@ export default function DocReader() {
         }}
       />
 
-      {/* Main Content */}
-      <div className="pt-20 px-4 pb-4 h-screen flex gap-4">
+      <div className={`mx-auto flex w-full max-w-[1680px] px-4 sm:px-6 lg:px-8 ${document ? "h-[calc(100dvh-72px)] min-h-0 flex-col overflow-hidden py-3 sm:py-4" : "flex-col py-6 lg:py-8"}`}>
         {!document ? (
-          /* Upload Area */
-          <div
-            className="flex-1 flex items-center justify-center"
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-          >
-            <div
-              className="w-full max-w-xl p-12 border-2 border-dashed border-gray-600 rounded-2xl bg-gray-800/50 backdrop-blur-sm hover:border-blue-500 hover:bg-gray-800/70 transition-all duration-300 cursor-pointer group"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <div className="flex flex-col items-center gap-6">
-                <div className="p-6 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full group-hover:scale-110 transition-transform duration-300">
-                  <Upload className="w-12 h-12 text-blue-400" />
-                </div>
-                <div className="text-center">
-                  <h2 className="text-xl font-semibold mb-2">Upload a Document</h2>
-                  <p className="text-gray-400">
-                    Drag and drop your file here, or click to browse
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2 justify-center text-sm text-gray-500">
-                  <span className="px-3 py-1 bg-gray-700/50 rounded-full">PDF</span>
-                  <span className="px-3 py-1 bg-gray-700/50 rounded-full">TXT</span>
-                  <span className="px-3 py-1 bg-gray-700/50 rounded-full">DOCX</span>
-                  <span className="px-3 py-1 bg-gray-700/50 rounded-full">XLSX</span>
-                  <span className="px-3 py-1 bg-gray-700/50 rounded-full">CSV</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Powered by Google Gemini AI
-                </p>
+          <div className="grid min-h-[calc(100vh-136px)] items-center gap-10 py-8 lg:grid-cols-[1.02fr_.98fr] lg:gap-16">
+            <section className="mx-auto w-full max-w-2xl">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#cee4d5] bg-white px-3 py-1.5 text-xs font-medium text-[#3b7055] shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-[#4e9a70]" />
+                Private document workspace
               </div>
+              <h2 className="max-w-xl text-4xl font-semibold leading-[1.08] tracking-[-0.055em] text-[#18332d] sm:text-5xl lg:text-6xl">
+                Make your documents
+                <span className="block text-[#4c8a68]">easy to understand.</span>
+              </h2>
+              <p className="mt-6 max-w-xl text-base leading-7 text-[#63756e] sm:text-lg">
+                Bring in a file, get a clear summary, then ask questions with the document as context.
+              </p>
+              <div className="mt-8 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3">
+                {[
+                  [FileText, "Read", "PDFs, docs, sheets"],
+                  [Sparkles, "Summarize", "Find the main ideas"],
+                  [MessageCircle, "Ask", "Explore the details"],
+                ].map(([Icon, title, description]) => {
+                  const StepIcon = Icon as typeof FileText;
+                  return (
+                    <div key={title as string} className="rounded-2xl border border-[#dfe8e2] bg-white/75 p-4">
+                      <StepIcon className="h-4 w-4 text-[#4d8d68]" />
+                      <p className="mt-3 text-sm font-semibold text-[#27453a]">{title as string}</p>
+                      <p className="mt-1 text-xs leading-5 text-[#788981]">{description as string}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section
+              className="mx-auto w-full max-w-xl"
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+            >
               <input
                 ref={fileInputRef}
                 type="file"
@@ -409,270 +424,152 @@ export default function DocReader() {
                 onChange={handleFileUpload}
                 className="hidden"
               />
-            </div>
+              <div className="relative overflow-hidden rounded-[28px] border border-[#cfe1d4] bg-white p-5 shadow-[0_24px_80px_-40px_rgba(33,83,59,0.35)] sm:p-7">
+                <div className="absolute -right-14 -top-20 h-56 w-56 rounded-full bg-[#e4f2e6] blur-2xl" />
+                <div className="relative rounded-[22px] border-2 border-dashed border-[#b8d5c2] bg-[#f8fbf8] px-5 py-10 text-center transition hover:border-[#67a67e] hover:bg-[#f3faf4] sm:px-9 sm:py-14">
+                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-[#e1f0e5] text-[#397b54] shadow-inner">
+                    {isLoading ? <Loader2 className="h-7 w-7 animate-spin" /> : <Upload className="h-7 w-7" />}
+                  </div>
+                  <h3 className="mt-6 text-xl font-semibold tracking-tight text-[#203b31]">
+                    {isLoading ? "Preparing your document…" : "Drop a document to get started"}
+                  </h3>
+                  <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#71827a]">
+                    {isLoading ? "Extracting text and preparing your workspace." : "We’ll extract its text, create a summary, and open a grounded Q&A workspace."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoading}
+                    className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#1f5b43] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#174a36] disabled:cursor-wait disabled:opacity-60"
+                  >
+                    <Upload className="h-4 w-4" /> Choose a file
+                  </button>
+                  <div className="mt-7 flex flex-wrap justify-center gap-2">
+                    {["PDF", "DOCX", "TXT", "XLSX", "CSV"].map((format) => (
+                      <span key={format} className="rounded-lg border border-[#e0e9e2] bg-white px-2.5 py-1 text-[10px] font-semibold tracking-wide text-[#6d7d75]">{format}</span>
+                    ))}
+                  </div>
+                  <p className="mt-5 text-[11px] text-[#8a9991]">Text is extracted in your browser · Gemini helps summarize and answer</p>
+                </div>
+                {error && (
+                  <div className="relative mt-4 flex items-start gap-2 rounded-xl border border-[#f1c9c3] bg-[#fff4f2] p-3 text-sm text-[#a34338]">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <p>{error}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-5 flex items-center justify-center gap-2 text-xs text-[#7d8e85]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#73a785]" />
+                Built for focused, file-based exploration
+              </div>
+            </section>
           </div>
         ) : (
           <>
-            {/* Left Column - Document Preview */}
-            <div className="w-1/3 min-w-[300px] flex flex-col gap-3 overflow-hidden">
-              <div className="flex items-center justify-between bg-gray-800/50 backdrop-blur-sm rounded-xl p-3">
-                <div className="flex items-center gap-2">
-                  {getFileIcon(document.fileType)}
-                  <span className="font-medium text-sm truncate max-w-[140px]">{document.name}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setShowPreview(true)}
-                    className="p-1.5 hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-1 text-xs text-blue-400"
-                    title="Preview document"
-                  >
-                    <Eye className="w-4 h-4" />
-                    <span className="hidden sm:inline">Preview</span>
-                  </button>
-                  <button
-                    onClick={clearDocument}
-                    className="p-1.5 hover:bg-gray-700 rounded-lg transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
+            <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 sm:mb-4">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#759084]">Document workspace</p>
+                <h2 className="mt-1 truncate text-lg font-semibold tracking-tight text-[#203a30]">{document.name}</h2>
               </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full border border-[#cde2d2] bg-[#eaf5ed] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#3a7553]">RAG · Ready</span>
+                <button onClick={clearDocument} className="inline-flex items-center gap-2 rounded-xl border border-[#d6e2da] bg-white px-3 py-2 text-xs font-medium text-[#61746a] transition hover:border-[#c4d7ca] hover:bg-[#f9fcf9] hover:text-[#28533d]">
+                  <X className="h-3.5 w-3.5" /> Replace file
+                </button>
+                <input ref={fileInputRef} type="file" accept=".pdf,.txt,.doc,.docx,.xlsx,.xls,.csv" onChange={handleFileUpload} className="hidden" />
+              </div>
+            </div>
 
-              {/* Document Content Preview */}
-              <div className="flex-1 bg-gray-800/30 backdrop-blur-sm rounded-xl overflow-hidden flex flex-col">
-                <div className="p-3 border-b border-gray-700/50 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {getFileIcon(document.fileType)}
-                    <span className="text-sm text-gray-400">Document Content</span>
+            <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto pb-2 xl:grid-cols-[.94fr_1fr_1.08fr] xl:overflow-hidden xl:pb-0">
+              <section className="flex h-[min(62dvh,560px)] min-h-[360px] flex-col overflow-hidden rounded-2xl border border-[#dce6df] bg-white shadow-[0_8px_28px_-24px_rgba(22,56,40,.38)] xl:h-full xl:min-h-0">
+                <div className="flex items-center justify-between border-b border-[#e6ece8] px-4 py-3.5">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div className="rounded-lg bg-[#e9f3ec] p-2">{getFileIcon(document.fileType)}</div>
+                    <div className="min-w-0"><h3 className="text-sm font-semibold text-[#29473a]">Source document</h3><p className="truncate text-[11px] text-[#8a9991]">{contentLines.length} lines</p></div>
                   </div>
-                  <span className="text-xs text-gray-500">
-                    {contentLines.length} lines
-                  </span>
+                  <button onClick={() => setShowPreview(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-[#46775b] transition hover:bg-[#f0f7f1]" title="Preview document">
+                    <Eye className="h-4 w-4" /><span>Preview</span>
+                  </button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-4">
-                  <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
-                    {displayedContent || "No text content could be extracted from this document."}
-                  </pre>
+                <div className="min-h-0 flex-1 overflow-y-auto bg-[#fbfcfb] p-4 sm:p-5">
+                  <pre className="whitespace-pre-wrap font-mono text-[11px] leading-6 text-[#586c62]">{displayedContent || "No text content could be extracted from this document."}</pre>
                   <div ref={contentEndRef} />
                 </div>
-                {hasMoreContent && (
-                  <div className="p-3 border-t border-gray-700/50">
-                    <button
-                      onClick={() => setShowAllContent(true)}
-                      className="w-full py-2 px-4 bg-gray-700/50 hover:bg-gray-700 rounded-lg text-sm text-gray-300 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <span>Load all content ({contentLines.length - visibleLines} more lines)</span>
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-                {showAllContent && contentLines.length > 50 && (
-                  <div className="p-3 border-t border-gray-700/50">
-                    <button
-                      onClick={() => {
-                        setShowAllContent(false);
-                        setVisibleLines(50);
-                      }}
-                      className="w-full py-2 px-4 bg-gray-700/50 hover:bg-gray-700 rounded-lg text-sm text-gray-300 transition-colors"
-                    >
-                      Show less
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+                {hasMoreContent && <div className="border-t border-[#e6ece8] p-3"><button onClick={() => setShowAllContent(true)} className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#f2f7f3] px-4 py-2.5 text-xs font-medium text-[#4a7159] transition hover:bg-[#e8f2ea]">Load all content ({contentLines.length - visibleLines} more lines)<ChevronDown className="h-4 w-4" /></button></div>}
+                {showAllContent && contentLines.length > 50 && <div className="border-t border-[#e6ece8] p-3"><button onClick={() => { setShowAllContent(false); setVisibleLines(50); }} className="w-full rounded-lg bg-[#f2f7f3] px-4 py-2.5 text-xs font-medium text-[#4a7159] transition hover:bg-[#e8f2ea]">Show less</button></div>}
+              </section>
 
-            {/* Center Column - Summary */}
-            <div className="w-1/3 min-w-[300px] flex flex-col gap-3 overflow-hidden">
-              {/* Summary Section Header with Controls */}
-              <div className="flex items-center gap-2 bg-gray-800/50 backdrop-blur-sm rounded-xl p-3">
-                <Sparkles className="w-5 h-5 text-purple-400" />
-                <span className="font-medium text-sm">AI Summary</span>
-                {summary && (
-                  <div className="ml-auto flex items-center gap-1">
-                    <button
-                      onClick={() => copyToClipboard(summary)}
-                      className="p-1.5 hover:bg-gray-700 rounded-lg transition-colors"
-                      title="Copy summary"
-                    >
-                      {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                    </button>
+              <section className="flex h-[min(62dvh,560px)] min-h-[360px] flex-col overflow-hidden rounded-2xl border border-[#dce6df] bg-white shadow-[0_8px_28px_-24px_rgba(22,56,40,.38)] xl:h-full xl:min-h-0">
+                <div className="flex items-center justify-between border-b border-[#e6ece8] px-4 py-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="rounded-lg bg-[#eff3df] p-2"><Sparkles className="h-4 w-4 text-[#8a8c47]" /></div>
+                    <div><h3 className="text-sm font-semibold text-[#29473a]">AI summary</h3><p className="text-[11px] text-[#8a9991]">Key ideas from this file</p></div>
                   </div>
-                )}
-              </div>
+                  {summary && <button onClick={() => copyToClipboard(summary)} className="rounded-lg p-2 text-[#70857a] transition hover:bg-[#f2f7f3] hover:text-[#356348]" title="Copy summary">{copied ? <Check className="h-4 w-4 text-[#4b9565]" /> : <Copy className="h-4 w-4" />}</button>}
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto bg-white p-5">
+                  {isLoading && !summary ? (
+                    <div className="flex h-full min-h-[250px] flex-col items-center justify-center gap-3"><Loader2 className="h-7 w-7 animate-spin text-[#57916a]" /><p className="text-sm text-[#74867d]">Analyzing document…</p></div>
+                  ) : isSummarizing ? (
+                    <div className="flex h-full min-h-[250px] flex-col items-center justify-center gap-3"><Loader2 className="h-7 w-7 animate-spin text-[#57916a]" /><p className="text-sm text-[#74867d]">Preparing your summary…</p></div>
+                  ) : error ? (
+                    <div className="flex h-full min-h-[250px] flex-col items-center justify-center gap-3 px-5 text-center"><AlertCircle className="h-8 w-8 text-[#bd6758]" /><p className="text-sm leading-6 text-[#9b5145]">{error}</p><button onClick={() => document.content && generateSummary(document.content)} className="rounded-lg bg-[#1f5b43] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#174a36]">Try again</button></div>
+                  ) : summary ? (
+                    <div className="whitespace-pre-wrap text-sm leading-7 text-[#445b50]">{summary}</div>
+                  ) : (
+                    <div className="flex h-full min-h-[250px] flex-col items-center justify-center gap-3 px-5 text-center"><FileQuestion className="h-8 w-8 text-[#9aac9f]" /><p className="text-sm text-[#71847a]">Your summary will appear here.</p></div>
+                  )}
+                </div>
+              </section>
 
-              <div className="flex-1 bg-gray-800/30 backdrop-blur-sm rounded-xl overflow-hidden flex flex-col">
-                {isLoading && !summary ? (
-                  <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
-                    <p className="text-gray-400 text-sm">Analyzing document...</p>
-                  </div>
-                ) : isSummarizing ? (
-                  <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
-                    <p className="text-gray-400 text-sm">Generating summary...</p>
-                  </div>
-                ) : error ? (
-                  <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
-                    <AlertCircle className="w-10 h-10 text-red-400" />
-                    <p className="text-red-400 text-sm text-center">{error}</p>
-                    <button
-                      onClick={() => document.content && generateSummary(document.content)}
-                      className="px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg text-sm transition-colors"
-                    >
-                      Retry
-                    </button>
-                  </div>
-                ) : summary ? (
-                  <div className="overflow-y-auto p-4">
-                    <div className="prose prose-invert prose-sm max-w-none">
-                      <div className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
-                        {summary}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
-                    <FileQuestion className="w-10 h-10 text-gray-500" />
-                    <p className="text-gray-400 text-sm text-center">
-                      Upload a document to generate an AI summary
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Right Column - Chat */}
-            <div className="w-1/3 min-w-[300px] flex flex-col gap-3 overflow-hidden bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700/50">
-              <div className="flex items-center gap-2 p-3 border-b border-gray-700/50">
-                <MessageCircle className="w-5 h-5 text-blue-400" />
-                <span className="font-medium text-sm">Ask Questions</span>
-              </div>
-
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.length === 0 ? (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <MessageCircle className="w-10 h-10 text-gray-500 mx-auto mb-3" />
-                      <p className="text-gray-400 text-sm mb-4">
-                        Ask questions about your document
-                      </p>
-                      <div className="space-y-2">
-                        <p className="text-xs text-gray-500">Try asking:</p>
-                        <div className="flex flex-wrap gap-2 justify-center">
-                          {["What is the main topic?", "Key takeaways?", "Summarize section 1"].map((q) => (
-                            <button
-                              key={q}
-                              onClick={() => setInput(q)}
-                              className="px-3 py-1.5 bg-gray-700/50 hover:bg-gray-700 rounded-full text-xs text-gray-300 transition-colors"
-                            >
-                              {q}
-                            </button>
-                          ))}
+              <section className="flex h-[min(68dvh,600px)] min-h-[400px] flex-col overflow-hidden rounded-2xl border border-[#d5e2d9] bg-white shadow-[0_8px_28px_-24px_rgba(22,56,40,.38)] xl:h-full xl:min-h-0">
+                <div className="flex items-center gap-2.5 border-b border-[#e6ece8] px-4 py-3.5">
+                  <div className="rounded-lg bg-[#e9f3ec] p-2"><MessageCircle className="h-4 w-4 text-[#4a8460]" /></div>
+                  <div><h3 className="text-sm font-semibold text-[#29473a]">Ask this document</h3><p className="text-[11px] text-[#8a9991]">Answers use the uploaded content</p></div>
+                </div>
+                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#fbfcfb] p-4 sm:p-5">
+                  {messages.length === 0 ? (
+                    <div className="flex h-full min-h-[300px] items-center justify-center">
+                      <div className="max-w-sm text-center">
+                        <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#eaf4ec]"><MessageCircle className="h-5 w-5 text-[#4a8460]" /></div>
+                        <p className="mt-4 text-sm font-medium text-[#486054]">What would you like to know?</p>
+                        <p className="mt-1 text-xs leading-5 text-[#8a9991]">Start with one of these or write your own question.</p>
+                        <div className="mt-5 flex flex-wrap justify-center gap-2">
+                          {["What is the main topic?", "What are the key takeaways?", "Summarize section 1"].map((question) => <button key={question} onClick={() => setInput(question)} className="rounded-full border border-[#dce7df] bg-white px-3 py-2 text-[11px] text-[#5a7565] transition hover:border-[#b5d3be] hover:bg-[#f1f8f2]">{question}</button>)}
                         </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  messages.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`flex ${
-                        message.role === "user" ? "justify-end" : "justify-start"
-                      }`}
-                    >
-                      <div
-                        className={`max-w-[90%] p-3 rounded-2xl ${
-                          message.role === "user"
-                            ? "bg-blue-500 text-white rounded-br-md"
-                            : "bg-gray-700 text-gray-100 rounded-bl-md"
-                        }`}
-                      >
-                        <p className="text-xs whitespace-pre-wrap">{message.content}</p>
-                      </div>
+                  ) : messages.map((message, index) => (
+                    <div key={`${message.role}-${index}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[90%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-xs leading-6 ${message.role === "user" ? "rounded-br-md bg-[#1f5b43] text-white" : "rounded-bl-md border border-[#e2eae4] bg-white text-[#4b6255] shadow-sm"}`}>{message.content}</div>
                     </div>
-                  ))
-                )}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-gray-700 p-3 rounded-2xl rounded-bl-md">
-                      <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Input */}
-              <div className="p-3 border-t border-gray-700/50">
-                {error && (
-                  <div className="mb-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-400" />
-                    <p className="text-xs text-red-400">{error}</p>
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Ask a question..."
-                    className="flex-1 bg-gray-700 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 text-sm"
-                    disabled={isLoading}
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!input.trim() || isLoading}
-                    className="p-2.5 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-xl transition-colors"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
+                  ))}
+                  {isLoading && <div className="flex justify-start"><div className="rounded-2xl rounded-bl-md border border-[#e2eae4] bg-white p-3"><Loader2 className="h-4 w-4 animate-spin text-[#57916a]" /></div></div>}
+                  <div ref={messagesEndRef} />
                 </div>
-              </div>
+                <div className="border-t border-[#e6ece8] bg-white p-3 sm:p-4">
+                  {error && <div className="mb-2 flex items-start gap-2 rounded-lg border border-[#f1c9c3] bg-[#fff4f2] p-2.5 text-xs text-[#a34338]"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /><p>{error}</p></div>}
+                  <div className="flex items-center gap-2 rounded-xl border border-[#dce6df] bg-[#fbfcfb] p-1.5 pl-3 transition focus-within:border-[#8eb99a] focus-within:ring-2 focus-within:ring-[#d9ecdd]">
+                    <input type="text" value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={handleKeyDown} placeholder="Ask a question…" className="min-w-0 flex-1 bg-transparent py-2 text-sm text-[#29473a] outline-none placeholder:text-[#9aa9a1]" disabled={isLoading} />
+                    <button onClick={handleSendMessage} disabled={!input.trim() || isLoading} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#1f5b43] text-white transition hover:bg-[#174a36] disabled:cursor-not-allowed disabled:bg-[#c7d5cb]" aria-label="Send question"><Send className="h-4 w-4" /></button>
+                  </div>
+                </div>
+              </section>
             </div>
           </>
         )}
       </div>
 
-      {/* Document Preview Modal */}
       {showPreview && document && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="relative w-[90vw] h-[90vh] bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-700">
-            {/* Modal Header */}
-            <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 bg-gray-900/90 backdrop-blur-sm border-b border-gray-700 z-10">
-              <div className="flex items-center gap-2">
-                {getFileIcon(document.fileType)}
-                <span className="font-medium truncate max-w-md">{document.name}</span>
-              </div>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#10221d]/55 p-3 backdrop-blur-sm sm:p-6">
+          <div className="relative flex h-[92vh] w-[96vw] max-w-6xl flex-col overflow-hidden rounded-2xl border border-[#dce6df] bg-white shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-[#e5ece7] px-4 py-3">
+              <div className="flex min-w-0 items-center gap-2.5">{getFileIcon(document.fileType)}<span className="truncate text-sm font-semibold text-[#29473a]">{document.name}</span></div>
+              <button onClick={() => setShowPreview(false)} className="rounded-lg p-2 text-[#75877d] transition hover:bg-[#f0f6f1] hover:text-[#345c43]" aria-label="Close preview"><X className="h-5 w-5" /></button>
             </div>
-
-            {/* Modal Content */}
-            <div className="pt-16 h-full">
-              {document.fileType === "pdf" ? (
-                <iframe
-                  src={document.url}
-                  className="w-full h-full"
-                  title={document.name}
-                />
-              ) : document.fileType === "xlsx" || document.fileType === "csv" ? (
-                <div className="h-full overflow-auto p-6">
-                  <ExcelPreview content={document.content} isCsv={document.fileType === "csv"} />
-                </div>
-              ) : (
-                <div className="h-full overflow-y-auto p-6">
-                  <pre className="text-sm text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
-                    {document.content}
-                  </pre>
-                </div>
-              )}
+            <div className="min-h-0 flex-1">
+              {document.fileType === "pdf" ? <iframe src={document.url} className="h-full w-full" title={document.name} /> : document.fileType === "xlsx" || document.fileType === "csv" ? <div className="h-full overflow-auto p-4 sm:p-6"><ExcelPreview content={document.content} isCsv={document.fileType === "csv"} /></div> : <div className="h-full overflow-y-auto p-5 sm:p-7"><pre className="whitespace-pre-wrap font-mono text-sm leading-7 text-[#52675c]">{document.content}</pre></div>}
             </div>
           </div>
         </div>
@@ -688,14 +585,14 @@ function ExcelPreview({ content, isCsv = false }: { content: string; isCsv?: boo
     const lines = content.trim().split("\n");
     return (
       <div className="overflow-x-auto">
-        <table className="min-w-full border-collapse border border-gray-600 text-sm">
+        <table className="min-w-full border-collapse border border-[#dce6df] text-sm">
           <tbody>
             {lines.map((line, lineIndex) => (
-              <tr key={lineIndex} className={lineIndex === 0 ? "bg-gray-700 font-semibold" : ""}>
+              <tr key={lineIndex} className={lineIndex === 0 ? "bg-[#eaf3ec] font-semibold" : "odd:bg-white even:bg-[#f8faf8]"}>
                 {parseCSVLine(line).map((cell, cellIndex) => (
                   <td
                     key={cellIndex}
-                    className="border border-gray-600 px-3 py-2 text-gray-200"
+                    className="border border-[#e2eae4] px-3 py-2 text-[#4b6255]"
                   >
                     {cell}
                   </td>
@@ -718,14 +615,14 @@ function ExcelPreview({ content, isCsv = false }: { content: string; isCsv?: boo
           const lines = sheet.trim().split("\n");
           return (
             <div key={index} className="overflow-x-auto">
-              <table className="min-w-full border-collapse border border-gray-600 text-sm">
+              <table className="min-w-full border-collapse border border-[#dce6df] text-sm">
                 <tbody>
                   {lines.map((line, lineIndex) => (
-                    <tr key={lineIndex} className={lineIndex === 0 ? "bg-gray-700 font-semibold" : ""}>
+                    <tr key={lineIndex} className={lineIndex === 0 ? "bg-[#eaf3ec] font-semibold" : "odd:bg-white even:bg-[#f8faf8]"}>
                       {line.split(",").map((cell, cellIndex) => (
                         <td
                           key={cellIndex}
-                          className="border border-gray-600 px-3 py-2 text-gray-200"
+                          className="border border-[#e2eae4] px-3 py-2 text-[#4b6255]"
                         >
                           {cell}
                         </td>

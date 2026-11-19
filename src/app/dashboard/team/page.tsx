@@ -101,7 +101,7 @@ export default function TeamPage() {
           </div>
 
           {/* Team Management Content */}
-          <div className="bg-white rounded-lg shadow-lg">
+          <div className="bg-white rounded-lg shadow-lg p-8">
             <TeamMembersTab />
           </div>
         </div>

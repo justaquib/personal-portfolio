@@ -61,17 +61,17 @@ export const chatbotDataset: QAItem[] = [
     category: "projects"
   },
   
-  // Projects - AI Document Intelligence Workspace
+  // Projects - RAG Document Studio
   {
-    question: "What is AI Document Intelligence Workspace?",
-    answer: "AI Document Intelligence Workspace is an AI-powered document reader supporting PDF, DOCX, XLSX, and CSV files. It features AI summarization and allows you to ask questions about your documents using Gemini AI.",
-    keywords: ["doc reader", "doc-reader", "document", "pdf", "docx", "xlsx", "csv", "read", "upload", "summarize", "ai summary", "ai document intelligence workspace"],
+    question: "What is RAG Document Studio?",
+    answer: "RAG Document Studio is a document workspace supporting PDF, DOCX, XLSX, CSV, and TXT files. It creates AI summaries and lets you ask context-based questions about an uploaded document using Gemini.",
+    keywords: ["doc reader", "doc-reader", "rag document studio", "document", "pdf", "docx", "xlsx", "csv", "read", "upload", "summarize", "ai summary"],
     category: "projects"
   },
   {
-    question: "Tell me about the AI Document Intelligence Workspace prototype",
-    answer: "AI Document Intelligence Workspace uses GPT-Wrapper with Gemini AI integration. It can read PDF, DOCX, XLSX, and CSV files, provide AI summaries, and answer questions about the document content.",
-    keywords: ["doc reader", "doc-reader", "document", "pdf", "ai", "gemini", "summarize", "ai document intelligence workspace"],
+    question: "Tell me about the RAG Document Studio prototype",
+    answer: "RAG Document Studio extracts text from PDF, DOCX, XLSX, CSV, and TXT files, provides AI summaries, and answers questions using the uploaded document as context.",
+    keywords: ["doc reader", "doc-reader", "rag document studio", "document", "pdf", "ai", "gemini", "summarize"],
     category: "projects"
   },
   
@@ -190,13 +190,13 @@ export const chatbotDataset: QAItem[] = [
   // General
   {
     question: "How many projects are on this website?",
-    answer: "There are 10 projects/prototypes on justaquib.com: Hello World, Ping Pong, AI Document Intelligence Workspace, PDF Generator, AI Chatbot, Doodle Predictor, Code Playground, TaskFlow, Mood Journal, and Stock Tracker.",
+    answer: "There are 10 projects/prototypes on justaquib.com: Hello World, Ping Pong, RAG Document Studio, PDF Generator, AI Chatbot, Doodle Predictor, Code Playground, TaskFlow, Mood Journal, and Stock Tracker.",
     keywords: ["how many", "projects", "prototypes", "apps", "demos", "count", "number"],
     category: "general"
   },
   {
     question: "What projects are available?",
-    answer: "The website has 10 projects: Hello World (animation), Ping Pong (game), AI Document Intelligence Workspace (AI document), PDF Generator (conversion), AI Chatbot (NLP), Doodle Predictor (ML), Code Playground (editor), TaskFlow (task management), Mood Journal (tracking), and Stock Tracker (finance).",
+    answer: "The website has 10 projects: Hello World (animation), Ping Pong (game), RAG Document Studio (document Q&A), PDF Generator (conversion), AI Chatbot (NLP), Doodle Predictor (ML), Code Playground (editor), TaskFlow (task management), Mood Journal (tracking), and Stock Tracker (finance).",
     keywords: ["projects", "prototypes", "apps", "demos", "available", "list", "what"],
     category: "general"
   },
@@ -228,7 +228,7 @@ export const chatbotDataset: QAItem[] = [
   },
   {
     question: "Help",
-    answer: "I can help you learn about justaquib.com! Ask me about:\n\n• Aquib Shahbaz (who he is, his background, interests)\n• Any of the 10 projects (Hello World, Ping Pong, AI Document Intelligence Workspace, PDF Generator, AI Chatbot, Doodle Predictor, Code Playground, TaskFlow, Mood Journal, Stock Tracker)\n• The tech stack used on this website\n• How to contact Aquib\n\nWhat would you like to know?",
+    answer: "I can help you learn about justaquib.com! Ask me about:\n\n• Aquib Shahbaz (who he is, his background, interests)\n• Any of the 10 projects (Hello World, Ping Pong, RAG Document Studio, PDF Generator, AI Chatbot, Doodle Predictor, Code Playground, TaskFlow, Mood Journal, Stock Tracker)\n• The tech stack used on this website\n• How to contact Aquib\n\nWhat would you like to know?",
     keywords: ["help", "help me", "what can you do", "commands", "features", "assist", "support"],
     category: "help"
   }

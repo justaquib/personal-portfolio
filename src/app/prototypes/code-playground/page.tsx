@@ -22,7 +22,8 @@ import {
   Info,
   Loader2,
   Database,
-  TerminalSquare
+  TerminalSquare,
+  Plus,
 } from 'lucide-react';
 
 // Default code templates
@@ -208,8 +209,46 @@ UPDATE users SET age = 30 WHERE name = 'John Doe';
 SELECT * FROM users;`
 };
 
+const defaultReactCode = `function App() {
+  const [count, setCount] = React.useState(0);
+
+  return (
+    <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
+      <section className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl">
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-cyan-300">
+          React + Tailwind
+        </p>
+        <h1 className="mt-4 text-4xl font-bold tracking-tight">Your sandbox is ready.</h1>
+        <p className="mt-3 text-slate-300">
+          Edit this component, use Tailwind classes, then press Run.
+        </p>
+        <button
+          onClick={() => setCount((value) => value + 1)}
+          className="mt-7 rounded-xl bg-cyan-300 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-200"
+        >
+          Clicked {count} times
+        </button>
+      </section>
+    </main>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);`;
+
+interface ReactProject {
+  id: string;
+  name: string;
+  files: Record<string, string>;
+}
+
+const initialReactProjects: ReactProject[] = [
+  { id: 'starter', name: 'React Starter', files: { 'App.jsx': defaultReactCode } },
+];
+
 // Tab configuration
 const tabs = [
+  { id: 'react', label: 'React', icon: Code2, language: 'javascript' },
   { id: 'html', label: 'HTML', icon: FileType, language: 'html' },
   { id: 'css', label: 'CSS', icon: FileCode, language: 'css' },
   { id: 'javascript', label: 'JavaScript', icon: Braces, language: 'javascript' },
@@ -232,8 +271,12 @@ const backendLanguages = ['php', 'python', 'sql'];
 export default function CodePlayground() {
   // State management
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('html');
+  const [activeTab, setActiveTab] = useState('react');
   const [codes, setCodes] = useState(defaultCodes);
+  const [reactProjects, setReactProjects] = useState<ReactProject[]>(initialReactProjects);
+  const [activeReactProjectId, setActiveReactProjectId] = useState('starter');
+  const [activeReactFilePath, setActiveReactFilePath] = useState('App.jsx');
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [consoleLogs, setConsoleLogs] = useState<ConsoleLog[]>([]);
   const [isConsoleOpen, setIsConsoleOpen] = useState(true);
   const [isConsoleMinimized, setIsConsoleMinimized] = useState(false);
@@ -241,6 +284,7 @@ export default function CodePlayground() {
   const [splitPosition, setSplitPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const [backendOutput, setBackendOutput] = useState<string>('');
+  const activeReactProject = reactProjects.find(project => project.id === activeReactProjectId) || reactProjects[0];
   
   // Get prototype details from JSON
   const prototype = prototypeLists.find(p => p.slug === 'code-playground');
@@ -249,6 +293,47 @@ export default function CodePlayground() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const dragRef = useRef<{ startX: number; startPos: number } | null>(null);
   const logIdRef = useRef(0);
+
+  useEffect(() => {
+    try {
+      const savedProjects = window.localStorage.getItem('justaquib-react-sandbox-projects');
+      if (savedProjects) {
+        const parsed = JSON.parse(savedProjects) as Array<ReactProject & { code?: string }>;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const normalizedProjects = parsed
+            .filter(project => typeof project.id === 'string' && typeof project.name === 'string')
+            .map(project => {
+              if (project.files && typeof project.files === 'object' && Object.values(project.files).every(file => typeof file === 'string')) {
+                return { id: project.id, name: project.name, files: project.files };
+              }
+              if (typeof project.code === 'string') {
+                return { id: project.id, name: project.name, files: { 'App.jsx': project.code } };
+              }
+              return null;
+            })
+            .filter((project): project is ReactProject => project !== null);
+          if (normalizedProjects.length > 0) {
+            setReactProjects(normalizedProjects);
+            setActiveReactProjectId(normalizedProjects[0].id);
+            setActiveReactFilePath('App.jsx');
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Could not load saved React sandbox projects', error);
+    } finally {
+      setProjectsLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!projectsLoaded) return;
+    try {
+      window.localStorage.setItem('justaquib-react-sandbox-projects', JSON.stringify(reactProjects));
+    } catch (error) {
+      console.warn('Could not save React sandbox projects', error);
+    }
+  }, [projectsLoaded, reactProjects]);
 
   // Add console log
   const addLog = useCallback((type: ConsoleLog['type'], message: string) => {
@@ -269,9 +354,193 @@ export default function CodePlayground() {
   // Handle code change
   const handleCodeChange = useCallback((value: string | undefined) => {
     if (value !== undefined) {
-      setCodes(prev => ({ ...prev, [activeTab]: value }));
+      if (activeTab === 'react' && activeReactProject) {
+        setReactProjects(prev => prev.map(project => project.id === activeReactProject.id
+          ? { ...project, files: { ...project.files, [activeReactFilePath]: value } }
+          : project));
+      } else {
+        setCodes(prev => ({ ...prev, [activeTab]: value }));
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, activeReactProject, activeReactFilePath]);
+
+  const createReactProject = useCallback(() => {
+    const projectName = window.prompt('Name your React project');
+    const name = projectName?.trim();
+    if (!name) return;
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const project: ReactProject = { id, name, files: { 'App.jsx': defaultReactCode } };
+    setReactProjects(prev => [...prev, project]);
+    setActiveReactProjectId(id);
+    setActiveReactFilePath('App.jsx');
+    setActiveTab('react');
+    setBackendOutput('');
+    addLog('info', `Created React project: ${name}`);
+  }, [addLog]);
+
+  const createReactComponent = useCallback(() => {
+    if (!activeReactProject) return;
+    const input = window.prompt('Name your component (for example: ProfileCard)');
+    const componentName = input?.trim().replace(/[^A-Za-z0-9_$]/g, '');
+    if (!componentName) return;
+    const normalizedName = componentName[0].toUpperCase() + componentName.slice(1);
+    const filePath = `components/${normalizedName}.jsx`;
+    if (activeReactProject.files[filePath]) {
+      addLog('warn', `${filePath} already exists`);
+      setActiveReactFilePath(filePath);
+      return;
+    }
+    const componentCode = `const items = ['First item', 'Second item', 'Third item'];
+
+export default function ${normalizedName}() {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-xl font-semibold text-slate-900">${normalizedName}</h2>
+      <ul className="mt-4 space-y-2">
+        {items.map((item) => (
+          <li key={item} className="rounded-lg bg-slate-100 px-3 py-2 text-slate-700">
+            {item}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}`;
+    setReactProjects(prev => prev.map(project => project.id === activeReactProject.id
+      ? { ...project, files: { ...project.files, [filePath]: componentCode } }
+      : project));
+    setActiveReactFilePath(filePath);
+    addLog('info', `Created ${filePath}. Import it in App.jsx with: import ${normalizedName} from './${filePath.replace(/\.jsx$/, '')}'`);
+  }, [activeReactProject, addLog]);
+
+  const generateReactPreviewHTML = useCallback(() => {
+    const projectFiles = activeReactProject?.files || { 'App.jsx': defaultReactCode };
+    const serializedFiles = JSON.stringify(projectFiles).replace(/</g, '\\u003c');
+    return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${activeReactProject?.name || 'React Sandbox'}</title>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+  <style>html,body,#root{min-height:100%;margin:0}body{font-family:Inter,ui-sans-serif,system-ui,sans-serif}</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    (() => {
+      ['log','error','warn','info'].forEach((type) => {
+        const original = console[type].bind(console);
+        console[type] = (...args) => {
+          original(...args);
+          const message = args.map((arg) => typeof arg === 'string' ? arg : (() => { try { return JSON.stringify(arg); } catch { return String(arg); } })()).join(' ');
+          parent.postMessage({ type: 'console', logType: type, message }, '*');
+        };
+      });
+      window.onerror = (message, url, line) => {
+        parent.postMessage({ type: 'console', logType: 'error', message: String(message) + ' (line ' + line + ')' }, '*');
+      };
+      window.addEventListener('unhandledrejection', (event) => {
+        parent.postMessage({ type: 'console', logType: 'error', message: String(event.reason) }, '*');
+      });
+      window.addEventListener('load', () => {
+        if (!window.React || !window.ReactDOM || !window.Babel) {
+          parent.postMessage({ type: 'console', logType: 'error', message: 'React, Babel, or Tailwind CDN could not load. Check your internet connection and run again.' }, '*');
+        }
+      });
+    })();
+  <\/script>
+  <script>
+    (() => {
+      const projectFiles = ${serializedFiles};
+      try {
+        const modulePlugin = ['transform-modules-commonjs', 'transform-commonjs']
+          .find((pluginName) => Babel.availablePlugins[pluginName]);
+        const transformOptions = modulePlugin
+          ? { presets: ['react'], plugins: [modulePlugin] }
+          : { presets: [['env', { modules: 'commonjs' }], 'react'] };
+        const moduleCache = new Map();
+        const resolveExternalModule = (specifier) => {
+          if (specifier === 'react') return React;
+          if (specifier === 'react/jsx-runtime' || specifier === 'react/jsx-dev-runtime') {
+            const createJsxElement = (type, props, key, isStaticChildren = false) => {
+              const elementProps = { ...(props || {}) };
+              const children = elementProps.children;
+              delete elementProps.children;
+              if (key !== undefined) elementProps.key = key;
+              if (isStaticChildren && Array.isArray(children)) {
+                return React.createElement(type, elementProps, ...children);
+              }
+              return children === undefined
+                ? React.createElement(type, elementProps)
+                : React.createElement(type, elementProps, children);
+            };
+            return {
+              jsx: (type, props, key) => createJsxElement(type, props, key),
+              jsxs: (type, props, key) => createJsxElement(type, props, key, true),
+              jsxDEV: (type, props, key, isStaticChildren) => createJsxElement(type, props, key, isStaticChildren),
+              Fragment: React.Fragment,
+            };
+          }
+          if (specifier === 'react-dom') return ReactDOM;
+          if (specifier === 'react-dom/client') return { createRoot: ReactDOM.createRoot, hydrateRoot: ReactDOM.hydrateRoot };
+          if (specifier.endsWith('.css')) return {};
+          throw new Error('Cannot load "' + specifier + '" in this sandbox. Third-party npm packages are not installed.');
+        };
+        const normalizePath = (path) => {
+          const parts = [];
+          path.split('/').forEach((part) => {
+            if (!part || part === '.') return;
+            if (part === '..') parts.pop();
+            else parts.push(part);
+          });
+          return parts.join('/');
+        };
+        const resolveLocalModule = (fromPath, specifier) => {
+          const directory = fromPath.includes('/') ? fromPath.slice(0, fromPath.lastIndexOf('/')) : '';
+          const basePath = normalizePath((directory ? directory + '/' : '') + specifier);
+          const candidates = [basePath, basePath + '.jsx', basePath + '.js', basePath + '.tsx', basePath + '/index.jsx', basePath + '/index.js'];
+          const match = candidates.find((candidate) => Object.prototype.hasOwnProperty.call(projectFiles, candidate));
+          if (!match) throw new Error('Cannot find project component "' + specifier + '" imported by ' + fromPath + '.');
+          return match;
+        };
+        const loadProjectModule = (path) => {
+          if (moduleCache.has(path)) return moduleCache.get(path).exports;
+          const source = projectFiles[path];
+          if (typeof source !== 'string') throw new Error('Project file "' + path + '" was not found.');
+          const compiled = Babel.transform(source, transformOptions).code;
+          const module = { exports: {} };
+          moduleCache.set(path, module);
+          const localRequire = (specifier) => specifier.startsWith('.')
+            ? loadProjectModule(resolveLocalModule(path, specifier))
+            : resolveExternalModule(specifier);
+          new Function(
+            'require', 'module', 'exports', 'React', 'ReactDOM',
+            compiled + '\\n;module.exports.__sandboxApp = typeof App !== "undefined" ? App : null;'
+          )(localRequire, module, module.exports, React, ReactDOM);
+          return module.exports;
+        };
+        const entryPath = projectFiles['App.jsx'] ? 'App.jsx' : Object.keys(projectFiles)[0];
+        if (!entryPath) throw new Error('This React project has no files yet.');
+        const appSource = projectFiles[entryPath];
+        const alreadyMounted = /\\b(?:ReactDOM\\s*\\.\\s*createRoot|createRoot)\\s*\\(/.test(appSource) && /\\.render\\s*\\(/.test(appSource);
+        const moduleExports = loadProjectModule(entryPath);
+        const app = moduleExports.default || moduleExports.App || moduleExports.__sandboxApp;
+        if (!alreadyMounted) {
+          if (typeof app !== 'function') throw new Error('Add an App component, or call createRoot(...).render(...) in your code.');
+          ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(app));
+        }
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+      }
+    })();
+  <\/script>
+</body>
+</html>`;
+  }, [activeReactProject]);
 
   // Generate combined HTML for iframe
   const generatePreviewHTML = useCallback(() => {
@@ -416,6 +685,11 @@ export default function CodePlayground() {
     
     if (backendLanguages.includes(activeTab)) {
       runBackendCode();
+    } else if (activeTab === 'react') {
+      if (iframeRef.current) {
+        iframeRef.current.srcdoc = generateReactPreviewHTML();
+      }
+      addLog('info', `Running ${activeReactProject?.name || 'React project'} with Tailwind CSS`);
     } else {
       // Run frontend code
       const previewHTML = generatePreviewHTML();
@@ -426,20 +700,30 @@ export default function CodePlayground() {
         addLog('log', 'Frontend code rendered successfully');
       }, 100);
     }
-  }, [activeTab, generatePreviewHTML, runBackendCode, clearConsole, addLog]);
+  }, [activeTab, activeReactProject, generatePreviewHTML, generateReactPreviewHTML, runBackendCode, clearConsole, addLog]);
 
   // Reset code
   const resetCode = useCallback(() => {
-    setCodes(defaultCodes);
+    if (activeTab === 'react' && activeReactProject) {
+      const componentName = activeReactFilePath.split('/').pop()?.replace(/\.(jsx|js|tsx)$/, '') || 'NewComponent';
+      const resetValue = activeReactFilePath === 'App.jsx'
+        ? defaultReactCode
+        : `export default function ${componentName}() {\n  return (\n    <section className="rounded-xl bg-white p-6 text-slate-900 shadow-sm">\n      <h2 className="text-xl font-semibold">${componentName}</h2>\n      <p className="mt-2 text-slate-600">Build this component with Tailwind CSS.</p>\n    </section>\n  );\n}`;
+      setReactProjects(prev => prev.map(project => project.id === activeReactProject.id
+        ? { ...project, files: { ...project.files, [activeReactFilePath]: resetValue } }
+        : project));
+    } else {
+      setCodes(defaultCodes);
+    }
     setBackendOutput('');
     clearConsole();
     addLog('info', 'Code reset to default');
-  }, [clearConsole, addLog]);
+  }, [activeTab, activeReactProject, activeReactFilePath, clearConsole, addLog]);
 
   // Listen for console messages from iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'console') {
+      if (event.source === iframeRef.current?.contentWindow && event.data && event.data.type === 'console') {
         addLog(event.data.logType, event.data.message);
       }
     };
@@ -547,6 +831,7 @@ export default function CodePlayground() {
       case 'php': return 'PHP Output';
       case 'python': return 'Python Output';
       case 'sql': return 'SQL Results';
+      case 'react': return 'React + Tailwind Preview';
       default: return 'Live Preview';
     }
   };
@@ -575,9 +860,9 @@ export default function CodePlayground() {
             {isRunning ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Play className="w-4 h-4" />
+              <Play className="w-4 h-4 text-white" />
             )}
-            <span>Run</span>
+            <span className="text-sm font-medium text-white">Run</span>
           </button>
           <button
             onClick={resetCode}
@@ -637,12 +922,56 @@ export default function CodePlayground() {
             })}
           </div>
 
+          {activeTab === 'react' && (
+            <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-[#1b1b1b] border-b border-[#2a2a2a]">
+              <select
+                value={activeReactProject?.id || ''}
+                onChange={(event) => {
+                  setActiveReactProjectId(event.target.value);
+                  setActiveReactFilePath('App.jsx');
+                }}
+                className="min-w-0 max-w-52 rounded-md border border-[#353535] bg-[#242424] px-3 py-1.5 text-sm text-gray-200 outline-none focus:border-cyan-400"
+                aria-label="Select React project"
+              >
+                {reactProjects.map(project => (
+                  <option key={project.id} value={project.id}>{project.name}</option>
+                ))}
+              </select>
+              <select
+                value={activeReactFilePath}
+                onChange={(event) => setActiveReactFilePath(event.target.value)}
+                className="min-w-0 max-w-52 rounded-md border border-[#353535] bg-[#242424] px-3 py-1.5 text-sm text-gray-200 outline-none focus:border-cyan-400"
+                aria-label="Select project file"
+              >
+                {Object.keys(activeReactProject?.files || {}).sort((a, b) => a === 'App.jsx' ? -1 : b === 'App.jsx' ? 1 : a.localeCompare(b)).map(path => (
+                  <option key={path} value={path}>{path}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={createReactProject}
+                className="flex items-center gap-1.5 rounded-md border border-[#3a3a3a] px-2.5 py-1.5 text-xs text-gray-200 transition-colors hover:border-cyan-400 hover:text-cyan-300"
+              >
+                <Plus className="h-3.5 w-3.5" /> New React project
+              </button>
+              <button
+                type="button"
+                onClick={createReactComponent}
+                disabled={!activeReactProject}
+                className="flex items-center gap-1.5 rounded-md border border-[#3a3a3a] px-2.5 py-1.5 text-xs text-gray-200 transition-colors hover:border-cyan-400 hover:text-cyan-300 disabled:opacity-40"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add component
+              </button>
+              <span className="ml-auto text-[11px] text-gray-500">{activeReactFilePath} · auto-saved · React 18 + Tailwind</span>
+            </div>
+          )}
+
           {/* Monaco Editor */}
           <div className="flex-1 overflow-hidden">
             <Editor
               height="100%"
               language={tabs.find(t => t.id === activeTab)?.language || 'html'}
-              value={codes[activeTab as keyof typeof codes]}
+              value={activeTab === 'react' ? (activeReactProject?.files[activeReactFilePath] || defaultReactCode) : codes[activeTab as keyof typeof codes]}
               onChange={handleCodeChange}
               theme="vs-dark"
               options={{
@@ -703,7 +1032,7 @@ export default function CodePlayground() {
               title="Preview"
               sandbox="allow-scripts allow-modals"
               className="w-full h-full border-0"
-              srcDoc={backendLanguages.includes(activeTab) ? generateBackendOutputHTML() : generatePreviewHTML()}
+              srcDoc={activeTab === 'react' ? undefined : backendLanguages.includes(activeTab) ? generateBackendOutputHTML() : generatePreviewHTML()}
             />
           </div>
         </div>

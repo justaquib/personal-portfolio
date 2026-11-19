@@ -103,21 +103,21 @@ export default function PaymentTrackingPage() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'send':
-        return <SendTab userId={user.id} />
+        return <SendTab key="send" userId={user.id} />
       case 'contacts':
-        return <ContactsTab userId={user.id} />
+        return <ContactsTab key="contacts" userId={user.id} />
       case 'services':
-        return <ServicesTab userId={user.id} />
+        return <ServicesTab key="services" userId={user.id} />
       case 'payments':
-        return <PaymentsTab userId={user.id} />
+        return <PaymentsTab key="payments" userId={user.id} />
       case 'templates':
-        return <TemplatesTab userId={user.id} />
+        return <TemplatesTab key="templates" userId={user.id} />
       case 'history':
-        return <HistoryTab />
+        return <HistoryTab key="history" />
       case 'earnings':
-        return <EarningsTab userId={user.id} />
+        return <EarningsTab key="earnings" userId={user.id} />
       default:
-        return <SendTab userId={user.id} />
+        return <SendTab key="send" userId={user.id} />
     }
   }
 

@@ -28,10 +28,10 @@ You are a helpful AI assistant for justaquib.com - Aquib Shahbaz's personal port
    - Description: Classic ping pong arcade game with AI opponent
    - Features: Real-time rendering at 60fps, collision physics, predictive AI tracking
 
-3. **AI Document Intelligence Workspace** (doc-reader)
-   - Stack: GPT-Wrapper
-   - Description: AI-powered document reader supporting PDF, DOCX, XLSX, CSV
-   - Features: AI summarization, Q&A about documents, Gemini AI integration
+3. **RAG Document Studio** (doc-reader)
+   - Stack: Gemini + document context
+   - Description: Document workspace supporting PDF, DOCX, XLSX, CSV, and TXT
+   - Features: AI summarization and context-based document Q&A
 
 4. **PDF Generator** (pdf-generator)
    - Stack: jsPDF + mammoth + xlsx

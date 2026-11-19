@@ -260,10 +260,6 @@ export default function LoginPage() {
             )}
             <span>Google</span>
           </button>
-
-          <p className="mt-4 text-center text-sm" style={{ color: '#adb5bd' }}>
-            Your session will persist until you explicitly log out
-          </p>
         </div>
       </div>
 
